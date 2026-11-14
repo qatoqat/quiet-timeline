@@ -14,6 +14,7 @@
 // A check passes, fails, or is skipped (nothing on the page to check it against). Exit 1 if any failed.
 import { readFileSync } from 'node:fs';
 import { ACTIONS, DEFAULTS, MASK, MEDIA, NAV_ITEMS } from '../src/shared/defaults';
+import { PRESETS } from '../src/theme/color';
 import { kit, offChecks } from './checks/kit';
 import { pageChecks } from './checks/page';
 import { postChecks } from './checks/posts';
@@ -54,7 +55,7 @@ if (!ctx) {
 type Result = [name: string, status: string, detail: string];
 const run = async (S: any, deep: boolean): Promise<Result[]> =>
   ev(`(async () => {
-    const K = (${kit})(${JSON.stringify(S)}, ${JSON.stringify(NAV_ITEMS)});
+    const K = (${kit})(${JSON.stringify(S)}, ${JSON.stringify(NAV_ITEMS)}, ${JSON.stringify(S.theme.preset === 'off' ? null : S.theme.preset === 'custom' ? S.theme.custom : PRESETS[S.theme.preset])});
     if (!K.S.enabled) (${offChecks})(K);
     else { await (${postChecks})(K); await (${pageChecks})(K, ${deep}); }
     return [['app', 'info', (K.OLD ? 'old' : 'new') + ' app at ' + location.pathname], ...K.out];

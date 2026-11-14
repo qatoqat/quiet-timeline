@@ -1,5 +1,5 @@
 import type { Settings } from '../shared/defaults';
-import { KEYS, PRESETS, lum, makeMapper, parseColor, remap, remapDecls, type Mapper } from './color';
+import { KEYS, PRESETS, lum, makeMapper, parseColor, remapDecls, type Mapper } from './color';
 import { CACHE, calmBrand, pageAccent, putStyle, refreshVars, setButtonAccent, sig, softened, themeShadows, ts, varStyle } from './vars';
 
 let mapper: Mapper | null = null;
@@ -72,7 +72,8 @@ function processEl(el: Element): void {
     if (!cur.includes('rgb')) return;
     rec = [cur, cur];
   }
-  const next = mapper ? remap(rec[0], mapper) : rec[0];
+  // per declaration, custom properties left alone: never our own --xs-* variables on <html>
+  const next = mapper ? remapDecls(rec[0], mapper) : rec[0];
   rec[1] = next;
   origEl.set(el, rec);
   if (cur !== next) el.setAttribute('style', next);

@@ -1,5 +1,6 @@
 // Runs in the page (stringified by check.ts): what every check group shares.
-export function kit(S: any, NAV: [string, string, string][]) {
+// PAL: the chosen theme's palette (null for X default)
+export function kit(S: any, NAV: [string, string, string][], PAL: Record<string, string> | null) {
   const out: [string, string, string][] = [];
   // ok: true = pass, false = fail, null/undefined = skip (setting off, or nothing to check on this page)
   const add = (name: string, ok: boolean | null | undefined, detail = '') => out.push([name, ok == null ? 'skip' : ok ? 'pass' : 'fail', detail]);
@@ -28,7 +29,7 @@ export function kit(S: any, NAV: [string, string, string][]) {
   const html = document.documentElement;
   const accent = (name: string) => rgb(cs(html).getPropertyValue(name).trim());
   const page = location.pathname;
-  return { S, D: S.declutter, NAV, out, add, cs, box, visible, all, anyVisible, shown, transparent, rgb, mid, OLD, POST, roots, article, avatar, bookmark, share, html, accent, page, onHome: page === '/home' };
+  return { S, D: S.declutter, NAV, PAL, out, add, cs, box, visible, all, anyVisible, shown, transparent, rgb, mid, OLD, POST, roots, article, avatar, bookmark, share, html, accent, page, onHome: page === '/home' };
 }
 export type Kit = ReturnType<typeof kit>;
 

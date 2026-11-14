@@ -60,7 +60,8 @@ function globalTasks() {
   if (st.S.declutter.upsells) hideUpsellCallouts();
   // the page's own background (old app: the solid top bar without a theme)
   const bg = getComputedStyle(document.body).backgroundColor;
-  if (!/^transparent$|,\s*0\)$/.test(bg)) document.documentElement.style.setProperty('--qt-page-bg', bg);
+  const rs = document.documentElement.style;
+  if (!/^transparent$|,\s*0\)$/.test(bg) && rs.getPropertyValue('--qt-page-bg') !== bg) rs.setProperty('--qt-page-bg', bg);
   navTooltips();
   outlineChecks();
   // X's share button has no tooltip; give it its own (translated) label

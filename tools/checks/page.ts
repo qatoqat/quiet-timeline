@@ -2,10 +2,16 @@ import type { Kit } from './kit';
 
 // Runs in the page: what each page-level setting promises, on and off.
 export async function pageChecks(K: Kit, deep: boolean) {
-  const { S, D, NAV, add, all, anyVisible, shown, box, cs, visible, transparent, mid, OLD, POST, html, accent, page } = K;
+  const { S, D, NAV, PAL, add, all, anyVisible, shown, box, cs, visible, transparent, mid, OLD, POST, html, accent, page } = K;
   const T = S.theme;
   const themed = T.preset !== 'off';
   add('theme applied', themed ? html.hasAttribute('data-xs-theme') : !html.hasAttribute('data-xs-theme'), T.preset);
+  // the page's theme colors are exactly the chosen palette (nothing recolors our own variables)
+  if (PAL) {
+    const v = (k: string) => cs(html).getPropertyValue(`--xs-${k}`).trim().toLowerCase();
+    const off = ['bg', 'surface', 'border', 'muted', 'text'].filter((k) => v(k) !== PAL[k].toLowerCase());
+    add('theme colors as chosen', !off.length, off.map((k) => `${k} ${v(k)} ≠ ${PAL[k]}`).join(', '));
+  }
   const font = cs(document.body).fontFamily;
   add(`font: ${T.font}`, T.font === 'system' ? /^system-ui/.test(font) : !/^system-ui/.test(font), font.slice(0, 30));
 
