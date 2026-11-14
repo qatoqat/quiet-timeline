@@ -40,6 +40,7 @@
       accentColor: '#8b7cf6',
       accentPost: false, // Post buttons in the accent color
       accentFollow: false, // Follow buttons in the accent color
+      accentTabs: false, // active tab underline (For you / Following…) in the accent color
       custom: {
         bg: '#121316',
         surface: '#1b1d22',

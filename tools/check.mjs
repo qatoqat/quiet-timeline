@@ -61,8 +61,15 @@ if (flag('--old')) {
   await send('Page.navigate', { url: `https://x.com${opt('--url')}` });
   await sleep(9000);
 }
-// let lazily rendered posts and the extension settle; scroll a little
-await evaluate('(async () => { for (let i = 0; i < 3; i++) { scrollBy(0, 900); await new Promise((r) => setTimeout(r, 700)); } scrollTo(0, 0); await new Promise((r) => setTimeout(r, 1200)); })()');
+// let lazily rendered posts and the extension settle (a background tab renders
+// slowly): wait until posts have their action bars, scroll a little
+await evaluate(`(async () => {
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  for (let i = 0; i < 40 && !document.querySelector('article [role="group"] :is([data-testid="bookmark"], [data-engagement-action="bookmark"])') && document.querySelector('article'); i++) await wait(250);
+  for (let i = 0; i < 3; i++) { scrollBy(0, 900); await wait(700); }
+  scrollTo(0, 0);
+  await wait(1500);
+})()`);
 
 const ctx = await extContext();
 if (!ctx) {
@@ -218,6 +225,7 @@ const checks = async (S) => {
   for (const [key, label, sel] of [
     ['accentPost', 'Post button in accent', "a[aria-label='Post'][href='/compose/post'], [data-testid='SideNav_NewTweet_Button']"],
     ['accentFollow', 'Follow buttons in accent', "button[aria-label^='Follow @'], [data-testid$='-follow']"],
+    ['accentTabs', 'tab underline in accent', "span[class*='w-(--active-tab-width)'], [role='tablist'] [role='tab'][aria-selected='true'] div[style*='background-color']"],
   ]) {
     const el = [...document.querySelectorAll(sel)].find(visible);
     add(label, S.theme[key] && el && S.theme.preset !== 'off' ? cs(el).backgroundColor === accentRgb : null, el ? `${cs(el).backgroundColor} vs ${accentRgb}` : '');

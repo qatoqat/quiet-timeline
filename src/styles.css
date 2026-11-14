@@ -748,3 +748,9 @@ html[data-xs-accent-post][data-xs-accent-post] :is(a[aria-label='Post'][href='/c
 html[data-xs-accent-follow][data-xs-accent-follow] :is(button[aria-label^='Follow @'], [data-testid$='-follow']):hover {
   background-color: color-mix(in srgb, var(--qt-accent, var(--xs-accent)) 85%, var(--qt-on-accent, #fff)) !important;
 }
+
+/* active tab underline (For you / Following, profile tabs…) in the accent */
+html[data-xs-accent-tabs] span[class*='w-(--active-tab-width)'],
+html[data-xs-accent-tabs] [role='tablist'] [role='tab'] div[style*='background-color'] {
+  background-color: var(--qt-accent, var(--xs-accent)) !important;
+}

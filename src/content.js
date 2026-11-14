@@ -777,7 +777,7 @@
     const ar = article.getBoundingClientRect();
     const blocks = old
       ? [...article.querySelectorAll(`.r-1867qdf, ${OLD_QUOTE}`)].filter((el) => !el.closest('[role="group"]') && !el.parentElement.closest(OLD_QUOTE))
-      : [...article.querySelectorAll('div.rounded-md.overflow-hidden, ' + POST)].filter(
+      : [...article.querySelectorAll('div.rounded-md.overflow-hidden, ' + NEW_POST)].filter(
           (el) => el !== root && !el.closest('[role="group"]') && el.parentElement.closest(POST) === root,
         );
     const firstBlock = blocks.map((el) => Math.round(el.getBoundingClientRect().top - ar.top)).sort((x, y) => x - y)[0];
@@ -1145,19 +1145,26 @@
 
   // "Not interested" button: open the post's ⋯ menu and pick X's own item
   // (found by its icon, so it works in any language).
-  window.addEventListener(
-    'click',
-    async (e) => {
-      const btn = e.target.closest && e.target.closest('.xs-ni');
-      if (!btn) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
+  // Runs on release (pointerup): X re-renders the action bar on press, which
+  // can swallow the click event. Keyboard activation (Enter/Space) still arrives
+  // as a click with no pointer.
+  let niBusy = false;
+  const niTarget = (e) => e.target.closest && e.target.closest('.xs-ni');
+  for (const type of ['pointerdown', 'mousedown']) {
+    window.addEventListener(type, (e) => niTarget(e) && e.stopImmediatePropagation(), true); // keep X's press handling out
+  }
+  window.addEventListener('pointerup', (e) => { const b = niTarget(e); if (b && e.button === 0) { e.preventDefault(); e.stopImmediatePropagation(); notInterested(b); } }, true);
+  window.addEventListener('click', (e) => { const b = niTarget(e); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); if (e.detail === 0) notInterested(b); }, true);
+  async function notInterested(btn) {
+      if (niBusy) return;
+      niBusy = true;
+      setTimeout(() => (niBusy = false), 1500);
       const article = btn.closest('article');
       const old = article.matches(OLD_POST);
       const more = old
         ? [...article.querySelectorAll('[data-testid="caret"]')].find((b) => !b.closest(OLD_QUOTE))
         : [...article.querySelectorAll('button[aria-haspopup="menu"]:not([data-engagement-action])')].find(
-            (b) => !b.closest('[role="group"]') && !b.closest(POST + ' ' + POST),
+            (b) => !b.closest('[role="group"]') && !b.closest(NEW_POST + ' ' + NEW_POST),
           );
       if (!more) return;
       // Keep the menu invisible while we use it (it still opens and loads normally).
@@ -1166,7 +1173,8 @@
       const done = () => setTimeout(() => html.removeAttribute('data-xs-menu-busy'), 400);
       more.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
       more.click();
-      for (let i = 0; i < 20; i++) {
+      // the first menu after a page load can take a while (X loads its code then)
+      for (let i = 0; i < 80; i++) {
         await new Promise((r) => setTimeout(r, 50));
         const item = [...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find((m) =>
           old ? /not interested/i.test(m.textContent) : m.querySelector('svg[data-icon="icon-emoji-sad"]'),
@@ -1189,9 +1197,7 @@
       if (menu) menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       done();
       setTimeout(() => document.activeElement && document.activeElement.blur(), 50);
-    },
-    true,
-  );
+  }
 
   // Click a collapsed post to reveal it; click blurred media to show it.
   window.addEventListener(
@@ -1307,6 +1313,7 @@
     flag('data-xs-no-chat-button', S.declutter.chatButton);
     flag('data-xs-accent-post', S.theme.accentPost && S.theme.preset !== 'off');
     flag('data-xs-accent-follow', S.theme.accentFollow && S.theme.preset !== 'off');
+    flag('data-xs-accent-tabs', S.theme.accentTabs && S.theme.preset !== 'off');
     flag('data-xs-views-inline', S.declutter.viewsInline);
     flag('data-xs-paid-check', true, S.paid.check);
     flag('data-xs-blur', true, S.blurStyle);
