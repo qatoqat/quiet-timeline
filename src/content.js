@@ -452,11 +452,15 @@
     const flaggedMedia = (rp && !(rp.themed && !S.repost.themedMedia)) || nonOrig;
     let mediaMode = flaggedMedia ? S.repost.media : 'none';
     if (mediaMode === 'none' && isReply && !focal && !owner) mediaMode = S.replies.media;
-    if (mediaMode !== 'none' && !trusted && (info.media.length || wasUnloaded) && !mediaRevealed.has(id)) {
+    const wantMedia = mediaMode !== 'none';
+    const coverable = wantMedia && !trusted && (info.media.length || wasUnloaded);
+    if (coverable && !mediaRevealed.has(id)) {
       root.dataset.xsMedia = mediaMode;
       stats.media.add(id);
       if (mediaMode === 'unload') stripMedia(root);
     }
+    // Revealed media gets a small button to cover it again.
+    setReblur(root, coverable && mediaRevealed.has(id) && mediaMode !== 'hide' ? mediaMode : null);
     if (wasUnloaded && root.dataset.xsMedia !== 'unload') restoreMedia(root);
     const quiet = (S.repost.noAutoplay && flaggedMedia) || (root.dataset.xsMedia && root.dataset.xsMedia !== 'none');
     if (quiet && !trusted && !playAllowed.has(id) && (t ? t.hasMedia : info.media.length)) {
@@ -553,6 +557,31 @@
       root.dataset.xsState = 'dim';
       stats.dimmed.add(id);
     }
+  }
+
+  // Button over revealed media (top right, on hover) that blurs / unloads it again.
+  const EYE_OFF = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.3 2.4-2.6 3.7M6.6 6.6C4.4 8 2.9 10.1 2 12c1 2.5 5 7 10 7 1.9 0 3.6-.6 5-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+  function setReblur(root, mode) {
+    const box = mode && [...root.querySelectorAll(':scope > article div.rounded-md.overflow-hidden')].find(
+      (b) => b.querySelector(MEDIA) && b.closest(POST) === root,
+    );
+    let btn = root.querySelector(':scope > article .qt-reblur');
+    if (!box) {
+      if (btn) btn.remove();
+      return;
+    }
+    if (!btn || btn.parentElement !== box) {
+      if (btn) btn.remove();
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'qt-reblur';
+      btn.innerHTML = EYE_OFF;
+      if (getComputedStyle(box).position === 'static') box.style.position = 'relative';
+      box.appendChild(btn);
+    }
+    const label = mode === 'unload' ? 'Unload media again' : 'Blur media again';
+    btn.dataset.xsTip = label;
+    btn.setAttribute('aria-label', label);
   }
 
   // "show" / "hide" link in a collapsed (or revealed) post's header, just
@@ -953,6 +982,21 @@
     'click',
     (e) => {
       if (!e.target.closest) return;
+      const reblur = e.target.closest('.qt-reblur');
+      if (reblur) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const root = reblur.closest(POST);
+        const info = root && readPost(root);
+        if (!info) return;
+        mediaRevealed.delete(info.id);
+        playAllowed.delete(info.id);
+        for (const v of root.querySelectorAll('video')) if (!v.paused) v.pause();
+        reblur.remove();
+        hideTip();
+        schedule();
+        return;
+      }
       const toggle = e.target.closest('.xs-toggle');
       if (toggle) {
         e.preventDefault();
