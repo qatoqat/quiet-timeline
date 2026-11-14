@@ -447,7 +447,7 @@
     }
 
     const rp = reposterInfo(u);
-    const key = `${id}|${t ? 1 : 0}|${u ? 1 : 0}|${rp ? rp.tag : 0}|${ver}|${revealed.has(id) ? 1 : 0}|${mediaRevealed.has(id) ? 1 : 0}|${playAllowed.has(id) ? 1 : 0}|${info.media.length}`; // media can arrive after the post
+    const key = `${id}|${t ? 1 : 0}|${u ? 1 : 0}|${rp ? rp.tag : 0}|${ver}|${revealed.has(id) ? 1 : 0}|${mediaRevealed.has(id) ? 1 : 0}|${playAllowed.has(id) ? 1 : 0}|${info.media.length}|${root.querySelector('.xs-ni, .xs-toggle, .qt-reblur') ? 1 : 0}`; // media can arrive after the post; X re-renders can drop our buttons
     if (root.dataset.xsKey === key) return;
     root.dataset.xsKey = key;
     reset(root, info);
@@ -756,11 +756,13 @@
     const box =
       article &&
       article.querySelector(old ? '[role="group"] [data-testid="bookmark"], [role="group"] [data-testid="removeBookmark"]' : '[role="group"] > div:has([data-engagement-action="bookmark"])');
-    if (!av || !box) return;
-    if (!watched.has(article)) {
+    // watch first: if the avatar / action bar aren't rendered yet, the size
+    // change when they arrive brings us back here
+    if (article && !watched.has(article)) {
       watched.add(article);
       sizeWatch.observe(article);
     }
+    if (!av || !box) return;
     // offsets within the article (independent of scrolling)
     let top = av.offsetHeight;
     let left = av.offsetWidth / 2;
@@ -904,6 +906,10 @@
   function navTooltips() {
     const nav = document.querySelector('nav a[href="/home"]')?.closest('nav');
     if (!nav) return;
+    for (const a of nav.querySelectorAll('a[href]')) {
+      const on = a.getAttribute('href') === location.pathname;
+      if (on !== a.hasAttribute('data-xs-active')) a.toggleAttribute('data-xs-active', on);
+    }
     for (const el of nav.querySelectorAll('a, button')) {
       const label = el.textContent.trim();
       if (S.declutter.navIcons && label) {

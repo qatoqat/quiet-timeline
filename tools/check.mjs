@@ -104,12 +104,20 @@ const checks = async (S) => {
   if (D.borders && col) {
     add('center column borders off', transparent(cs(col).borderLeftColor) || cs(col).borderLeftWidth === '0px', cs(col).borderLeftColor);
     const lines = [...col.querySelectorAll('div')].filter((d) => !d.closest(OLD ? 'article' : POST) && visible(d) && [cs(d).borderTopWidth, cs(d).borderBottomWidth].some((w) => w !== '0px') && ![cs(d).borderTopColor, cs(d).borderBottomColor].every(transparent) && !/^(0px|)$/.test(cs(d).borderTopWidth + cs(d).borderBottomWidth) && (cs(d).borderTopWidth !== '0px' ? !transparent(cs(d).borderTopColor) : !transparent(cs(d).borderBottomColor)));
+    // 1–2px tall divs painted as lines
+    for (const d of col.querySelectorAll('div')) {
+      if (d.closest(OLD ? 'article' : POST)) continue; // video bars etc. inside posts
+      const q = d.getBoundingClientRect();
+      if (q.height > 0 && q.height <= 2 && q.width > 200 && !transparent(cs(d).backgroundColor) && cs(d).backgroundColor !== cs(document.body).backgroundColor) lines.push(d);
+    }
     add('no separator lines', lines.length === 0, lines.slice(0, 3).map((d) => (d.className || '').toString().slice(0, 40)).join(' | '));
     // one-sided lines inside posts (quoted-post frames have all four sides)
     const inner = [...col.querySelectorAll(`${OLD ? 'article' : POST} div`)].filter((d) => {
       if (!visible(d)) return false;
       const c = cs(d);
       if (c.borderLeftWidth !== '0px' || c.borderRightWidth !== '0px') return false;
+      // parts of framed cards (quoted posts, link previews) keep their lines
+      for (let p = d.parentElement; p && !p.matches(POST); p = p.parentElement) if (cs(p).borderLeftWidth !== '0px') return false;
       return (c.borderTopWidth !== '0px' && !transparent(c.borderTopColor)) || (c.borderBottomWidth !== '0px' && !transparent(c.borderBottomColor));
     });
     add('no separator lines inside posts', inner.length === 0, inner.slice(0, 3).map((d) => (d.className || '').toString().slice(0, 40)).join(' | '));
@@ -117,9 +125,26 @@ const checks = async (S) => {
   // icon-only menu
   const home = document.querySelector('nav a[href="/home"]');
   add('icon-only menu', D.navIcons && home ? home.getBoundingClientRect().width < 90 : null, home ? `${Math.round(home.getBoundingClientRect().width)}px` : '');
+  // no horizontal scrollbar anywhere in the left column (or the page)
+  const sideScroll = [...document.querySelectorAll('header *, nav *')].filter((e) => cs(e).scrollbarWidth !== 'none' && ((e.scrollWidth > e.clientWidth + 2 && /auto|scroll/.test(cs(e).overflowX)) || (e.scrollHeight > e.clientHeight + 2 && /auto|scroll/.test(cs(e).overflowY) && e.clientHeight < innerHeight - 50)));
+  add('no stray scrollbars in the menu', sideScroll.length === 0 && document.documentElement.scrollWidth <= innerWidth + 1, sideScroll.map((e) => `${e.tagName} ${e.scrollWidth}x${e.scrollHeight}>${e.clientWidth}x${e.clientHeight}`).join(', '));
+  // icon-only menu: icons, profile picture and Post button on one vertical line
+  if (D.navIcons && home) {
+    const mid = (e) => { const r = e.getBoundingClientRect(); return r.left + r.width / 2; };
+    const icon = home.querySelector('svg');
+    const pic = document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"] [data-testid^="UserAvatar-Container"], button[aria-label="Account menu"] img');
+    const post = document.querySelector('[data-testid="SideNav_NewTweet_Button"], a[href="/compose/post"]');
+    const xs = [icon, pic, post].filter(visible).map((e) => Math.round(mid(e)));
+    add('left menu aligned', xs.length > 1 ? Math.max(...xs) - Math.min(...xs) <= 4 : null, xs.join(', '));
+  }
   // profile on top
   const acct = document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"], button[aria-label="Account menu"]');
   add('profile button on top', D.profileTop && acct && home ? acct.getBoundingClientRect().top < home.getBoundingClientRect().top : null);
+  if (D.profileTop && acct && home) {
+    const pic = acct.querySelector('img') || acct;
+    const gap = Math.round(home.querySelector('svg').getBoundingClientRect().top - pic.getBoundingClientRect().bottom);
+    add('profile close to the menu', gap >= 0 && gap <= 60, `${gap}px`);
+  }
   // solid top bar
   const bars = [...document.querySelectorAll('.sticky, [data-testid="primaryColumn"] .r-5zmot')].filter((e) => cs(e).backdropFilter !== 'none' && e.getBoundingClientRect().top < 5 && e.getBoundingClientRect().width > 300);
   add('solid top bars', D.solidBars ? bars.length === 0 : null, bars.map((b) => cs(b).backdropFilter).join(','));
@@ -131,6 +156,10 @@ const checks = async (S) => {
     const av = r.querySelector('[data-testid="Tweet-User-Avatar"], [data-post-avatar]');
     const br = bm && bm.getBoundingClientRect();
     const ar = av && av.getBoundingClientRect();
+    const sh = OLD ? [...r.querySelectorAll('[role="group"] svg path[d^="M12 2.59l5.7"]')].map((p) => p.closest('button'))[0] : r.querySelector('[data-engagement-action="share"]');
+    const ni = r.querySelector('.xs-ni');
+    const cols = [bm, sh, ni].filter(visible).map((e) => { const q = e.getBoundingClientRect(); return Math.round(q.left + q.width / 2); });
+    add('side buttons on one line', cols.length > 1 ? Math.max(...cols) - Math.min(...cols) <= 3 : null, cols.join(', '));
     add('bookmark under the avatar', !!(br && ar && Math.abs(br.left + br.width / 2 - (ar.left + ar.width / 2)) < 12 && br.top > ar.bottom), br && ar ? `bm ${Math.round(br.left)},${Math.round(br.top)} av ${Math.round(ar.left)},${Math.round(ar.bottom)}` : '');
   } else add('bookmark under the avatar', D.sideActions && onHome ? (roots.length ? false : null) : null, 'no post got side buttons');
   add('"Not interested" button', D.notInterested && onHome && roots.length ? anyVisible('.xs-ni') : null);
@@ -176,12 +205,31 @@ const checks = async (S) => {
   // ads
   const adLike = OLD ? roots.filter((r) => !r.querySelector('time') && r.closest('[data-testid="placementTracking"]') && visible(r)) : [];
   add('ads hidden', D.ads && OLD ? adLike.length === 0 : null, adLike.length ? `${adLike.length} visible` : '');
+  // calm: muted menu icons except the active page, disabled Post not faded
+  if (S.theme.calm && S.theme.preset !== 'off' && home) {
+    const navSvgs = [...home.closest('nav').querySelectorAll('a[href] svg')].filter(visible);
+    const active = navSvgs.filter((v) => v.closest('a').getAttribute('href') === location.pathname);
+    const others = navSvgs.filter((v) => !active.includes(v));
+    if (active.length && others.length) add('menu icons muted, active bright', cs(others[0]).color !== cs(active[0]).color, `${cs(others[0]).color} vs ${cs(active[0]).color}`);
+    const dis = document.querySelector("[data-testid='tweetButtonInline'][aria-disabled='true'], main button.bg-btn-primary:disabled");
+    if (dis) add('disabled Post button not faded', cs(dis).opacity === '1', cs(dis).opacity);
+  }
   // calm buttons (no bright white)
   if (S.theme.calm && S.theme.preset !== 'off') {
     const btns = [...document.querySelectorAll("[data-testid='SideNav_NewTweet_Button'], [data-testid$='-follow'], .bg-btn-primary")].filter(visible);
     const bright = btns.filter((b) => { const m = cs(b).backgroundColor.match(/\d+/g); return m && +m[0] > 200 && +m[1] > 200 && +m[2] > 200; });
     add('calm buttons', btns.length ? bright.length === 0 : null, bright.map((b) => b.getAttribute('data-testid') || b.textContent.trim().slice(0, 12)).join(', '));
   }
+  // tooltip: X look, below action buttons
+  const tipTarget = [...document.querySelectorAll('.xs-ni, [role="group"] [data-xs-tip]')].find(visible);
+  if (tipTarget) {
+    tipTarget.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 1300));
+    const tip = document.getElementById('quiettl-tip');
+    const ok = tip && tip.classList.contains('xs-show') && !transparent(cs(tip).backgroundColor) && tip.getBoundingClientRect().top >= tipTarget.getBoundingClientRect().bottom - 1;
+    add('tooltip styled, below the button', !!ok, tip ? `${cs(tip).backgroundColor} "${tip.textContent}"` : 'no tooltip');
+    tipTarget.dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
+  } else add('tooltip styled, below the button', null);
   return out;
 };
 
