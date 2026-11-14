@@ -11,7 +11,7 @@ out = f"dist/quiet-timeline-{sys.argv[1]}.zip"
 files = ["manifest.json", "LICENSE"]
 for d in ["src", "popup", "icons"]:
     for root, _, names in os.walk(d):
-        files += [os.path.join(root, n) for n in sorted(names) if n != "icon.svg" and not n.startswith(".")]
+        files += [os.path.join(root, n) for n in sorted(names) if n != "icon.svg" and not n.startswith(".") and not n.endswith(".d.ts")]
 with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
     for f in files:
         z.write(f)
