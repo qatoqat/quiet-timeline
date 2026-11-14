@@ -1,9 +1,9 @@
 # Privacy policy — Quiet Timeline for X (Twitter)
 
-_Last updated: November 14, 2026_
+_Last updated: November 15, 2026_
 
-**Short version: Quiet Timeline collects nothing. Everything it does happens
-inside your browser, and nothing is sent to the developer or anyone else.**
+**Short version: Quiet Timeline reads X pages only to filter and re-theme them,
+on your device. Nothing it reads or stores is sent to the developer or anyone else.**
 
 ## What the extension reads
 
@@ -11,7 +11,7 @@ To decide what to filter, Quiet Timeline reads, on x.com and twitter.com only:
 
 - the posts and account details X already loads into the page (text, author
   handle, follower counts, account age, checkmark type, whether a post has
-  media), and
+  media), including X's own data responses as the page receives them, and
 - the page itself, to dim, collapse, blur or re-theme parts of it.
 
 This is processed on your device, in memory. It is not uploaded, logged or shared.
