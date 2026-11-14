@@ -95,6 +95,9 @@
   // Per-account counts, kept across sessions: { o: originals, n: non-original,
   // m: with media, ids: recently counted post ids (so reloads don't recount) }.
   let tallyDirty = false;
+  // Recent post ids per account, only to avoid recounting the same posts after a
+  // reload. Small, so 3000 accounts stay far below the 10 MB storage quota.
+  const IDS_KEPT = 60;
   function tallyRow(userId) {
     let row = tally.get(userId);
     if (!row) tally.set(userId, (row = { o: 0, n: 0, m: 0, ids: [] }));
@@ -105,7 +108,7 @@
     const row = tallyRow(t.userId);
     if (row.ids.includes(t.id)) return;
     row.ids.push(t.id);
-    if (row.ids.length > 300) row.ids.splice(0, row.ids.length - 300);
+    if (row.ids.length > IDS_KEPT) row.ids.splice(0, row.ids.length - IDS_KEPT);
     if (XS.nonOriginal(t)) row.n++;
     else row.o++;
     if (t.hasMedia) row.m++;
@@ -129,15 +132,17 @@
     for (const [k, v] of Object.entries(b || {})) out[k] = (out[k] || 0) + v;
     return out;
   }
-  setInterval(() => {
+  function saveTally() {
     if (!tallyDirty) return;
     tallyDirty = false;
     cap(tally, 3000);
     try {
       chrome.storage.local.set({ tally2: Object.fromEntries(tally) });
     } catch (_) {} // extension reloaded
-  }, 5000);
-  chrome.storage.local.remove('tally'); // old format, double-counted
+  }
+  setInterval(saveTally, 15000);
+  addEventListener('pagehide', saveTally);
+  document.addEventListener('visibilitychange', () => document.hidden && saveTally());
   chrome.storage.local.get('tally2', (r) => {
     for (const [id, saved] of Object.entries((r && r.tally2) || {})) {
       const cur = tally.get(id);
@@ -155,7 +160,7 @@
         wt: (saved.wv === WORDS_VERSION ? saved.wt || 0 : 0) + (cur.wt || 0),
         w: saved.wv === WORDS_VERSION ? mergeCounts(saved.w, cur.w) : cur.w,
         wv: WORDS_VERSION,
-        ids: [...saved.ids, ...cur.ids.filter((x) => !ids.has(x))].slice(-300),
+        ids: [...saved.ids, ...cur.ids.filter((x) => !ids.has(x))].slice(-IDS_KEPT),
       });
     }
     schedule();
@@ -628,11 +633,26 @@
   const SLOT = 36; // px per button
   const sizeWatch = new ResizeObserver((entries) => {
     for (const e of entries) {
+      if (!e.target.isConnected) {
+        sizeWatch.unobserve(e.target);
+        watched.delete(e.target);
+        continue;
+      }
       const root = e.target.parentElement;
       if (root) layoutSide(root);
     }
   });
-  const watched = new WeakSet();
+  // An observed element stays alive until unobserved, and X's list throws posts
+  // away as you scroll: drop the ones that left the page.
+  const watched = new Set();
+  setInterval(() => {
+    for (const a of watched) {
+      if (!a.isConnected) {
+        sizeWatch.unobserve(a);
+        watched.delete(a);
+      }
+    }
+  }, 10000);
   function layoutSide(root) {
     if (root.dataset.xsWantSide !== '1') return;
     const article = root.querySelector(':scope > article');
