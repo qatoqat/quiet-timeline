@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Memory snapshot of the X tab: JS heap, DOM size, renderer RSS, XSieve's own maps.
+// Memory snapshot of the X tab: JS heap, DOM size, renderer RSS, Quiet Timeline's own maps.
 //   node tools/mem.mjs [scrolls]   — optionally scroll N screens first
 const BASE = 'http://127.0.0.1:9333';
 const l = await (await fetch(`${BASE}/json/list`)).json();
@@ -30,11 +30,11 @@ const mb = (b) => `${(b / 1048576).toFixed(0)} MB`;
 await send('Runtime.enable');
 await new Promise((r) => setTimeout(r, 200));
 let xs = null;
-for (const e of events.filter((e) => e.method === 'Runtime.executionContextCreated' && e.params.context.name === 'XSieve').reverse()) {
+for (const e of events.filter((e) => e.method === 'Runtime.executionContextCreated' && e.params.context.name.startsWith('Quiet Timeline')).reverse()) {
   xs = await ev(`typeof XS === 'object' && XS._debug ? (() => { const d = XS._debug; const json = (x) => JSON.stringify(x).length; return { users: d.users.size, tweets: d.tweets.size, tally: d.tally.size, approxBytes: json([...d.users.values()]) + json([...d.tweets.values()]) + json([...d.tally.values()]) }; })() : null`, e.params.context.id);
   if (xs) break;
 }
-const page = await ev(`({ media: document.querySelectorAll('video').length, imgs: document.images.length, posts: document.querySelectorAll('[data-href*="/status/"]').length, hook: window.__xsieveHook && { scripts: window.__xsieveHook.scripts, sent: window.__xsieveHook.sent } })`);
+const page = await ev(`({ media: document.querySelectorAll('video').length, imgs: document.images.length, posts: document.querySelectorAll('[data-href*="/status/"]').length, hook: window.__quiettlHook && { scripts: window.__quiettlHook.scripts, sent: window.__quiettlHook.sent } })`);
 console.log(JSON.stringify({
   url: t.url,
   jsHeapUsed: mb(metrics.JSHeapUsedSize),
@@ -44,6 +44,6 @@ console.log(JSON.stringify({
   documents: metrics.Documents,
   frames: metrics.Frames,
   page,
-  xsieve: xs && { ...xs, approxBytes: mb(xs.approxBytes) },
+  quiettl: xs && { ...xs, approxBytes: mb(xs.approxBytes) },
 }, null, 1));
 process.exit(0);

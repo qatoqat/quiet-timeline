@@ -32,7 +32,7 @@
       customAction: 'collapse',
     },
     theme: {
-      preset: 'graphite',
+      preset: 'quiettl', // 'Quiet'
       font: 'default',
       calm: true, // tone down bright buttons, colored banners, pink badges
       softText: true, // slightly dimmer text, semi-bold instead of bold, airier post text
@@ -64,19 +64,20 @@
       logo: true,
       popups: true,
       navIcons: true,
-      profileTop: false, // profile button at the top of the left column
+      profileTop: true, // profile button at the top of the left column
       narrowTabs: true, // short fixed-width underline under For you / Following
       borders: true, // remove center column borders
       rounded: true, // rounded hover shape for posts
-      cardRadius: 16, // right sidebar cards, px
+      cardRadius: 12, // right sidebar cards, px
       searchRadius: 999, // search box, px (999 = pill)
-      mediaRadius: 16, // images/videos in posts, px
+      mediaRadius: 12, // images/videos in posts, px
       outlineChecks: true, // outlined verified checkmarks
       viewsInline: true, // view count after the post date instead of in the action bar
-      sideActions: false, // bookmark + share under the avatar (timeline posts)
+      sideActions: true, // bookmark + share under the avatar (timeline posts)
       notInterested: true, // 'Not interested' button under the avatar for accounts you don't follow
       shareIcon: 'forward', // 'x' | 'forward' | 'nodes'
-      bannerRadius: 0, // profile banner, px
+      bannerRadius: 8, // profile banner, px
+      menuRadius: 12, // popup menus and search suggestions, px
     },
     // Left menu items: true = shown
     nav: {
@@ -111,6 +112,13 @@
       return out;
     }
     return over === undefined || typeof over !== typeof base ? base : over;
+  };
+
+  // Stored settings → full settings (fills defaults, migrates old values).
+  XS.loadSettings = function (raw) {
+    const s = XS.merge(XS.DEFAULTS, raw);
+    if (s.theme.preset === 'x' + 'sieve') s.theme.preset = 'quiettl'; // renamed theme key
+    return s;
   };
 
   XS.parseList = function (s) {

@@ -152,16 +152,16 @@
   // Buffer everything until the content script says it's listening, then replay.
   let ready = false;
   const buffer = [];
-  const dbg = (window.__xsieveHook = { scripts: 0, scriptTweets: 0, api: 0, apiTweets: 0, apiErr: null, sent: 0, buffered: 0 });
+  const dbg = (window.__quiettlHook = { scripts: 0, scriptTweets: 0, api: 0, apiTweets: 0, apiErr: null, sent: 0, buffered: 0 });
   const send = (out) => {
     dbg.sent += out.tweets.length;
     if (!out.users.length && !out.tweets.length && !out.ads.length) return;
-    const msg = { __xsieve: 1, users: out.users, tweets: out.tweets, ads: out.ads };
+    const msg = { __quiettl: 1, users: out.users, tweets: out.tweets, ads: out.ads };
     if (ready) window.postMessage(msg, location.origin);
     else if (buffer.length < 200) buffer.push(msg), dbg.buffered++;
   };
   window.addEventListener('message', (e) => {
-    if (e.source !== window || !e.data || e.data.__xsieveReady !== 1) return;
+    if (e.source !== window || !e.data || e.data.__quiettlReady !== 1) return;
     ready = true;
     for (const m of buffer.splice(0)) window.postMessage(m, location.origin);
   });

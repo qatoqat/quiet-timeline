@@ -41,11 +41,13 @@
 
 /* ---------- profile pictures of accounts you don't follow ---------- */
 
-[data-xs-pfp] > article > div > div > [data-post-avatar] img {
-  filter: blur(7px) grayscale(0.5);
-  transform: scale(1.15);
+/* Blur the image but enlarge it inside its (clipped) frame, so the blur's
+   faded border falls outside: solid edges for round and square avatars. */
+[data-xs-pfp] > article > div > div > [data-post-avatar] .x-avatar img {
+  filter: blur(6px) grayscale(0.5);
+  transform: scale(1.6);
 }
-[data-xs-pfp]:hover > article > div > div > [data-post-avatar] img {
+[data-xs-pfp]:hover > article > div > div > [data-post-avatar] .x-avatar img {
   filter: none;
   transform: none;
 }
@@ -295,7 +297,7 @@ html[data-xs-sidebar] section:has([data-who-to-follow]) {
 
 /* ---------- in-page settings panel ---------- */
 
-#xsieve-panel {
+#quiettl-panel {
   position: fixed;
   top: 12px;
   right: 12px;
@@ -312,7 +314,7 @@ html[data-xs-sidebar] section:has([data-who-to-follow]) {
 
 /* ---------- tooltip (uses X's tooltip classes for colors/size) ---------- */
 
-#xsieve-tip {
+#quiettl-tip {
   position: fixed;
   z-index: 2147483646;
   pointer-events: none;
@@ -321,10 +323,10 @@ html[data-xs-sidebar] section:has([data-who-to-follow]) {
   opacity: 0;
   transition: opacity 0.15s;
 }
-#xsieve-tip.xs-show {
+#quiettl-tip.xs-show {
   opacity: 1;
 }
-#xsieve-tip.xs-below {
+#quiettl-tip.xs-below {
   transform: translateX(-50%);
 }
 
@@ -391,4 +393,15 @@ html[data-xs-menu-busy] [data-base-ui-portal]:has([role='menu']) {
 .xs-ni:not(.x-engagement-button) svg {
   width: 18px;
   height: 18px;
+}
+
+/* ---------- popup menus and search suggestions: corner radius ---------- */
+
+[role='menu'],
+[role='presentation']:has(> [role='listbox']) {
+  border-radius: var(--xs-menu-radius, 12px) !important;
+}
+[role='menu'] [role='menuitem'],
+[role='listbox'] [role='option'] {
+  border-radius: max(calc(var(--xs-menu-radius, 12px) - 4px), 4px) !important;
 }

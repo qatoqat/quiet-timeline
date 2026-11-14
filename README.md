@@ -31,7 +31,7 @@ After editing the code, press the reload icon on the extension card, then reload
 
     tools/vivaldi.sh                 # separate Vivaldi profile with DevTools on :9333
     node tools/cdp.mjs reload        # reload extension + X tab after edits
-    node tools/cdp.mjs evalx '<js>'  # run JS in XSieve's content-script world (XS._debug …)
+    node tools/cdp.mjs evalx '<js>'  # run JS in Quiet Timeline's content-script world (XS._debug …)
     node tools/cdp.mjs eval '<js>'   # run JS in the page
     node tools/cdp.mjs net <regex> <dir>   # save matching API responses after a reload
 

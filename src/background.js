@@ -3,7 +3,7 @@
 // "tabs" permission, so don't rely on it.
 chrome.action.onClicked.addListener(async (tab) => {
   try {
-    const r = await chrome.tabs.sendMessage(tab.id, { type: 'xsieve-toggle-panel' });
+    const r = await chrome.tabs.sendMessage(tab.id, { type: 'quiettl-toggle-panel' });
     if (r && r.ok) return;
   } catch (_) {}
   chrome.tabs.create({ url: 'https://x.com/home' });
@@ -11,5 +11,5 @@ chrome.action.onClicked.addListener(async (tab) => {
 
 chrome.runtime.onMessage.addListener((msg) => {
   // Dev helper for tools/cdp.mjs: reload after code edits (unpacked installs only).
-  if (msg && msg.type === 'xsieve-dev-reload' && !chrome.runtime.getManifest().update_url) chrome.runtime.reload();
+  if (msg && msg.type === 'quiettl-dev-reload' && !chrome.runtime.getManifest().update_url) chrome.runtime.reload();
 });

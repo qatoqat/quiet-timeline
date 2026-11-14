@@ -31,7 +31,7 @@
   };
 
   const stored = (await chrome.storage.sync.get('settings')).settings;
-  const S = XS.merge(XS.DEFAULTS, stored);
+  const S = XS.loadSettings(stored);
 
   const fields = document.querySelectorAll('[data-path]');
   const custom = document.getElementById('custom');
@@ -57,13 +57,13 @@
     for (const b of tabs) b.setAttribute('aria-selected', String(b.dataset.tab === name));
     for (const sec of document.querySelectorAll('section[data-tab]')) sec.hidden = sec.dataset.tab !== name;
     try {
-      localStorage.setItem('xsieve-tab', name);
+      localStorage.setItem('quiettl-tab', name);
     } catch (_) {}
   };
   for (const b of tabs) b.addEventListener('click', () => show(b.dataset.tab));
   let last = 'accounts';
   try {
-    last = localStorage.getItem('xsieve-tab') || last;
+    last = localStorage.getItem('quiettl-tab') || last;
   } catch (_) {}
   show(last);
 
@@ -76,16 +76,16 @@
   // Inside the in-page panel: report height, offer a close button.
   if (window.top !== window) {
     document.documentElement.classList.add('in-panel');
-    const report = () => parent.postMessage({ xsievePanelHeight: document.documentElement.scrollHeight }, '*');
+    const report = () => parent.postMessage({ quiettlPanelHeight: document.documentElement.scrollHeight }, '*');
     new ResizeObserver(report).observe(document.body);
     report();
-    document.getElementById('close').addEventListener('click', () => parent.postMessage({ xsievePanel: 'close' }, '*'));
-    window.addEventListener('keydown', (e) => e.key === 'Escape' && parent.postMessage({ xsievePanel: 'close' }, '*'));
+    document.getElementById('close').addEventListener('click', () => parent.postMessage({ quiettlPanel: 'close' }, '*'));
+    window.addEventListener('keydown', (e) => e.key === 'Escape' && parent.postMessage({ quiettlPanel: 'close' }, '*'));
   }
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const r = await chrome.tabs.sendMessage(tab.id, { type: 'xsieve-stats' });
+    const r = await chrome.tabs.sendMessage(tab.id, { type: 'quiettl-stats' });
     if (r) {
       document.getElementById('stats').textContent =
         `This tab: ${r.hidden} hidden · ${r.collapsed} collapsed · ${r.dimmed} dimmed · ${r.masked} masked · ${r.media} media blurred · ${r.ads} ads · ${r.popups} popups closed`;

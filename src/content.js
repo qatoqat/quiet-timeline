@@ -35,7 +35,7 @@
   // run — so hidden/collapsed states are also written as CSS keyed on the post
   // id, which applies at creation.
   const sizeCss = document.createElement('style');
-  sizeCss.id = 'xsieve-sizes';
+  sizeCss.id = 'quiettl-sizes';
   let sizeCssQueued = false;
   function updateSizeCss() {
     if (sizeCssQueued) return;
@@ -175,7 +175,8 @@
       if (pct >= S.repost.ratio) return { tag: `♻ ${pct}%`, why: `${pct}% of seen posts are reposts or others' content` };
     }
     // Aggregators: very high volume, nearly everything is media.
-    if (S.repost.aggregators && total >= 6 && typeof u.statuses === 'number') {
+    // Business / government accounts (gold, grey checks) post a lot by design.
+    if (S.repost.aggregators && !u.vtype && total >= 6 && typeof u.statuses === 'number') {
       const created = u.createdMs || (u.oldId ? ID_SWITCH : null);
       const perDay = created ? u.statuses / Math.max((Date.now() - created) / DAY, 1) : 0;
       const mediaPct = Math.round((row.m / total) * 100);
@@ -183,7 +184,7 @@
         return { tag: '♻ aggregator', why: `aggregator: ~${Math.round(perDay)} posts/day, ${mediaPct}% media` };
       }
     }
-    if (S.repost.themed) {
+    if (S.repost.themed && !u.vtype) {
       const th = row && row.wv === WORDS_VERSION && XS.themeOf(row, u);
       if (th) return { tag: `◎ ${th.word}`, why: `single-topic account: ${th.pct}% of seen posts are about “${th.word}”`, themed: true };
     }
@@ -192,8 +193,8 @@
 
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data) return;
-    if (e.data.__xsieveDev === 'reload') chrome.runtime.sendMessage({ type: 'xsieve-dev-reload' });
-    if (e.data.__xsieve !== 1) return;
+    if (e.data.__quiettlDev === 'reload') chrome.runtime.sendMessage({ type: 'quiettl-dev-reload' });
+    if (e.data.__quiettl !== 1) return;
     for (const u of e.data.users || []) {
       if (!u.id) continue;
       // Some responses carry only a handle; don't let them overwrite full data.
@@ -215,7 +216,7 @@
     schedule();
   });
   // Tell hook.js we're listening (repeat in case it loaded after us).
-  const ready = () => window.postMessage({ __xsieveReady: 1 }, location.origin);
+  const ready = () => window.postMessage({ __quiettlReady: 1 }, location.origin);
   ready();
   document.addEventListener('DOMContentLoaded', ready);
   window.addEventListener('load', ready);
@@ -681,7 +682,7 @@
         processPost(root, page);
         layoutSide(root);
       } catch (err) {
-        console.debug('[xsieve]', err);
+        console.debug('[quiettl]', err);
       }
     }
     if (S.declutter.popups) closeNags();
@@ -709,7 +710,7 @@
   }
 
   const tip = document.createElement('div');
-  tip.id = 'xsieve-tip';
+  tip.id = 'quiettl-tip';
   tip.className = 'rounded-xs bg-(--x-tooltip-bg) text-(--x-tooltip-fg) px-2 py-1 text-subtext3'; // X's tooltip classes
   // Same timing as X's tooltips: appear after ~1s of hovering, hide on leave.
   const TIP_DELAY = 1000;
@@ -744,10 +745,10 @@
   // Outlined verified checkmarks: our own symbols, same colors as X's.
   const CHECKS = { premium: '#1d9bf0', business: '#d18800', government: '#829aab' };
   function ensureCheckSprite() {
-    if (document.getElementById('xsieve-sprite')) return;
+    if (document.getElementById('quiettl-sprite')) return;
     const ns = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(ns, 'svg');
-    svg.id = 'xsieve-sprite';
+    svg.id = 'quiettl-sprite';
     svg.setAttribute('aria-hidden', 'true');
     svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
     svg.innerHTML = Object.entries(CHECKS)
@@ -793,7 +794,7 @@
   }
 
   const navStyle = document.createElement('style');
-  navStyle.id = 'xsieve-nav';
+  navStyle.id = 'quiettl-nav';
   function applyNavVisibility() {
     const hidden = XS.NAV_ITEMS.filter(([k]) => S.enabled && S.nav[k] === false).map(([, , sel]) => `nav ${sel}`);
     navStyle.textContent = hidden.length ? `${hidden.join(',\n')} { display: none !important; }` : '';
@@ -980,7 +981,7 @@
   function togglePanel() {
     if (panel) return closePanel();
     panel = document.createElement('iframe');
-    panel.id = 'xsieve-panel';
+    panel.id = 'quiettl-panel';
     panel.src = chrome.runtime.getURL('popup/popup.html');
     panel.setAttribute('title', 'Quiet Timeline settings');
     document.documentElement.appendChild(panel);
@@ -988,8 +989,8 @@
 
   window.addEventListener('message', (e) => {
     if (e.origin !== PANEL_ORIGIN || !panel || e.source !== panel.contentWindow || !e.data) return;
-    if (e.data.xsievePanel === 'close') closePanel();
-    if (typeof e.data.xsievePanelHeight === 'number') panel.style.height = `${Math.ceil(e.data.xsievePanelHeight)}px`;
+    if (e.data.quiettlPanel === 'close') closePanel();
+    if (typeof e.data.quiettlPanelHeight === 'number') panel.style.height = `${Math.ceil(e.data.quiettlPanelHeight)}px`;
   });
   window.addEventListener('keydown', (e) => e.key === 'Escape' && closePanel(), true);
   window.addEventListener('pointerdown', (e) => panel && e.target !== panel && closePanel(), true);
@@ -998,7 +999,7 @@
 
   function applySettings(raw) {
     const prevEnabled = S.enabled;
-    S = XS.merge(XS.DEFAULTS, raw);
+    S = XS.loadSettings(raw);
     ver++;
     filter = XS.createWordFilter(S);
     allow = new Set(XS.parseList(S.allow));
@@ -1022,6 +1023,7 @@
     root.style.setProperty('--xs-search-radius', `${S.declutter.searchRadius}px`);
     root.style.setProperty('--xs-media-radius', `${S.declutter.mediaRadius}px`);
     root.style.setProperty('--xs-banner-radius', `${S.declutter.bannerRadius}px`);
+    root.style.setProperty('--xs-menu-radius', `${S.declutter.menuRadius}px`);
     XS.theme.apply(S.theme, on);
     applyNavVisibility();
 
@@ -1036,12 +1038,12 @@
   });
 
   chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
-    if (msg && msg.type === 'xsieve-toggle-panel') {
+    if (msg && msg.type === 'quiettl-toggle-panel') {
       togglePanel();
       reply({ ok: true });
       return;
     }
-    if (msg && msg.type === 'xsieve-stats') {
+    if (msg && msg.type === 'quiettl-stats') {
       const out = {};
       for (const [k, v] of Object.entries(stats)) out[k] = v.size;
       reply(out);

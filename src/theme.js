@@ -6,7 +6,7 @@
   // grey is placed on X's own bg→text ramp and moved to the same spot on ours;
   // X's accent blue becomes our accent. Like-pink, retweet-green etc. stay.
   const PRESETS = {
-    xsieve: { bg: '#15171b', surface: '#1d2026', border: '#2c3038', muted: '#8b919c', text: '#e3e5e9', accent: '#4c8bf5' },
+    quiettl: { bg: '#15171b', surface: '#1d2026', border: '#2c3038', muted: '#8b919c', text: '#e3e5e9', accent: '#4c8bf5' },
     graphite: { bg: '#121316', surface: '#1b1d22', border: '#2c2f36', muted: '#8a909a', text: '#e4e6ea', accent: '#4c8bf5' },
     nord: { bg: '#2e3440', surface: '#353c4a', border: '#434c5e', muted: '#9aa5b8', text: '#eceff4', accent: '#5e81ac' },
     gruvbox: { bg: '#1d2021', surface: '#282828', border: '#3c3836', muted: '#a89984', text: '#ebdbb2', accent: '#458588' },
@@ -96,7 +96,7 @@
   let calm = false;
   let soft = false;
   const varStyle = typeof document !== 'undefined' ? document.createElement('style') : null;
-  if (varStyle) varStyle.id = 'xsieve-vars';
+  if (varStyle) varStyle.id = 'quiettl-vars';
 
   // Read X's own values (with our override switched off).
   function readVars() {
@@ -273,7 +273,7 @@
   // appear or when X switches between light/dark.
   let varsFor = null; // "<data-theme>|<palette json>" the current var CSS was built for
   let ramp = null; // X's own [bg, surface, border, muted, text] from the vars
-  const CACHE = 'xsieve-var-css';
+  const CACHE = 'quiettl-var-css';
 
   function refreshVars() {
     const key = `${document.documentElement.getAttribute('data-theme')}|${JSON.stringify(palette)}|${calm}|${soft}`;

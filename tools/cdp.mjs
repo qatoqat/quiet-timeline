@@ -2,7 +2,7 @@
 // Tiny DevTools-protocol helper for the dev Vivaldi started by vivaldi.sh.
 //   node tools/cdp.mjs tabs
 //   node tools/cdp.mjs eval  '<js>'     page world (DOM, X's own JS)
-//   node tools/cdp.mjs evalx '<js>'     XSieve content-script world (globalThis.XS …)
+//   node tools/cdp.mjs evalx '<js>'     Quiet Timeline content-script world (globalThis.XS …)
 //   node tools/cdp.mjs shot out.jpg [css-selector]
 //   node tools/cdp.mjs reload           reload the extension, then the X tab
 //   node tools/cdp.mjs nav <url>
@@ -80,7 +80,7 @@ try {
     await sleep(200);
     const { frameTree } = await c.send('Page.getFrameTree');
     const cands = c.events
-      .filter((e) => e.method === 'Runtime.executionContextCreated' && /^(XSieve|Quiet Timeline)/.test(e.params.context.name) && e.params.context.auxData?.frameId === frameTree.frame.id)
+      .filter((e) => e.method === 'Runtime.executionContextCreated' && e.params.context.name.startsWith('Quiet Timeline') && e.params.context.auxData?.frameId === frameTree.frame.id)
       .reverse();
     let ctx = null;
     for (const e of cands) {
@@ -90,8 +90,15 @@ try {
         break;
       }
     }
-    if (!ctx) throw new Error('XSieve content script not found in tab');
+    if (!ctx) throw new Error('Quiet Timeline content script not found in tab');
     out(await evaluate(c, a1, ctx.params.context.id));
+    c.close();
+  } else if (cmd === 'click') {
+    // real mouse click at viewport x,y:  click 900,32
+    const c = await xTab();
+    const [x, y] = a1.split(',').map(Number);
+    for (const type of ['mousePressed', 'mouseReleased']) await c.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
+    out('clicked');
     c.close();
   } else if (cmd === 'storeshot') {
     // 1280×800 PNG for the Chrome Web Store; optional JS to run once laid out
@@ -124,7 +131,7 @@ try {
   } else if (cmd === 'reload') {
     // background.js reloads the extension on this message (unpacked installs only).
     const x = await xTab();
-    await evaluate(x, `window.postMessage({ __xsieveDev: 'reload' }, location.origin)`);
+    await evaluate(x, `window.postMessage({ __quiettlDev: 'reload' }, location.origin)`);
     await sleep(1000);
     await x.send('Page.reload');
     out('extension + X tab reloaded');
