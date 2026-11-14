@@ -17,7 +17,7 @@ Quiet Timeline makes X (formerly Twitter) calm again. It turns down the noise an
 • Slurs and profanity are masked or collapsed, including leetspeak and stretched spellings. You can add your own muted words.
 • Repost, aggregator and single-topic accounts (only capybaras, only foxes…) get a tag, and their media can be blurred, left unloaded until you click, or hidden. Their videos won't autoplay.
 • Collapsed replies keep a single tidy line (name, handle, date, views) with a show/hide link.
-• Blur the avatars of accounts you don't follow, and media in replies, with a smooth or a soft "contour" blur, in colour or greyscale. Hover to see an avatar, click to see media, and blur it again with one click.
+• Blur the avatars of accounts you don't follow, and media in replies, with a smooth or a soft "contour" blur, in colour or greyscale. Hover to see an avatar; click to see media (or let it show while you hover over it), and blur it again with one click.
 • Promoted posts are hidden, and Premium and verification upsells, Grok buttons, the floating chat button and nag popups are removed.
 
 **A quieter look**
