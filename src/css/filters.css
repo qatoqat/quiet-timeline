@@ -1,0 +1,158 @@
+/* Hide the list item's content but keep the item 1px tall: X's virtual list
+   ignores 0px measurements and would keep the post's old height as a gap. */
+[data-xs-hidden] {
+  height: 1px !important;
+  overflow: hidden !important;
+}
+[data-xs-hidden] > * {
+  display: none !important;
+}
+
+[data-xs-state='dim'] {
+  opacity: 0.3;
+  transition: opacity 0.15s;
+}
+[data-xs-state='dim']:hover {
+  opacity: 1;
+}
+
+/* Collapsed posts: header-only rules are generated in apps.js (collapseCss) */
+[data-xs-state='collapsed'] {
+  cursor: pointer;
+}
+.xs-toggle {
+  margin-inline-end: 6px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+  color: var(--x-fg-secondary, #8b8f97);
+  cursor: pointer;
+}
+.xs-toggle:hover {
+  color: var(--x-fg-primary, #e7e9ea);
+  text-decoration: underline;
+}
+
+/* Two blur styles (html[data-xs-blur]):
+   smooth  — CSS blur, image enlarged in its clipped frame so edges stay solid
+   contour — blur, then lightness in flat soft-edged bands (SVG filter) */
+:root {
+  --qt-gray: grayscale(0);
+  --qt-pfp-blur: blur(6px) var(--qt-gray);
+  --qt-media-blur: blur(26px) var(--qt-gray);
+}
+html[data-xs-blur-mono] {
+  --qt-gray: grayscale(1);
+}
+html[data-xs-blur='contour'] {
+  --qt-pfp-blur: url(#quiettl-contour-sm) var(--qt-gray);
+  --qt-media-blur: url(#quiettl-contour-lg) var(--qt-gray);
+}
+[data-xs-pfp] > article > div > div > [data-post-avatar] .x-avatar img {
+  filter: var(--qt-pfp-blur);
+  transform: scale(1.6);
+}
+[data-xs-media='blur'] article :is(img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[src*='/card_img/']),
+[data-xs-media='blur'] article video {
+  filter: var(--qt-media-blur);
+  transform: scale(1.08); /* hide the blurred edge */
+}
+[data-xs-pfp]:hover > article > div > div > [data-post-avatar] .x-avatar img {
+  filter: none !important;
+  transform: none !important;
+}
+[data-xs-media='blur'] article [data-press-control] {
+  overflow: hidden;
+  cursor: pointer;
+}
+[data-xs-media='hide'] article :is([data-press-control], video, img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[src*='/card_img/']) {
+  display: none !important;
+}
+
+/* "Don't load": placeholder box instead of the media, click to load */
+[data-xs-media='unload'] article div.rounded-md:has(img[data-xs-src], video) {
+  min-height: 120px;
+  background: var(--x-bg-secondary, #16181c);
+  cursor: pointer;
+}
+[data-xs-media='unload'] article div.rounded-md:has(img[data-xs-src], video) > * {
+  visibility: hidden;
+}
+[data-xs-media='unload'] article div.rounded-md:has(img[data-xs-src], video)::before {
+  content: '▶  Media not loaded · click to load';
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 13px/1.4 system-ui, sans-serif;
+  color: var(--x-fg-secondary, #8b8f97);
+}
+
+[data-xs-badge]::after {
+  content: attr(data-xs-badge);
+  align-self: center;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font: 600 11px/16px system-ui, sans-serif;
+  white-space: nowrap;
+  background: rgba(140, 140, 150, 0.16);
+  color: #9a9ea6;
+}
+[data-xs-badge][data-xs-lvl='repost']::after {
+  background: rgba(240, 140, 50, 0.16);
+  color: #ec8f3e;
+}
+[data-xs-badge][data-xs-lvl='themed']::after {
+  background: rgba(80, 180, 160, 0.16);
+  color: #5fb8a6;
+}
+[data-xs-badge][data-xs-lvl='mid']::after {
+  background: rgba(230, 170, 50, 0.16);
+  color: #d9a441;
+}
+[data-xs-badge][data-xs-lvl='high']::after {
+  background: rgba(235, 80, 80, 0.16);
+  color: #e86a6a;
+}
+
+html[data-xs-paid-check='grey'] [data-xs-paid] svg[aria-label='Verified account'] {
+  filter: grayscale(1);
+  opacity: 0.4;
+}
+html[data-xs-paid-check='hide'] [data-xs-paid] svg[aria-label='Verified account'] {
+  display: none !important;
+}
+
+html[data-xs-theme],
+html[data-xs-theme] body {
+  background-color: var(--xs-bg) !important;
+}
+html[data-xs-theme] ::selection {
+  background: color-mix(in srgb, var(--xs-accent) 40%, transparent);
+}
+html[data-xs-theme] {
+  scrollbar-color: var(--xs-border) var(--xs-bg);
+}
+
+/* Softer text: semi-bold instead of bold, a little more line spacing in posts */
+html[data-xs-soft] .font-bold {
+  font-weight: 600 !important;
+}
+html[data-xs-soft] main div[dir='auto'] {
+  line-height: 1.45 !important;
+}
+html[data-xs-soft] :is(h1, h2, h3) {
+  font-weight: 650 !important;
+}
+
+html[data-xs-font='system'] body,
+html[data-xs-font='system'] body * {
+  font-family: system-ui, -apple-system, 'Segoe UI', 'Noto Sans', sans-serif !important;
+}

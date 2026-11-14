@@ -1,0 +1,189 @@
+import type { Palette } from '../shared/types';
+import { HSL, hex, lerp, makeMapper, parseColor, remap, remapHsl, type Rgb } from './color';
+
+type Vars = Record<string, string>;
+
+// New X web app: colors are CSS variables (--x-bg-primary, --x-fg-secondary, …).
+const VAR_NAME = /^--x-(?:bg|fg|border|btn|brand|ring|overlay|toast|tooltip|skeleton|segmented|shadow|black|white|neutral|gray|grey)/;
+export const CACHE = 'quiettl-var-css';
+
+export const ts = {
+  palette: null as Palette | null,
+  calm: false,
+  soft: false,
+  accent: null as string | null, // override (hex) or null = X's own accent color
+  varsFor: null as string | null, // "<data-theme>" + sig() the current var CSS was built for
+  ramp: null as Rgb[] | null, // X's own [bg, surface, border, muted, text] from the vars
+};
+
+export const varStyle = (typeof document !== 'undefined' ? document.createElement('style') : null) as HTMLStyleElement;
+if (varStyle) varStyle.id = 'quiettl-vars';
+
+// X's own values, with our override switched off.
+function readVars(): Vars {
+  const was = varStyle.isConnected;
+  if (was) varStyle.remove();
+  const cs = getComputedStyle(document.documentElement);
+  const vars: Vars = {};
+  for (const name of cs) {
+    if (!name.startsWith('--x-') || !VAR_NAME.test(name)) continue;
+    const v = cs.getPropertyValue(name).trim();
+    if (/#|rgb/.test(v)) vars[name] = v;
+  }
+  if (was) document.documentElement.appendChild(varStyle);
+  return vars;
+}
+
+function varRamp(vars: Vars): Rgb[] | null {
+  const pick = ['--x-bg-primary', '--x-bg-secondary', '--x-bg-tertiary', '--x-fg-secondary', '--x-fg-primary'].map((k) => parseColor(vars[k]));
+  return pick.every(Boolean) ? pick.map((p) => p!.rgb) : null;
+}
+
+// "Calm": white primary buttons become quiet surface buttons, colored callouts/badges become neutral.
+const calmVars = (p: Palette): Vars => ({
+  '--x-btn-primary': p.border,
+  '--x-btn-primary-hover': `color-mix(in srgb, ${p.text} 10%, ${p.border})`,
+  '--x-btn-primary-pressed': `color-mix(in srgb, ${p.text} 18%, ${p.border})`,
+  '--x-fg-subscribe': p.muted,
+  '--x-bg-subscribe': p.surface,
+  '--x-bg-success': p.surface,
+  '--x-bg-info': p.surface,
+  '--x-bg-warning': p.surface,
+});
+
+// Like / repost / etc. have their own colors and stay.
+const brandVars = (a: string, p: Palette): Vars => ({
+  '--x-fg-brand': a,
+  '--x-btn-brand': a,
+  '--x-btn-brand-hover': `color-mix(in srgb, ${a} 82%, ${p.text})`,
+  '--x-btn-brand-pressed': `color-mix(in srgb, ${a} 64%, ${p.text})`,
+  '--x-brand-subtle': `color-mix(in srgb, ${a} 14%, ${p.bg})`,
+  '--x-brand-wash': `color-mix(in srgb, ${a} 58%, transparent)`,
+});
+
+// Easing the text color toward the bg softens every text variable derived from it (primary, alpha whites, icons).
+const softened = (pal: Palette): Palette =>
+  ts.soft ? { ...pal, text: '#' + lerp(hex(pal.text), hex(pal.bg), 0.14).map((v) => v.toString(16).padStart(2, '0')).join('') } : pal;
+
+function overrides(vars: Vars, pal: Palette, calm: boolean): string | null {
+  const ramp = varRamp(vars);
+  if (!ramp) return null;
+  const p2 = softened(pal);
+  const map = makeMapper(p2, ramp, ts.accent);
+  const out: Vars = {};
+  for (const [k, v] of Object.entries(vars)) {
+    const nv = /^\d/.test(v) ? remapHsl(v, map) : remap(v, map);
+    if (nv !== v) out[k] = nv; // leave X's own (e.g. its brand color) live, not frozen in our sheet
+  }
+  if (calm) Object.assign(out, calmVars(p2));
+  if (ts.accent) Object.assign(out, brandVars(ts.accent, p2));
+  return Object.entries(out)
+    .map(([k, v]) => `${k}: ${v} !important;`)
+    .join('\n  ');
+}
+
+// Everything the generated colors depend on besides X's light/dark mode.
+export const sig = (): string => JSON.stringify(ts.palette) + ts.calm + ts.soft + ts.accent + xDisplayColor();
+
+// Variables only exist once X's stylesheet has loaded; (re)build when they appear or X switches light/dark.
+export function refreshVars(): boolean {
+  const key = document.documentElement.getAttribute('data-theme') + sig();
+  if (key === ts.varsFor) return false;
+  const vars = readVars();
+  const decl = overrides(vars, ts.palette!, ts.calm);
+  if (!decl) return false;
+  const css = `html[data-xs-theme], html[data-xs-theme] body, html[data-xs-theme] [data-theme] {\n  ${decl}\n}`;
+  ts.varsFor = key;
+  ts.ramp = varRamp(vars);
+  varStyle.textContent = css;
+  if (!varStyle.isConnected) document.documentElement.appendChild(varStyle);
+  try {
+    localStorage.setItem(CACHE, JSON.stringify({ p: sig(), css }));
+  } catch (_) {}
+  return true;
+}
+
+// X Chat renders inside a shadow root with its own copy of the variables.
+const shadowStyles = new WeakMap<ShadowRoot, HTMLStyleElement>();
+export function themeShadows(): void {
+  // Only the chat page or the docked chat window use a shadow root (scanning every div of a long feed froze tabs).
+  const dock = document.querySelector('[data-slot="xds-dock-window"]');
+  const onChat = location.pathname.startsWith('/i/chat');
+  if (!dock && !onChat) return;
+  const hosts: Element[] = [];
+  for (const scope of [dock, onChat && document.querySelector('main')]) {
+    if (scope) for (const e of scope.querySelectorAll('div')) if (e.shadowRoot) hosts.push(e);
+  }
+  for (const host of hosts) {
+    const sr = host.shadowRoot!;
+    const rootEl = sr.querySelector('[data-xchat-root], [data-theme]');
+    let st = shadowStyles.get(sr);
+    if (!ts.palette || !rootEl) {
+      if (st) st.textContent = '';
+      continue;
+    }
+    const key = sig() + rootEl.getAttribute('data-theme');
+    if (st && st.dataset.key === key && st.isConnected) continue;
+    if (!st) {
+      st = document.createElement('style');
+      shadowStyles.set(sr, st);
+    }
+    st.textContent = ''; // read X's own values
+    const cs = getComputedStyle(rootEl);
+    const vars: Vars = {};
+    for (const name of cs) {
+      if (!name.startsWith('--')) continue;
+      const v = cs.getPropertyValue(name).trim();
+      if ((name.startsWith('--x-') && VAR_NAME.test(name) && /#|rgb/.test(v)) || HSL.test(v)) vars[name] = v;
+    }
+    const decl = overrides(vars, ts.palette, ts.calm);
+    if (!decl) continue;
+    st.textContent =
+      `:host, [data-xchat-root], [data-theme] {\n  ${decl}\n}` +
+      // the page stylesheet can't reach in, so calm buttons need their light text here too
+      (ts.calm ? `\n.bg-btn-primary { color: var(--x-fg-primary) !important; }` : '');
+    st.dataset.key = key;
+    if (!st.isConnected) sr.appendChild(st);
+  }
+}
+
+// Post / Follow buttons: the override, else X's display color (e.g. purple), else the theme's; plus readable text on it.
+export function setButtonAccent(): void {
+  const c = ts.accent || xDisplayColor() || ts.palette!.accent;
+  const root = document.documentElement;
+  if (root.style.getPropertyValue('--qt-accent') === c) return;
+  root.style.setProperty('--qt-accent', c);
+  const [r, g, b] = hex(c);
+  root.style.setProperty('--qt-on-accent', 0.2126 * r + 0.7152 * g + 0.0722 * b > 150 ? '#15171b' : '#ffffff');
+}
+
+// X's display color setting (Settings → Display), shared by both web apps.
+const X_COLORS: Record<string, string> = {
+  blue: '#1d9bf0',
+  yellow: '#ffd400',
+  magenta: '#f91880',
+  pink: '#f91880',
+  purple: '#7856ff',
+  orange: '#ff7a00',
+  green: '#00ba7c',
+};
+export function xDisplayColor(): string | null {
+  try {
+    const c = JSON.parse(localStorage.getItem('xweb.display') || 'null');
+    const name = c && /^[a-z]+/.exec(String(c.color || ''));
+    return (name && X_COLORS[name[0]]) || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+// Old app, calm: its accent-filled buttons (inline style, already remapped to the accent) become quiet surface buttons.
+const calmBrandStyle = typeof document !== 'undefined' ? document.createElement('style') : null;
+export function calmBrand(onoff: boolean): void {
+  if (!calmBrandStyle) return;
+  if (!onoff) return calmBrandStyle.remove();
+  const [r, g, b] = hex(ts.accent || ts.palette!.accent);
+  const sel = `:is(a, button, [role='button'])[style*='background-color: rgb(${r}, ${g}, ${b})']`;
+  calmBrandStyle.textContent = `html[data-xs-calm] ${sel} { background-color: var(--xs-border) !important; }\nhtml[data-xs-calm] ${sel} :is(span, div) { color: var(--xs-text) !important; }`;
+  if (!calmBrandStyle.isConnected) document.documentElement.appendChild(calmBrandStyle);
+}

@@ -2,12 +2,14 @@
   "name": "quiet-timeline",
   "private": true,
   "scripts": {
-    "typecheck": "tsc -p .",
-    "test": "node --test test/",
-    "check": "node tools/check.mjs",
-    "pack": "sh tools/pack.sh"
+    "build": "bun tools/build.ts",
+    "typecheck": "tsc -p . && tsc -p tools",
+    "test": "bun test",
+    "check": "bun tools/check.ts",
+    "pack": "bun run build && sh tools/pack.sh"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.4",
     "@types/chrome": "^0.3.7",
     "typescript": "^7.0.2"
   }

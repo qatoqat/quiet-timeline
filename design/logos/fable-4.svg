@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <!-- Still point: a quiet dot with one fading ripple, open at the top-right -->
-  <rect width="128" height="128" rx="28" fill="#1e2128"/>
-  <circle cx="64" cy="64" r="38" fill="none" stroke="#7aa2d6" stroke-opacity=".35" stroke-width="9"/>
-  <path d="M64 42A22 22 0 1 0 86 64" fill="none" stroke="#7aa2d6" stroke-width="9" stroke-linecap="round"/>
-  <circle cx="64" cy="64" r="9" fill="#e4e6ea"/>
-</svg>

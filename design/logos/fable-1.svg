@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <!-- Quiet feed: three timeline rows, one kept, two muted -->
-  <rect width="128" height="128" rx="28" fill="#1e2128"/>
-  <g fill="none" stroke-linecap="round" stroke-width="14">
-    <path d="M30 38H74" stroke="#7aa2d6" stroke-opacity=".38"/>
-    <path d="M30 64H98" stroke="#e4e6ea"/>
-    <path d="M30 90H60" stroke="#7aa2d6" stroke-opacity=".38"/>
-  </g>
-</svg>

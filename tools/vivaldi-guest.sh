@@ -1,7 +1,7 @@
 #!/bin/sh
 # Logged-out dev Vivaldi: X serves its NEW web app (x-web) to logged-out
 # visitors, while signed-in accounts may still get the old one. Use this to test
-# the new app. DevTools on 127.0.0.1:9334 (CDP_PORT=9334 node tools/cdp.mjs …).
+# the new app. DevTools on 127.0.0.1:9334 (CDP_PORT=9334 bun tools/cdp.ts …).
 # The extension is preloaded (--load-extension): after code edits, restart this
 # script instead of reloading the extension.
 PROFILE="${QUIETTL_GUEST_PROFILE:-$HOME/.config/quiettl-vivaldi-guest}"

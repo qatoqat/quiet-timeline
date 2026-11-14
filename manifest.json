@@ -29,7 +29,7 @@
         "https://mobile.x.com/*"
       ],
       "js": [
-        "src/hook.js"
+        "build/hook.js"
       ],
       "run_at": "document_start",
       "world": "MAIN"
@@ -41,21 +41,16 @@
         "https://mobile.x.com/*"
       ],
       "js": [
-        "src/defaults.js",
-        "src/words.js",
-        "src/score.js",
-        "src/theme.js",
-        "src/apps.js",
-        "src/content.js"
+        "build/content.js"
       ],
       "css": [
-        "src/styles.css"
+        "build/content.css"
       ],
       "run_at": "document_start"
     }
   ],
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "build/background.js"
   },
   "web_accessible_resources": [
     {

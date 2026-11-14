@@ -1,0 +1,108 @@
+/* View count after the date, action-bar copy hidden */
+html[data-xs-views-inline] [data-xs-views]::after {
+  content: ' · ' attr(data-xs-views);
+  white-space: pre;
+  color: var(--x-fg-secondary);
+}
+html[data-xs-views-inline] main [role='group'] > div:has(> a[aria-label='View count']) {
+  display: none !important;
+}
+
+/* Under the avatar (timeline posts with room for it; content.js decides and sets
+   the position): [data-xs-side] = the bookmark/share box, incl. "Not interested" */
+[data-xs-side] > article {
+  position: relative;
+}
+[role='group'] > div:has(> .xs-ni) {
+  display: flex;
+  align-items: center;
+}
+[data-xs-side] > article [role='group'] > div:has([data-engagement-action='bookmark']) {
+  position: absolute;
+  left: var(--xs-side-left, 2px);
+  top: var(--xs-stack-top, 68px);
+  flex-direction: column;
+  gap: 0;
+}
+[data-xs-side] > article [role='group'] > div:has([data-engagement-action='bookmark']) > * {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+}
+.xs-ni {
+  order: -1; /* before bookmark */
+}
+/* While "Not interested" drives the ⋯ menu, keep the menu invisible */
+html[data-xs-menu-busy] [role='menu'],
+html[data-xs-menu-busy] [data-base-ui-portal]:has([role='menu']) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* fallback look if bookmark's classes couldn't be copied */
+.xs-ni:not(.x-engagement-button) {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: none;
+  color: var(--x-fg-secondary, #8b8f97);
+  cursor: pointer;
+}
+.xs-ni:not(.x-engagement-button) svg {
+  width: 18px;
+  height: 18px;
+}
+
+[role='menu'],
+[role='presentation']:has(> [role='listbox']) {
+  border-radius: var(--xs-menu-radius, 12px) !important;
+}
+[role='menu'] [role='menuitem'],
+[role='listbox'] [role='option'] {
+  border-radius: max(calc(var(--xs-menu-radius, 12px) - 4px), 4px) !important;
+}
+
+html[data-xs-solid-bars] .sticky[class*='backdrop-blur'],
+html[data-xs-solid-bars] .sticky > [class*='backdrop-blur'].absolute {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: var(--x-bg-primary) !important;
+}
+
+.qt-reblur {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 17, 20, 0.6);
+  color: #e7e9ea;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+div:hover > .qt-reblur,
+.qt-reblur:focus-visible {
+  opacity: 1;
+}
+.qt-reblur[data-act='show'] {
+  opacity: 1; /* covered media: always show the eye */
+}
+.qt-reblur:hover {
+  background: rgba(15, 17, 20, 0.8);
+}

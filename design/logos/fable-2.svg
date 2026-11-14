@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <!-- Settling: a wave that comes to rest as a flat line, ending in a still dot -->
-  <rect width="128" height="128" rx="28" fill="#1e2128"/>
-  <path d="M20 64C26 34 36 34 42 64C48 94 58 94 64 64" fill="none" stroke="#7aa2d6" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M64 64H92" fill="none" stroke="#e4e6ea" stroke-width="12" stroke-linecap="round"/>
-  <circle cx="104" cy="64" r="8" fill="#e4e6ea"/>
-</svg>

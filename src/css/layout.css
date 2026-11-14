@@ -1,0 +1,192 @@
+/* Icon-only left nav: X's own compact mode is driven by this variable. */
+html[data-xs-navicons] div[class*='--x-sidebar-wide'] {
+  --x-sidebar-wide: 0 !important;
+}
+
+/* Center column: no side borders, no separators between posts / header / composer. */
+html[data-xs-noborders] main {
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
+}
+html[data-xs-noborders] main :is(div, button):is(.border-b, [class*='border-b-[']) {
+  border-bottom-color: transparent !important;
+}
+/* dividers, e.g. under "Relevant / View quotes" on a post page */
+html[data-xs-noborders] main div.border-divider:is(.border-t, .border-b) {
+  border-color: transparent !important;
+}
+
+/* Icon-only menu: shrink the page so the post column sits next to the icons
+   (X keeps it 1280px wide and centers the posts in the leftover space). */
+@media (min-width: 1024px) {
+  html[data-xs-navicons] div[class*='--x-sidebar-wide'][class*='max-w-[1280px]'] {
+    max-width: calc(72px + 602px + 32px + 380px) !important;
+  }
+}
+
+/* Right sidebar cards: no gradient, adjustable radius. Search box radius. */
+section[class*='bg-linear-to-br'] {
+  background-image: none !important;
+}
+section.rounded-2xl {
+  border-radius: var(--xs-card-radius, 16px) !important;
+}
+form[role='search'] [data-slot='xds-combobox-input-group'],
+form[role='search'] [data-slot='xds-combobox-input-group'] *,
+div.rounded-full:has(> form[role='search']) {
+  border-radius: var(--xs-search-radius, 9999px) !important;
+}
+
+article div.rounded-md.overflow-hidden:has(img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[data-xs-src], video) {
+  border-radius: var(--xs-media-radius, 16px) !important;
+}
+main div[class*='aspect-[3/1]'] {
+  border-radius: var(--xs-banner-radius, 0px) !important;
+}
+
+/* Calm contrast: primary (white) buttons become quiet surface buttons. */
+/* …but not the dots / knobs of radios, checkboxes and switches (they use the
+   same color and would vanish) */
+html[data-xs-calm] :is([role='radio'], [role='checkbox'], [role='switch']) .bg-btn-primary {
+  background-color: var(--x-fg-primary, var(--xs-text)) !important;
+}
+html[data-xs-calm] .bg-btn-primary {
+  color: var(--x-fg-primary, var(--xs-text)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--xs-text) 8%, transparent);
+}
+html[data-xs-calm] a[aria-label^='Subscribe to'] {
+  border-color: var(--xs-border) !important;
+}
+html[data-xs-calm] .text-plum-500 {
+  color: var(--xs-muted) !important;
+}
+/* Calm: composer toolbar icons and inactive left-menu items in the muted grey
+   (like the composer's lock icon); the current page and hover stay bright. */
+html[data-xs-calm] main div.text-tertiary.grid button.x-button,
+html[data-xs-calm] div.sticky nav :is(a:not([data-status='active']), button) {
+  color: var(--x-fg-secondary) !important;
+}
+html[data-xs-calm] main div.text-tertiary.grid button.x-button:hover,
+html[data-xs-calm] div.sticky nav :is(a, button):hover {
+  color: var(--x-fg-primary) !important;
+}
+/* Calm: the composer's Post button keeps full color while disabled (matches the
+   left menu's post button instead of fading to 70%) */
+html[data-xs-calm] main button.bg-btn-primary:disabled {
+  opacity: 1 !important;
+}
+html[data-xs-calm] [data-slot='xds-callout'] {
+  border: 1px solid var(--xs-border);
+}
+
+[data-xs-gone] {
+  display: none !important;
+}
+
+/* For you / Following: short fixed-width underline centered under the active tab */
+html[data-xs-narrow-tabs] span[class*='w-(--active-tab-width)'] {
+  width: 48px !important;
+  left: calc(var(--active-tab-left) + (var(--active-tab-width) - 48px) / 2) !important;
+}
+
+/* Profile button at the top of the left column, in the logo's place */
+html[data-xs-profile-top] div.sticky > div.mt-auto:has(> button[aria-label='Account menu']) {
+  order: -1;
+  margin-top: 0 !important;
+  padding: 8px !important;
+}
+/* (the logo's slot is a <div> on some pages and an <h1> on others) */
+html[data-xs-profile-top] div.sticky > :has(a[aria-label='X'][href='/home']),
+html[data-xs-logo] div.sticky > .shrink-0:has(a[aria-label='X'][href='/home']) {
+  display: none !important;
+}
+
+/* Media viewer (photo/video detail): side panel edge and separators */
+html[data-xs-noborders] [role='dialog']:has(img[src*='pbs.twimg.com/media/'], video) div:is(.border-s, .border-b, .border-t, [class*='border-b-[']) {
+  border-color: transparent !important;
+}
+
+/* Rounded hover shape for posts */
+html[data-xs-rounded] main [role='link'][data-href*='/status/']:not([role='link'] [role='link']) {
+  border-radius: 16px;
+  margin-inline: 6px;
+}
+/* …and the same for the "Show N posts" bar */
+html[data-xs-rounded] main button[class*='--media-overhang-start'] {
+  border-radius: 16px;
+  margin-inline: 6px;
+  width: calc(100% - 12px);
+}
+
+html[data-xs-logo] a[aria-label='X'][href='/home'],
+html[data-xs-logo] div:has(> svg[aria-label='X'][viewBox='0 0 480 490']) {
+  display: none !important;
+}
+
+html[data-xs-upsells] section:has(a[href^='/i/premium']),
+html[data-xs-upsells] a[href^='/i/premium'],
+html[data-xs-upsells] a[href^='/i/verified'],
+html[data-xs-upsells] a[href^='/i/jobs'] {
+  display: none !important;
+}
+
+/* Grok: floating button (bottom right), "Explain this post" in post headers,
+   Grok links in posts. The left-menu item has its own switch. */
+html[data-xs-no-grok] main a[href='/i/grok'],
+html[data-xs-no-grok] main a[href^='/i/grok?'],
+html[data-xs-no-grok] [data-slot='xds-dock-window']:has([data-icon='icon-logo-grok']),
+html[data-xs-no-grok] span:has(> button[aria-label='Explain this post']),
+html[data-xs-no-grok] button[aria-label='Explain this post'],
+html[data-xs-no-grok] main button:has(> span > svg[data-icon='icon-logo-grok']) {
+  display: none !important;
+}
+/* Floating chat button (bottom right); an open chat window stays */
+html[data-xs-no-chat-button] [data-slot='xds-dock-window'][data-closed]:has([data-slot='xds-dock-launcher'] [data-icon='icon-chat']) {
+  display: none !important;
+}
+
+html[data-xs-sidebar] section:has(a[href^='/i/trending/']),
+html[data-xs-sidebar] section:has(> a[href='/explore']),
+html[data-xs-sidebar] section:has([data-who-to-follow]) {
+  display: none !important;
+}
+
+#quiettl-panel {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 2147483647;
+  width: 340px;
+  height: 480px;
+  max-height: calc(100vh - 24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  background: #15171b;
+  color-scheme: normal;
+}
+
+#quiettl-tip {
+  position: fixed;
+  z-index: 2147483646;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+/* fallback look where X's tooltip classes don't exist (old app); :where() so
+   the new app's classes still win */
+:where(#quiettl-tip) {
+  background: var(--x-tooltip-bg, rgba(91, 112, 131, 0.9));
+  color: var(--x-tooltip-fg, #fff);
+  font: 400 12px/16px TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+#quiettl-tip.xs-show {
+  opacity: 1;
+}
+#quiettl-tip.xs-below {
+  transform: translateX(-50%);
+}

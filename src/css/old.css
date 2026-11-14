@@ -1,0 +1,216 @@
+/* Photos are a background-image div plus an img: blur the whole photo box. */
+article[data-xs-media='blur'] :is([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid^='card.layout'][data-testid$='.media']) {
+  filter: var(--qt-media-blur) !important; /* X sets its own filter here */
+  transform: scale(1.08);
+}
+article[data-xs-media='blur'] :is([data-testid='tweetPhoto'], [data-testid='videoPlayer']) {
+  cursor: pointer;
+}
+article[data-xs-media='hide'] :is([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid^='card.layout'][data-testid$='.media']) {
+  display: none !important;
+}
+article[data-xs-pfp] [data-testid='Tweet-User-Avatar'] [data-testid^='UserAvatar-Container'] :is(img, div[style*='background-image']) {
+  filter: var(--qt-pfp-blur) !important;
+  transform: scale(1.6);
+}
+article[data-xs-pfp]:hover [data-testid='Tweet-User-Avatar'] [data-testid^='UserAvatar-Container'] :is(img, div[style*='background-image']) {
+  filter: none !important;
+  transform: none !important;
+}
+html[data-xs-no-grok] [data-testid='GrokDrawer'],
+html[data-xs-no-grok] div:has(> button[aria-label='Grok actions']),
+html[data-xs-no-grok] button[aria-label='Grok actions'] {
+  display: none !important;
+}
+html[data-xs-no-chat-button] [data-testid='chat-drawer-root'] {
+  display: none !important;
+}
+html[data-xs-logo] header[role='banner'] h1:has(a[aria-label='X']),
+html[data-xs-profile-top] header[role='banner'] h1:has(a[aria-label='X']) {
+  display: none !important;
+}
+html[data-xs-sidebar] [data-testid='sidebarColumn'] :is(section, div[aria-label]):has([data-testid='trend'], [data-testid='UserCell']) {
+  display: none !important;
+}
+html[data-xs-upsells] [data-testid='sidebarColumn'] :is(aside, .r-1867qdf):has(a[href^='/i/premium']),
+html[data-xs-upsells] a[href^='/i/premium_sign_up'],
+html[data-xs-upsells] [data-testid='verified_profile_upsell'] {
+  display: none !important;
+}
+
+/* center column borders and the separators between posts / header / composer
+   (not inside posts: quoted posts and cards keep their frame) */
+html[data-xs-noborders] [data-testid='primaryColumn'] {
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
+}
+html[data-xs-noborders] [data-testid='primaryColumn'] :is(div, section):not(article *, [role='dialog'] *) {
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+/* one-sided lines inside posts too (e.g. around the stats and "Relevant /
+   View quotes" on a post page): X's border-top / border-bottom utility classes;
+   quoted posts use an all-sides border and keep it */
+html[data-xs-noborders] [data-testid='primaryColumn'] :is(.r-qklmqi, .r-5kkj8d) {
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+/* …and 1px divider divs (e.g. under the composer) */
+html[data-xs-noborders] [data-testid='primaryColumn'] div.r-109y4c4.r-gu4em3 {
+  background-color: transparent !important;
+}
+html[data-xs-rounded] [data-testid='cellInnerDiv'] article[data-testid='tweet'] {
+  border-radius: 16px;
+}
+html[data-xs-rounded] [data-testid='cellInnerDiv'] > div:has(article[data-testid='tweet']) {
+  margin-inline: 6px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+[data-testid='sidebarColumn'] .r-1867qdf {
+  border-radius: var(--xs-card-radius, 16px) !important;
+}
+[data-testid='sidebarColumn'] form[role='search'] .r-sdzlij,
+[data-testid='sidebarColumn'] form[role='search'] .r-sdzlij * {
+  border-radius: var(--xs-search-radius, 9999px) !important;
+}
+article .r-1867qdf:has([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid='videoComponent']) {
+  border-radius: var(--xs-media-radius, 16px) !important;
+}
+a[href$='/header_photo'] {
+  border-radius: var(--xs-banner-radius, 0px);
+  overflow: hidden;
+}
+[data-testid='Dropdown'][role='menu'],
+div:has(> [data-testid='Dropdown'][role='menu']) {
+  border-radius: var(--xs-menu-radius, 12px) !important;
+}
+html[data-xs-solid-bars] [data-testid='primaryColumn'] .r-5zmot {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: var(--xs-bg, rgb(0, 0, 0)) !important;
+}
+/* icon-only menu: narrow the left column, hide labels, round Post button */
+html[data-xs-navicons] header[role='banner'] > div,
+html[data-xs-navicons] header[role='banner'] > div > div,
+html[data-xs-navicons] header[role='banner'] > div > div > div,
+html[data-xs-navicons] header[role='banner'] > div > div > div > div {
+  width: 88px !important;
+}
+/* (a padded wrapper made its content overflow → horizontal scrollbar) */
+html[data-xs-navicons] header[role='banner'] div {
+  overflow-x: clip !important; /* not 'hidden': that turns vertical overflow into a scrollbar */
+}
+html[data-xs-navicons] header[role='banner'] div:has(> [data-testid='SideNav_NewTweet_Button']) {
+  width: 100% !important;
+  align-items: center !important;
+}
+html[data-xs-navicons] header[role='banner'] nav,
+html[data-xs-navicons] header[role='banner'] nav > :is(a, button, div) {
+  width: auto !important;
+  align-self: center;
+}
+html[data-xs-navicons] header[role='banner'] nav :is(a, button) > div > div:nth-child(2),
+html[data-xs-navicons] [data-testid='SideNav_AccountSwitcher_Button'] > :not(:first-child) {
+  display: none !important;
+}
+html[data-xs-navicons] [data-testid='SideNav_AccountSwitcher_Button'] {
+  justify-content: center !important;
+  padding-inline: 0 !important;
+}
+html[data-xs-navicons] [data-testid='SideNav_NewTweet_Button'] {
+  margin-inline: auto !important;
+  align-self: center !important;
+  width: 52px !important;
+  min-width: 0 !important;
+  height: 52px !important;
+  padding: 0 !important;
+}
+html[data-xs-navicons] [data-testid='SideNav_NewTweet_Button'] > * {
+  display: none !important;
+}
+html[data-xs-navicons] [data-testid='SideNav_NewTweet_Button']::before {
+  content: '';
+  width: 22px;
+  height: 22px;
+  margin: auto;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z'/%3E%3Cpath d='m13.5 6.5 4 4'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z'/%3E%3Cpath d='m13.5 6.5 4 4'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+html[data-xs-profile-top] header[role='banner'] div:has(> div > [data-testid='SideNav_AccountSwitcher_Button']) {
+  order: -1;
+  margin: 0 !important;
+  padding: 8px 0 !important;
+}
+/* the column spreads its blocks apart; packed from the top it matches the new app */
+html[data-xs-profile-top] header[role='banner'] div:has(> div > div > [data-testid='SideNav_AccountSwitcher_Button']) {
+  justify-content: flex-start !important;
+}
+html[data-xs-views-inline] article [role='group'] > div:has(a[href$='/analytics']) {
+  display: none !important;
+}
+/* bookmark / share (and "Not interested") under the avatar. The old action bar
+   is flat, so each button is placed on its own; share is found by its icon. */
+article[data-xs-side] {
+  position: relative;
+}
+article[data-xs-side] [role='group'] > :is(.qt-ni-cell, div:has(:is([data-testid='bookmark'], [data-testid='removeBookmark'])), div:has(svg path[d^='M12 2.59l5.7'])) {
+  position: absolute;
+  left: var(--xs-side-left, 2px);
+  width: 36px;
+  height: 36px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+article[data-xs-side] [role='group'] > .qt-ni-cell {
+  top: var(--xs-stack-top, 68px);
+}
+article[data-xs-side] [role='group'] > div:has(:is([data-testid='bookmark'], [data-testid='removeBookmark'])) {
+  top: calc(var(--xs-stack-top, 68px) + var(--qt-ni-slot, 0px));
+}
+article[data-xs-side] [role='group'] > div:has(svg path[d^='M12 2.59l5.7']) {
+  top: calc(var(--xs-stack-top, 68px) + var(--qt-ni-slot, 0px) + 36px);
+}
+article[data-xs-side][data-xs-ni] {
+  --qt-ni-slot: 36px;
+}
+/* calm: no bright white buttons */
+html[data-xs-calm] :is([data-testid='SideNav_NewTweet_Button'], [data-testid$='-follow'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']) {
+  background-color: var(--xs-surface, #1d2026) !important;
+  border: 1px solid var(--xs-border, #2c3038) !important;
+}
+html[data-xs-calm] :is([data-testid='SideNav_NewTweet_Button'], [data-testid$='-follow'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']) :is(span, div) {
+  color: var(--xs-text, #e3e5e9) !important;
+}
+html[data-xs-calm] [data-testid='SideNav_NewTweet_Button']::before {
+  background: var(--xs-text, #e3e5e9);
+}
+
+article[data-testid='tweet'] [data-xs-views]::after {
+  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+}
+
+article[data-testid='tweet'] .xs-toggle {
+  margin-left: auto; /* next to the ⋯ menu, not centered in the header row */
+  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* old app, calm: muted menu and composer icons (active page stays bright), no
+   faded disabled Post button; soft text: semi-bold names */
+html[data-xs-calm] header[role='banner'] nav :is(a:not([data-xs-active]), button) svg,
+html[data-xs-calm] [data-testid='toolBar'] :is([role='button'], button) svg {
+  color: var(--xs-muted, #8b919c) !important;
+}
+html[data-xs-calm] header[role='banner'] nav :is(a, button):hover svg,
+html[data-xs-calm] [data-testid='toolBar'] :is([role='button'], button):hover svg {
+  color: var(--xs-text, #e3e5e9) !important;
+}
+html[data-xs-calm] :is([data-testid='tweetButtonInline'], [data-testid='tweetButton'])[aria-disabled='true'] {
+  opacity: 1 !important;
+}
+html[data-xs-soft] [data-testid='primaryColumn'] .r-b88u0q {
+  font-weight: 600 !important;
+}
