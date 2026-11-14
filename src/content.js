@@ -374,10 +374,12 @@
   // red/green/blue separately gives false rainbow colours.
   function ensureContourFilters() {
     if (document.getElementById('quiettl-contour')) return;
-    const steps = '0 0.2 0.4 0.6 0.8 1';
+    // compressed range: no pure white (glow) or black, softer contrast
+    const steps = '0.22 0.34 0.46 0.58 0.7';
     const f = (id, sd, soft) =>
       `<filter id="${id}" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">` +
-      `<feGaussianBlur in="SourceGraphic" stdDeviation="${sd}" edgeMode="duplicate" result="b"/>` +
+      `<feGaussianBlur in="SourceGraphic" stdDeviation="${sd}" edgeMode="duplicate" result="b0"/>` +
+      `<feColorMatrix in="b0" type="saturate" values="0.8" result="b"/>` +
       `<feColorMatrix in="b" type="saturate" values="0" result="g"/>` +
       `<feComponentTransfer in="g" result="p">${['R', 'G', 'B'].map((c) => `<feFunc${c} type="discrete" tableValues="${steps}"/>`).join('')}</feComponentTransfer>` +
       `<feGaussianBlur in="p" stdDeviation="${soft}" result="ps"/>` +
