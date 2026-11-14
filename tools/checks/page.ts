@@ -11,6 +11,28 @@ export async function pageChecks(K: Kit, deep: boolean) {
     const v = (k: string) => cs(html).getPropertyValue(`--xs-${k}`).trim().toLowerCase();
     const off = ['bg', 'surface', 'border', 'muted', 'text'].filter((k) => v(k) !== PAL[k].toLowerCase());
     add('theme colors as chosen', !off.length, off.map((k) => `${k} ${v(k)} ≠ ${PAL[k]}`).join(', '));
+    // every grey X sets inline (incl. per-element color variables) is on the theme's bg→text ramp
+    const hexRgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const ramp = ['bg', 'surface', 'border', 'muted', 'text'].map((k) => hexRgb(PAL[k]));
+    if (T.softText) ramp[4] = ramp[4].map((x, i) => Math.round(x + (ramp[0][i] - x) * 0.14));
+    const onRamp = (c: number[]) =>
+      ramp.slice(1).some((b, i) => {
+        const a = ramp[i];
+        const ab = b.map((x, j) => x - a[j]);
+        const t = Math.max(0, Math.min(1, c.reduce((s, x, j) => s + (x - a[j]) * ab[j], 0) / (ab.reduce((s, x) => s + x * x, 0) || 1)));
+        return Math.hypot(...c.map((x, j) => x - (a[j] + ab[j] * t))) <= 4;
+      });
+    const unthemed = new Set<string>();
+    for (const e of all('[style*="rgb"]')) {
+      for (const d of (e.getAttribute('style') || '').split(';')) {
+        if (/^\s*--(xs|qt)-/.test(d)) continue;
+        for (const m of d.matchAll(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/g)) {
+          const c = [+m[1], +m[2], +m[3]];
+          if (Math.max(...c) - Math.min(...c) <= 30 && !onRamp(c)) unthemed.add(d.trim().slice(0, 60));
+        }
+      }
+    }
+    add("X's inline greys themed", !unthemed.size, [...unthemed].slice(0, 3).join(' | '));
   }
   const font = cs(document.body).fontFamily;
   add(`font: ${T.font}`, T.font === 'system' ? /^system-ui/.test(font) : !/^system-ui/.test(font), font.slice(0, 30));

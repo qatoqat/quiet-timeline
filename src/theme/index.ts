@@ -72,8 +72,8 @@ function processEl(el: Element): void {
     if (!cur.includes('rgb')) return;
     rec = [cur, cur];
   }
-  // per declaration, custom properties left alone: never our own --xs-* variables on <html>
-  const next = mapper ? remapDecls(rec[0], mapper) : rec[0];
+  // per declaration, never our own variables (--xs-*, --qt-* on <html>), which are theme colors already
+  const next = mapper ? remapDecls(rec[0], mapper, /^--(xs|qt)-/) : rec[0];
   rec[1] = next;
   origEl.set(el, rec);
   if (cur !== next) el.setAttribute('style', next);

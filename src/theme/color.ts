@@ -79,11 +79,13 @@ export function remap(css: string, map: Mapper): string {
   });
 }
 
-// Custom properties are left alone: the variable override handles those (once).
-export function remapDecls(cssText: string, map: Mapper): string {
+// Declarations whose name matches `keep` are left alone. Stylesheets keep every custom property (the
+// variable override handles X's, once); inline styles only ours, so X's per-element color variables
+// (e.g. an article card's --article-tone) are themed too.
+export function remapDecls(cssText: string, map: Mapper, keep = /^--/): string {
   return cssText
     .split(/;(?![^(]*\))/)
-    .map((d) => (d.trim().startsWith('--') ? d : remap(d, map)))
+    .map((d) => (keep.test(d.trim()) ? d : remap(d, map)))
     .join(';');
 }
 

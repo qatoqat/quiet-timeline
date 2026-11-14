@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { DEFAULTS, merge, type Settings } from '../src/shared/defaults';
 import { createWordFilter } from '../src/shared/words';
 import { isPaid, nonOriginal, scoreTweet, themeOf, topicTokens } from '../src/shared/score';
-import { makeMapper, parseColor, PRESETS, remap } from '../src/theme/color';
+import { makeMapper, parseColor, PRESETS, remap, remapDecls } from '../src/theme/color';
 import { extract, extractFromScript, snowflakeMs } from '../src/hook/extract';
 import type { TallyRow, Tweet, User } from '../src/shared/types';
 
@@ -144,6 +144,14 @@ test('theme mapper', () => {
     remap('color: rgba(231, 233, 234, 0.5); border-color: rgb(249, 24, 128);', m),
     'color: rgba(236, 239, 244, 0.5); border-color: rgb(249, 24, 128);',
   );
+});
+
+test('inline recoloring: X\'s color variables themed, our own left alone', () => {
+  const m = makeMapper(PRESETS.quiettl, 'lightsout', PRESETS.quiettl.accent);
+  const out = remapDecls('--article-tone-dark: rgb(42 41 37); --xs-bg: rgb(21, 23, 27); --qt-page-bg: rgb(21, 23, 27)', m, /^--(xs|qt)-/);
+  assert.ok(!out.includes('rgb(42 41 37)'), out);
+  assert.ok(out.includes('--xs-bg: rgb(21, 23, 27)') && out.includes('--qt-page-bg: rgb(21, 23, 27)'), out);
+  assert.equal(remapDecls('--x-bg: rgb(0, 0, 0)', m), '--x-bg: rgb(0, 0, 0)'); // stylesheets: every custom property kept
 });
 
 test('new x-web schema, embedded page data, originality', () => {
