@@ -7,7 +7,7 @@ slurs and profanity, and re-themes the site. Everything runs locally; nothing is
 
 1. `vivaldi://extensions` → enable **Developer mode**
 2. **Load unpacked** → pick this folder
-3. Reload x.com. Settings are in the toolbar popup.
+3. Reload x.com. Click the toolbar button for settings (they open in the page).
 
 After editing the code, press the reload icon on the extension card, then reload the X tab.
 
@@ -22,6 +22,16 @@ After editing the code, press the reload icon on the extension card, then reload
   and s p a c e d letters, without hitting words like "Scunthorpe" or "cocktail".
 - `src/theme.js` remaps X's color palette (it doesn't depend on X's class names, which change).
   Works from any X display mode (Light / Dim / Lights out).
+
+Works with both of X's web apps: the new one ("x-web", Tailwind markup) and the older
+"responsive-web" one (`data-testid` markup), which X still serves to some accounts.
+`src/content.js` reads posts from either (see `readPost` / `readOldPost`).
+
+## Package for the Chrome Web Store
+
+    tools/pack.sh                    # → dist/quiet-timeline-<version>.zip
+
+Listing text, privacy answers and screenshots: `store/`. Privacy policy: `PRIVACY.md`.
 
 ## Tests
 
