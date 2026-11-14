@@ -1,8 +1,20 @@
-import { appOf, POST } from '../apps';
+import { appOf, MEDIA_IMG, POST } from '../apps';
 import { st, playAllowed } from './state';
 import { readPost, pageCtx, processPost } from './post';
+import { placeButton } from './side';
 
-export const MEDIA_IMG = 'img[src*="pbs.twimg.com/media/"], img[src*="video_thumb"], img[src*="/card_img/"]';
+export const SVG_NS = 'http://www.w3.org/2000/svg';
+
+// Hidden <svg> holding defs (filters, symbols) that the page references by id.
+export function svgDefs(id: string, inner: () => string): void {
+  if (document.getElementById(id)) return;
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.id = id;
+  svg.setAttribute('aria-hidden', 'true');
+  svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+  svg.innerHTML = inner();
+  document.documentElement.appendChild(svg);
+}
 
 // Remove image sources before they load; keep them to restore on click.
 export function stripMedia(root: ParentNode): void {
@@ -32,7 +44,6 @@ export function restoreMedia(root: ParentNode): void {
 // "Contour" blur: band only the lightness (banding R/G/B separately gives false rainbow colours),
 // then blend 70/30 with the plain blur so it stays light and soft.
 export function ensureContourFilters(): void {
-  if (document.getElementById('quiettl-contour')) return;
   const steps = '0.36 0.485 0.61 0.735 0.86'; // no pure white (glow) or black
   const f = (id: string, sd: number, soft: number) =>
     `<filter id="${id}" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">` +
@@ -43,36 +54,22 @@ export function ensureContourFilters(): void {
     `<feGaussianBlur in="p" stdDeviation="${soft}" result="ps"/>` +
     `<feBlend in="ps" in2="b" mode="luminosity" result="c"/>` +
     `<feComposite in="c" in2="b" operator="arithmetic" k2="0.7" k3="0.3"/></filter>`;
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.id = 'quiettl-contour';
-  svg.setAttribute('width', '0');
-  svg.setAttribute('height', '0');
-  svg.style.position = 'absolute';
-  svg.innerHTML = f('quiettl-contour-sm', 3, 0.5) + f('quiettl-contour-lg', 10, 1);
-  document.documentElement.appendChild(svg);
+  svgDefs('quiettl-contour', () => f('quiettl-contour-sm', 3, 0.5) + f('quiettl-contour-lg', 10, 1));
 }
 
-export const EYE =
-  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12c1-2.5 5-7 10-7s9 4.5 10 7c-1 2.5-5 7-10 7S3 14.5 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
-export const EYE_OFF =
-  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.3 2.4-2.6 3.7M6.6 6.6C4.4 8 2.9 10.1 2 12c1 2.5 5 7 10 7 1.9 0 3.6-.6 5-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+const icon = (d: string) =>
+  `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const EYE = icon('<path d="M2 12c1-2.5 5-7 10-7s9 4.5 10 7c-1 2.5-5 7-10 7S3 14.5 2 12z"/><circle cx="12" cy="12" r="3"/>');
+const EYE_OFF = icon(
+  '<path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.3 2.4-2.6 3.7M6.6 6.6C4.4 8 2.9 10.1 2 12c1 2.5 5 7 10 7 1.9 0 3.6-.6 5-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+);
 
 // Eye on covered media (always shown, click to show); crossed eye on revealed media (on hover, click to cover again).
 export function setReblur(root: HTMLElement, mode: string | null, covered?: boolean): void {
-  const box = mode && appOf(root).mediaBox(root);
-  let btn = root.querySelector<HTMLButtonElement>('.qt-reblur');
-  if (!box) {
-    if (btn) btn.remove();
-    return;
-  }
-  if (!btn || btn.parentElement !== box) {
-    if (btn) btn.remove();
-    btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'qt-reblur';
-    if (getComputedStyle(box).position === 'static') box.style.position = 'relative';
-    box.appendChild(btn);
-  }
+  const box = mode ? appOf(root).mediaBox(root) : null;
+  if (box && !box.style.position && getComputedStyle(box).position === 'static') box.style.position = 'relative';
+  const btn = placeButton(root, 'qt-reblur', box);
+  if (!btn) return;
   const act = covered ? 'show' : 'cover';
   if (btn.dataset.act !== act) {
     btn.dataset.act = act;

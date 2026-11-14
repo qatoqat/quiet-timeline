@@ -9,13 +9,9 @@ article[data-xs-media='blur'] :is([data-testid='tweetPhoto'], [data-testid='vide
 article[data-xs-media='hide'] :is([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid^='card.layout'][data-testid$='.media']) {
   display: none !important;
 }
-article[data-xs-pfp] [data-testid='Tweet-User-Avatar'] [data-testid^='UserAvatar-Container'] :is(img, div[style*='background-image']) {
+article[data-xs-pfp]:not(:hover) [data-testid='Tweet-User-Avatar'] [data-testid^='UserAvatar-Container'] :is(img, div[style*='background-image']) {
   filter: var(--qt-pfp-blur) !important;
   transform: scale(1.6);
-}
-article[data-xs-pfp]:hover [data-testid='Tweet-User-Avatar'] [data-testid^='UserAvatar-Container'] :is(img, div[style*='background-image']) {
-  filter: none !important;
-  transform: none !important;
 }
 html[data-xs-no-grok] [data-testid='GrokDrawer'],
 html[data-xs-no-grok] div:has(> button[aria-label='Grok actions']),
@@ -44,10 +40,7 @@ html[data-xs-noborders] [data-testid='primaryColumn'] {
   border-left-color: transparent !important;
   border-right-color: transparent !important;
 }
-html[data-xs-noborders] [data-testid='primaryColumn'] :is(div, section):not(article *, [role='dialog'] *) {
-  border-top-color: transparent !important;
-  border-bottom-color: transparent !important;
-}
+html[data-xs-noborders] [data-testid='primaryColumn'] :is(div, section):not(article *, [role='dialog'] *),
 /* one-sided lines inside posts too (e.g. around the stats and "Relevant /
    View quotes" on a post page): X's border-top / border-bottom utility classes;
    quoted posts use an all-sides border and keep it */
@@ -87,7 +80,6 @@ div:has(> [data-testid='Dropdown'][role='menu']) {
 }
 html[data-xs-solid-bars] [data-testid='primaryColumn'] .r-5zmot {
   backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
   background-color: var(--xs-bg, rgb(0, 0, 0)) !important;
 }
 /* icon-only menu: narrow the left column, hide labels, round Post button */
@@ -135,7 +127,6 @@ html[data-xs-navicons] [data-testid='SideNav_NewTweet_Button']::before {
   height: 22px;
   margin: auto;
   background: currentColor;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z'/%3E%3Cpath d='m13.5 6.5 4 4'/%3E%3C/svg%3E") center / contain no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z'/%3E%3Cpath d='m13.5 6.5 4 4'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 html[data-xs-profile-top] header[role='banner'] div:has(> div > [data-testid='SideNav_AccountSwitcher_Button']) {

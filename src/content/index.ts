@@ -1,4 +1,4 @@
-import { DEFAULTS, merge, parseList } from '../shared/defaults';
+import { DEFAULTS, merge, parseList, type Settings } from '../shared/defaults';
 import { createWordFilter } from '../shared/words';
 import { applyTheme } from '../theme/index';
 import { st, stats, users, tweets, tally, langCache } from './state';
@@ -43,6 +43,12 @@ function togglePanel(): void {
   },
 };
 
+const DECLUTTER_FLAGS: Record<string, keyof Settings['declutter']> = {
+  upsells: 'upsells', sidebar: 'sidebar', logo: 'logo', navicons: 'navIcons', 'profile-top': 'profileTop',
+  'narrow-tabs': 'narrowTabs', noborders: 'borders', rounded: 'rounded', 'solid-bars': 'solidBars',
+  'no-grok': 'grokButtons', 'no-chat-button': 'chatButton', 'views-inline': 'viewsInline',
+};
+
 function applySettings(raw: unknown) {
   const prevEnabled = st.S.enabled;
   const S = (st.S = merge(DEFAULTS, raw));
@@ -55,30 +61,16 @@ function applySettings(raw: unknown) {
   const root = document.documentElement;
   const on = S.enabled;
   const flag = (name: string, cond: boolean, val = '') => (on && cond ? root.setAttribute(name, val) : root.removeAttribute(name));
-  flag('data-xs-upsells', S.declutter.upsells);
-  flag('data-xs-sidebar', S.declutter.sidebar);
-  flag('data-xs-logo', S.declutter.logo);
-  flag('data-xs-navicons', S.declutter.navIcons);
-  flag('data-xs-profile-top', S.declutter.profileTop);
-  flag('data-xs-narrow-tabs', S.declutter.narrowTabs);
-  flag('data-xs-noborders', S.declutter.borders);
-  flag('data-xs-rounded', S.declutter.rounded);
-  flag('data-xs-solid-bars', S.declutter.solidBars);
-  flag('data-xs-no-grok', S.declutter.grokButtons);
-  flag('data-xs-no-chat-button', S.declutter.chatButton);
-  flag('data-xs-accent-post', S.theme.accentPost && S.theme.preset !== 'off');
-  flag('data-xs-accent-follow', S.theme.accentFollow && S.theme.preset !== 'off');
-  flag('data-xs-accent-tabs', S.theme.accentTabs && S.theme.preset !== 'off');
-  flag('data-xs-views-inline', S.declutter.viewsInline);
+  for (const [a, k] of Object.entries(DECLUTTER_FLAGS)) flag(`data-xs-${a}`, !!S.declutter[k]);
+  const themed = S.theme.preset !== 'off';
+  flag('data-xs-accent-post', S.theme.accentPost && themed);
+  flag('data-xs-accent-follow', S.theme.accentFollow && themed);
+  flag('data-xs-accent-tabs', S.theme.accentTabs && themed);
   flag('data-xs-paid-check', true, S.paid.check);
   flag('data-xs-blur', true, S.blurStyle);
   flag('data-xs-blur-mono', S.blurMono);
   if (on && S.blurStyle === 'contour') ensureContourFilters();
-  root.style.setProperty('--xs-card-radius', `${S.declutter.cardRadius}px`);
-  root.style.setProperty('--xs-search-radius', `${S.declutter.searchRadius}px`);
-  root.style.setProperty('--xs-media-radius', `${S.declutter.mediaRadius}px`);
-  root.style.setProperty('--xs-banner-radius', `${S.declutter.bannerRadius}px`);
-  root.style.setProperty('--xs-menu-radius', `${S.declutter.menuRadius}px`);
+  for (const k of ['card', 'search', 'media', 'banner', 'menu'] as const) root.style.setProperty(`--xs-${k}-radius`, `${S.declutter[`${k}Radius`]}px`);
   applyTheme(S.theme, on);
   applyNavVisibility();
 
@@ -87,7 +79,7 @@ function applySettings(raw: unknown) {
   schedule();
 }
 
-// Same order as the original single script: capture listeners on window depend on it.
+// Order matters: capture listeners on window run in registration order.
 initData();
 initPage();
 initMedia();

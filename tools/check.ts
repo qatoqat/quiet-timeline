@@ -111,7 +111,7 @@ const checks = async (S: any) => {
   const col = OLD ? document.querySelector('[data-testid="primaryColumn"]') : document.querySelector('main');
   if (D.borders && col) {
     add('center column borders off', transparent(cs(col).borderLeftColor) || cs(col).borderLeftWidth === '0px', cs(col).borderLeftColor);
-    const lines = [...col.querySelectorAll('div')].filter((d) => !d.closest(OLD ? 'article' : POST) && visible(d) && [cs(d).borderTopWidth, cs(d).borderBottomWidth].some((w) => w !== '0px') && (cs(d).borderTopWidth !== '0px' ? !transparent(cs(d).borderTopColor) : !transparent(cs(d).borderBottomColor)));
+    const lines = [...col.querySelectorAll('div')].filter((d) => !d.closest(OLD ? 'article' : POST) && visible(d) && cs(d).borderLeftWidth === '0px' && [cs(d).borderTopWidth, cs(d).borderBottomWidth].some((w) => w !== '0px') && (cs(d).borderTopWidth !== '0px' ? !transparent(cs(d).borderTopColor) : !transparent(cs(d).borderBottomColor)));
     // 1–2px tall divs painted as lines
     for (const d of col.querySelectorAll('div')) {
       if (d.closest(OLD ? 'article' : POST)) continue; // video bars etc. inside posts

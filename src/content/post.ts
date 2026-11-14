@@ -25,6 +25,17 @@ export interface Verdict {
 
 export const readPost = (root: HTMLElement): PostInfo | null => appOf(root).read(root);
 
+export const unset = (el: HTMLElement, ...keys: string[]): void => {
+  for (const k of keys) delete el.dataset[k];
+};
+
+function hideCell(cell: HTMLElement, id: string, stat: Set<string>): void {
+  cell.dataset.xsHidden = '1';
+  stat.add(id);
+  sizeState.set(id, { hidden: true });
+  updateSizeCss();
+}
+
 export function pageCtx(): Page {
   const p = location.pathname;
   const sm = /\/status\/(\d+)/.exec(p);
@@ -74,16 +85,12 @@ function maskText(info: PostInfo): boolean {
 
 export function reset(root: HTMLElement, info: PostInfo): void {
   if (sizeState.delete(info.id)) updateSizeCss();
-  delete root.dataset.xsState;
-  delete root.dataset.xsWhy;
-  delete root.dataset.xsMedia;
-  delete root.dataset.xsNoplay;
-  delete root.dataset.xsPfp;
+  unset(root, 'xsState', 'xsWhy', 'xsMedia', 'xsNoplay', 'xsPfp');
   const cell = root.closest<HTMLElement>(CELL);
   if (cell) delete cell.dataset.xsHidden;
   const n = info.nameEl;
   if (n) {
-    for (const k of ['xsBadge', 'xsLvl', 'xsPaid']) delete n.dataset[k];
+    unset(n, 'xsBadge', 'xsLvl', 'xsPaid');
     if (n.hasAttribute('data-xs-title')) {
       n.removeAttribute('title');
       n.removeAttribute('data-xs-title');
@@ -110,12 +117,7 @@ export function processPost(root: HTMLElement, page: Page): void {
   const isAd = adIds.has(id) || A.isAd(root, info);
   if (S.declutter.ads && isAd) {
     const cell = root.closest<HTMLElement>(CELL);
-    if (cell && !cell.dataset.xsHidden) {
-      cell.dataset.xsHidden = '1';
-      stats.ads.add(id);
-      sizeState.set(id, { hidden: true });
-      updateSizeCss();
-    }
+    if (cell && !cell.dataset.xsHidden) hideCell(cell, id, stats.ads);
     root.dataset.xsKey = 'ad';
     return;
   }
@@ -184,7 +186,6 @@ export function processPost(root: HTMLElement, page: Page): void {
     stats.media.add(id);
     if (mediaMode === 'unload') stripMedia(root);
   }
-  // covered media shows an eye (click to show), revealed media a crossed eye (cover again)
   setReblur(root, coverable && mediaMode !== 'hide' ? mediaMode : null, !mediaRevealed.has(id));
   if (wasUnloaded && root.dataset.xsMedia !== 'unload') restoreMedia(root);
   const quiet = (S.repost.noAutoplay && flaggedMedia) || root.dataset.xsMedia;
@@ -194,11 +195,9 @@ export function processPost(root: HTMLElement, page: Page): void {
   }
 
   if (paid && info.nameEl) info.nameEl.dataset.xsPaid = '1';
-  // blur the avatar of accounts you don't follow (hovering the post shows it)
   if (u && !trusted && !owner && (paid ? S.pfp.paid : S.pfp.others)) root.dataset.xsPfp = '1';
   if (paid && !exempt && isReply) consider(S.paid.replyAction, `@${info.handle} · paid checkmark reply`);
 
-  // view count after the date ("· 28M views")
   const date = A.dateLink(root, id);
   const views = A.viewsLink(root, id);
   if (date) {
@@ -211,17 +210,14 @@ export function processPost(root: HTMLElement, page: Page): void {
   // under-avatar extras: timeline posts only; replies and thread pages keep X's layout
   const timelinePost = !isReply && !page.statusId;
   if (S.declutter.sideActions && timelinePost) root.dataset.xsWantSide = '1';
-  else {
-    delete root.dataset.xsWantSide;
-    delete root.dataset.xsSide;
-  }
+  else unset(root, 'xsWantSide', 'xsSide');
   // X only offers "Not interested" in the home feed
   const wantNI = S.declutter.notInterested && timelinePost && location.pathname === '/home' && u && !u.followedByMe && handle !== st.myHandle;
-  // "Not interested" lives in (and follows) the bookmark/share box: in the action bar or under the avatar.
   const box = A.actionBox(root);
-  let ni = root.querySelector<HTMLElement>('.xs-ni');
-  if (ni && (!wantNI || A.niHost(ni).parentElement !== box)) {
-    A.niHost(ni).remove();
+  let ni = root.querySelector('.xs-ni');
+  const niHost = ni && (ni.closest('.qt-ni-cell') || ni);
+  if (niHost && (!wantNI || niHost.parentElement !== box)) {
+    niHost.remove();
     ni = null;
   }
   if (wantNI && box) {
@@ -247,13 +243,7 @@ export function processPost(root: HTMLElement, page: Page): void {
   if (focal && action === 'hide') action = 'collapse'; // never hide the post you opened
   if (action === 'hide') {
     const cell = root.closest<HTMLElement>(CELL);
-    if (cell) {
-      cell.dataset.xsHidden = '1';
-      stats.hidden.add(id);
-      sizeState.set(id, { hidden: true });
-      updateSizeCss();
-      return;
-    }
+    if (cell) return hideCell(cell, id, stats.hidden);
     action = 'collapse';
   }
   if (action === 'collapse') {

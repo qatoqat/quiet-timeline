@@ -16,7 +16,7 @@
   opacity: 1;
 }
 
-/* Collapsed posts: header-only rules are generated in apps.js (collapseCss) */
+/* Collapsed posts: header-only rules are generated in apps.ts (collapseCss) */
 [data-xs-state='collapsed'] {
   cursor: pointer;
 }
@@ -52,18 +52,13 @@ html[data-xs-blur='contour'] {
   --qt-pfp-blur: url(#quiettl-contour-sm) var(--qt-gray);
   --qt-media-blur: url(#quiettl-contour-lg) var(--qt-gray);
 }
-[data-xs-pfp] > article > div > div > [data-post-avatar] .x-avatar img {
+[data-xs-pfp]:not(:hover) > article > div > div > [data-post-avatar] .x-avatar img {
   filter: var(--qt-pfp-blur);
   transform: scale(1.6);
 }
-[data-xs-media='blur'] article :is(img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[src*='/card_img/']),
-[data-xs-media='blur'] article video {
+[data-xs-media='blur'] article :is(video, img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[src*='/card_img/']) {
   filter: var(--qt-media-blur);
   transform: scale(1.08); /* hide the blurred edge */
-}
-[data-xs-pfp]:hover > article > div > div > [data-post-avatar] .x-avatar img {
-  filter: none !important;
-  transform: none !important;
 }
 [data-xs-media='blur'] article [data-press-control] {
   overflow: hidden;
@@ -73,7 +68,6 @@ html[data-xs-blur='contour'] {
   display: none !important;
 }
 
-/* "Don't load": placeholder box instead of the media, click to load */
 [data-xs-media='unload'] article div.rounded-md:has(img[data-xs-src], video) {
   min-height: 120px;
   background: var(--x-bg-secondary, #16181c);
@@ -133,15 +127,12 @@ html[data-xs-paid-check='hide'] [data-xs-paid] svg[aria-label='Verified account'
 html[data-xs-theme],
 html[data-xs-theme] body {
   background-color: var(--xs-bg) !important;
+  scrollbar-color: var(--xs-border) var(--xs-bg);
 }
 html[data-xs-theme] ::selection {
   background: color-mix(in srgb, var(--xs-accent) 40%, transparent);
 }
-html[data-xs-theme] {
-  scrollbar-color: var(--xs-border) var(--xs-bg);
-}
 
-/* Softer text: semi-bold instead of bold, a little more line spacing in posts */
 html[data-xs-soft] .font-bold {
   font-weight: 600 !important;
 }

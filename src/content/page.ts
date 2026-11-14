@@ -1,5 +1,7 @@
 import { NAV_ITEMS } from '../shared/defaults';
+import { putStyle, styleEl } from '../theme/vars';
 import { st, stats } from './state';
+import { SVG_NS, svgDefs } from './media';
 
 // Only dialogs whose text matches one of these get closed — never compose, menus, image viewers etc.
 const NAG = new RegExp(
@@ -40,7 +42,7 @@ export function navTooltips(): void {
   }
   for (const el of nav.querySelectorAll<HTMLElement>('a, button')) {
     const label = (el.textContent ?? '').trim();
-    if (st.S.declutter.navIcons && label) {
+    if (st.S.enabled && st.S.declutter.navIcons && label) {
       if (el.dataset.xsTip !== label) el.dataset.xsTip = label;
     } else if (el.dataset.xsTip) {
       delete el.dataset.xsTip;
@@ -84,28 +86,22 @@ function onMouseOver(e: MouseEvent): void {
 
 const CHECKS = { premium: '#1d9bf0', business: '#d18800', government: '#829aab' };
 
-function ensureCheckSprite(): void {
-  if (document.getElementById('quiettl-sprite')) return;
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.id = 'quiettl-sprite';
-  svg.setAttribute('aria-hidden', 'true');
-  svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
-  svg.innerHTML =
-    Object.entries(CHECKS)
-      .map(
-        ([k, c]) =>
-          `<symbol id="xs-check-${k}" viewBox="0 0 24 24"><path d="M12 1.75c1.4 0 2.62.87 3.34 2.19 1.44-.43 2.92-.17 3.91.81s1.24 2.47.81 3.91c1.32.72 2.2 1.94 2.2 3.34s-.88 2.62-2.2 3.34c.43 1.44.18 2.92-.81 3.9-.99 1-2.47 1.25-3.91.82-.72 1.32-1.94 2.19-3.34 2.19s-2.62-.87-3.34-2.2c-1.44.44-2.92.18-3.9-.8-1-.99-1.24-2.47-.82-3.91-1.32-.72-2.19-1.95-2.19-3.34 0-1.4.87-2.62 2.2-3.34-.43-1.44-.18-2.92.8-3.9.99-1 2.47-1.25 3.91-.82.72-1.32 1.95-2.19 3.34-2.19z" fill="none" stroke="${c}" stroke-width="1.6" stroke-linejoin="round"/>` +
-          `<path d="M8.2 12.3l2.6 2.6 5-5.4" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>`,
-      )
-      .join('') +
-    '<symbol id="xs-share-forward" viewBox="0 0 24 24"><path d="M14 5.5 20.5 12 14 18.5M20 12h-8.5C7.4 12 4 15.4 4 19.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>' +
-    '<symbol id="xs-share-nodes" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="17.5" cy="5.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="m8.7 10.7 6.6-3.9m-6.6 6.5 6.6 3.9"/></g></symbol>';
-  document.body.appendChild(svg);
-}
+const ensureCheckSprite = () =>
+  svgDefs(
+    'quiettl-sprite',
+    () =>
+      Object.entries(CHECKS)
+        .map(
+          ([k, c]) =>
+            `<symbol id="xs-check-${k}" viewBox="0 0 24 24"><path d="M12 1.75c1.4 0 2.62.87 3.34 2.19 1.44-.43 2.92-.17 3.91.81s1.24 2.47.81 3.91c1.32.72 2.2 1.94 2.2 3.34s-.88 2.62-2.2 3.34c.43 1.44.18 2.92-.81 3.9-.99 1-2.47 1.25-3.91.82-.72 1.32-1.94 2.19-3.34 2.19s-2.62-.87-3.34-2.2c-1.44.44-2.92.18-3.9-.8-1-.99-1.24-2.47-.82-3.91-1.32-.72-2.19-1.95-2.19-3.34 0-1.4.87-2.62 2.2-3.34-.43-1.44-.18-2.92.8-3.9.99-1 2.47-1.25 3.91-.82.72-1.32 1.95-2.19 3.34-2.19z" fill="none" stroke="${c}" stroke-width="1.6" stroke-linejoin="round"/>` +
+            `<path d="M8.2 12.3l2.6 2.6 5-5.4" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>`,
+        )
+        .join('') +
+      '<symbol id="xs-share-forward" viewBox="0 0 24 24"><path d="M14 5.5 20.5 12 14 18.5M20 12h-8.5C7.4 12 4 15.4 4 19.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>' +
+      '<symbol id="xs-share-nodes" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="17.5" cy="5.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="m8.7 10.7 6.6-3.9m-6.6 6.5 6.6 3.9"/></g></symbol>',
+  );
 
-function swapShareIcons(): void {
-  const want = st.S.declutter.shareIcon;
+function swapShareIcons(want: string): void {
   for (const u of document.querySelectorAll<SVGUseElement>('use[href="#icon-share-ios"], use[data-xs-share]')) {
     if (want !== 'x') {
       u.dataset.xsShare = '1';
@@ -127,7 +123,7 @@ function swapOldIcon(svg: SVGSVGElement, symbol: string | null): void {
     return;
   }
   if (!use) {
-    use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use = document.createElementNS(SVG_NS, 'use');
     use.setAttribute('class', 'qt-icon');
     svg.appendChild(use);
   }
@@ -140,15 +136,14 @@ function swapOldIcon(svg: SVGSVGElement, symbol: string | null): void {
 
 const OLD_SHARE_PATH = 'M12 2.59l5.7 5.7';
 
-function oldIcons(): void {
-  const want = st.S.declutter.shareIcon;
+function oldIcons(want: string, checks: boolean): void {
   for (const p of document.querySelectorAll(`article [role="group"] svg path[d^="${OLD_SHARE_PATH}"]`)) {
     const svg = p.closest('svg')!;
     if (svg.dataset.qtv === want) continue; // already done for these settings
     svg.dataset.qtv = want;
     swapOldIcon(svg, want !== 'x' ? `xs-share-${want}` : null);
   }
-  const on = String(st.S.declutter.outlineChecks);
+  const on = String(checks);
   for (const svg of document.querySelectorAll<SVGSVGElement>('svg[data-testid="icon-verified"]')) {
     if (svg.dataset.qtv === on) continue;
     svg.dataset.qtv = on;
@@ -158,15 +153,17 @@ function oldIcons(): void {
       : /829aab|130, 154, 171/i.test(svg.innerHTML + getComputedStyle(svg).color)
         ? 'government'
         : 'premium';
-    swapOldIcon(svg, st.S.declutter.outlineChecks ? `xs-check-${kind}` : null);
+    swapOldIcon(svg, checks ? `xs-check-${kind}` : null);
   }
 }
 
+// Also undoes the swaps when the extension is off.
 export function outlineChecks(): void {
-  const on = st.S.declutter.outlineChecks;
-  if ((on || st.S.declutter.shareIcon !== 'x') && document.body) ensureCheckSprite();
-  swapShareIcons();
-  oldIcons();
+  const on = st.S.enabled && st.S.declutter.outlineChecks;
+  const share = st.S.enabled ? st.S.declutter.shareIcon : 'x';
+  if (on || share !== 'x') ensureCheckSprite();
+  swapShareIcons(share);
+  oldIcons(share, on);
   for (const u of document.querySelectorAll<SVGUseElement>('use[href^="#icon-verified-"], use[data-xs-orig]')) {
     const href = u.getAttribute('href')!;
     if (on && href.startsWith('#icon-verified-')) {
@@ -180,14 +177,11 @@ export function outlineChecks(): void {
   }
 }
 
-const navStyle = document.createElement('style');
-navStyle.id = 'quiettl-nav';
+const navStyle = styleEl('quiettl-nav');
 
 export function applyNavVisibility(): void {
-  const nav = st.S.nav as Record<string, boolean>;
-  const hidden = NAV_ITEMS.filter(([k]) => st.S.enabled && nav[k] === false).map(([, , sel]) => `nav ${sel}`);
-  navStyle.textContent = hidden.length ? `${hidden.join(',\n')} { display: none !important; }` : '';
-  if (!navStyle.isConnected) document.documentElement.appendChild(navStyle);
+  const hidden = NAV_ITEMS.filter(([k]) => st.S.enabled && st.S.nav[k] === false).map(([, , sel]) => `nav ${sel}`);
+  putStyle(navStyle, hidden.length ? `${hidden.join(',\n')} { display: none !important; }` : '');
 }
 
 // In-page upsell boxes ("you aren't verified yet", …): no stable markup, match text.

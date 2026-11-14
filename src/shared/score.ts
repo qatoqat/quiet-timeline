@@ -74,14 +74,15 @@ export function nonOriginal(t: Tweet | null): string | null {
   return null;
 }
 
+const singular = (w: string) => (/(?:xes|ches|shes|sses)$/.test(w) ? w.slice(0, -2) : /[^s]s$/.test(w) && w.length > 4 ? w.slice(0, -1) : w);
+
 // Words (singular-ish) and emoji in a post; each counted once per post.
 export function topicTokens(text: string): Set<string> {
   const out = new Set<string>();
   const clean = cleanText(text).replace(/#/g, ' ');
-  for (let w of clean.match(/\p{L}{3,}/gu) || []) {
-    if (STOP.has(w)) continue;
-    if (/(?:xes|ches|shes|sses)$/.test(w)) w = w.slice(0, -2);
-    else if (/[^s]s$/.test(w) && w.length > 4) w = w.slice(0, -1);
+  for (const word of clean.match(/\p{L}{3,}/gu) || []) {
+    if (STOP.has(word)) continue;
+    const w = singular(word);
     if (!STOP.has(w)) out.add(w);
   }
   for (const e of clean.match(/\p{Extended_Pictographic}/gu) || []) if (!/[❤♥🔥😂🤣😭👀💀✨🙏😍🥰👍]/u.test(e)) out.add(e);
@@ -102,7 +103,7 @@ export function themeOf(row: TallyRow | undefined, u: User | null): { word: stri
       .replace(/([a-z])([A-Z])/g, '$1 $2')
       .toLowerCase()
       .split(/[^\p{L}]+/u)
-      .map((w) => w.replace(/(?:xes|ches|shes|sses)$/, (m) => m.slice(0, -2)).replace(/([^s])s$/, '$1')),
+      .map(singular),
   );
   const inNameOf = (word: string) =>
     nameWords.has(word) ||
@@ -112,9 +113,9 @@ export function themeOf(row: TallyRow | undefined, u: User | null): { word: stri
   let best: { word: string; pct: number; inName: boolean; rank: number } | null = null;
   for (const [word, c] of Object.entries(row.w)) {
     const pct = c / wt;
-    // A topic in the account's own name needs less evidence: such accounts often post captions that never name it.
     if (word === handle) continue; // brands mention themselves (NASA…)
     const inName = inNameOf(word);
+    // A topic in the account's own name needs less evidence: such accounts often post captions that never name it.
     const ok = (c >= 3 && pct >= 0.6) || (inName && c >= 3 && pct >= 0.25) || (inName && mediaHeavy && c >= 2 && pct >= 0.1);
     const rank = pct + (inName ? 0.5 : 0);
     if (ok && (!best || rank > best.rank)) best = { word, pct, inName, rank };
@@ -169,7 +170,6 @@ export function scoreTweet(u: User | null, t: Tweet | null, ctx: ScoreCtx, s: Se
     else if (text.length < 60 && GENERIC.has(bare)) add(15, 'generic reply');
   }
   if (ctx.isReply && t && ctx.parent) {
-    // Number() mirrors JS coercion of a null createdMs.
     const d = (Number(t.createdMs) - Number(ctx.parent.createdMs)) / 1000;
     if (d >= 0 && d < 20) add(20, `replied in ${Math.round(d)}s`);
     else if (d >= 0 && d < 60) add(10, 'replied in <1 min');

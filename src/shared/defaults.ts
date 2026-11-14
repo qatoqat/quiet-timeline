@@ -1,3 +1,20 @@
+import { PRESETS } from '../theme/color';
+
+export const NAV_ITEMS: [key: string, label: string, selector: string][] = [
+  ['home', 'Home', 'a[href="/home"]'],
+  ['explore', 'Explore', 'a[href="/explore"]'],
+  ['notifications', 'Notifications', 'a[href="/notifications"]'],
+  ['follow', 'Follow', 'a[href="/i/connect_people"]'],
+  ['chat', 'Chat', 'a[href^="/i/chat"]'],
+  ['calls', 'Calls', 'a[href^="/i/calls"]'],
+  ['grok', 'Grok', 'a[href^="/i/grok"]'],
+  ['history', 'History', 'a[href^="/i/history"]'],
+  ['creators', 'Creator Studio', 'a[href^="/i/jf/creators"]'],
+  ['premium', 'Premium', 'a[href^="/i/premium"]'],
+  ['profile', 'Profile', 'a[aria-label="Profile"]'],
+  ['more', 'More', 'button[aria-label="More menu items"]'],
+];
+
 // Actions, from mildest to strongest: none < mask (words only) < dim < collapse < hide
 export const DEFAULTS = {
   enabled: true,
@@ -38,14 +55,7 @@ export const DEFAULTS = {
     accentPost: false,
     accentFollow: false,
     accentTabs: false,
-    custom: {
-      bg: '#121316',
-      surface: '#1b1d22',
-      border: '#2c2f36',
-      muted: '#8a909a',
-      text: '#e4e6ea',
-      accent: '#4c8bf5',
-    },
+    custom: { ...PRESETS.graphite },
   },
   repost: {
     mark: true,
@@ -84,31 +94,13 @@ export const DEFAULTS = {
     grokButtons: true,
     chatButton: true,
   },
-  nav: {
-    home: true, explore: true, notifications: true, follow: true, chat: true, calls: true, grok: true,
-    history: true, creators: true, premium: true, profile: true, more: true,
-  },
+  nav: Object.fromEntries(NAV_ITEMS.map(([k]) => [k, true])) as Record<string, boolean>,
   blurStyle: 'smooth', // 'smooth' | 'contour'
   blurMono: true,
   allow: '',
 };
 
 export type Settings = typeof DEFAULTS;
-
-export const NAV_ITEMS: [key: string, label: string, selector: string][] = [
-  ['home', 'Home', 'a[href="/home"]'],
-  ['explore', 'Explore', 'a[href="/explore"]'],
-  ['notifications', 'Notifications', 'a[href="/notifications"]'],
-  ['follow', 'Follow', 'a[href="/i/connect_people"]'],
-  ['chat', 'Chat', 'a[href^="/i/chat"]'],
-  ['calls', 'Calls', 'a[href^="/i/calls"]'],
-  ['grok', 'Grok', 'a[href^="/i/grok"]'],
-  ['history', 'History', 'a[href^="/i/history"]'],
-  ['creators', 'Creator Studio', 'a[href^="/i/jf/creators"]'],
-  ['premium', 'Premium', 'a[href^="/i/premium"]'],
-  ['profile', 'Profile', 'a[aria-label="Profile"]'],
-  ['more', 'More', 'button[aria-label="More menu items"]'],
-];
 
 // Deep-merge stored settings over defaults, keeping only known keys of the right type.
 export function merge<T>(base: T, over: unknown): T {

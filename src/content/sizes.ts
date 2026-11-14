@@ -1,4 +1,5 @@
 import { CELL, NEW, OLD, POST } from '../apps';
+import { putStyle, styleEl } from '../theme/vars';
 import { revealed, st } from './state';
 
 // Posts we hid or collapsed: re-applied the moment X re-creates them (e.g. scrolling back up), before they're drawn.
@@ -6,8 +7,7 @@ export const sizeState = new Map<string, { hidden?: true; why?: string }>();
 
 // X's list measures a post the moment it's created, before any script can run,
 // so these states are also written as CSS keyed on the post id.
-const sizeCss = document.createElement('style');
-sizeCss.id = 'quiettl-sizes';
+const sizeCss = styleEl('quiettl-sizes');
 let sizeCssQueued = false;
 
 export function updateSizeCss(): void {
@@ -17,21 +17,19 @@ export function updateSizeCss(): void {
     sizeCssQueued = false;
     const top = (id: string) => `[role="link"][data-href$="/status/${id}"]:not([role="link"] [role="link"])`;
     const hidden: string[] = [];
-    const rules: string[] = [];
-    const ids = [...sizeState.keys()].slice(-600);
-    for (const id of ids) {
+    const collapsed = ['[role="link"][data-xs-state="collapsed"]'];
+    for (const id of [...sizeState.keys()].slice(-600)) {
       if (revealed.has(id)) continue;
       const s = sizeState.get(id)!;
       if (s.hidden) hidden.push(`li[data-index]:has(${top(id)})`);
-      else if (s.why) rules.push(NEW.collapseCss(top(id), s.why));
+      else if (s.why) collapsed.push(top(id));
     }
+    const rules = [NEW.collapseCss(`:is(${collapsed.join(', ')})`), OLD.collapseCss()];
     if (hidden.length) {
       rules.unshift(`${hidden.join(',\n')} { height: 1px !important; overflow: hidden !important; }`);
       rules.unshift(`${hidden.map((h) => h + ' > *').join(',\n')} { display: none !important; }`);
     }
-    rules.unshift(NEW.collapseCss('[role="link"][data-xs-state="collapsed"]'), OLD.collapseCss());
-    sizeCss.textContent = st.S.enabled ? rules.join('\n') : '';
-    if (!sizeCss.isConnected) document.documentElement.appendChild(sizeCss);
+    putStyle(sizeCss, st.S.enabled ? rules.join('\n') : '');
   });
 }
 

@@ -1,8 +1,6 @@
 import type { Settings } from '../shared/defaults';
-import { KEYS, PRESETS, lum, makeMapper, remap, remapDecls, type Mapper } from './color';
-import { CACHE, calmBrand, refreshVars, setButtonAccent, sig, themeShadows, ts, varStyle } from './vars';
-
-export { PRESETS, makeMapper, remap, parseColor } from './color';
+import { KEYS, PRESETS, lum, makeMapper, parseColor, remap, remapDecls, type Mapper } from './color';
+import { CACHE, calmBrand, putStyle, refreshVars, setButtonAccent, sig, themeShadows, ts, varStyle } from './vars';
 
 let mapper: Mapper | null = null;
 let mode: string | null = null;
@@ -19,10 +17,9 @@ function detectMode(): string {
   const body = document.body;
   const saved = body && origEl.get(body);
   const bg = (saved ? saved[0] : body && body.getAttribute('style')) || '';
-  const c = /rgba?\(([^)]+)\)/.exec(bg);
+  const c = parseColor(bg);
   if (c) {
-    const [r, g, b] = c[1].split(/[,\s]+/).map(Number);
-    const L = lum(r, g, b);
+    const L = lum(...c.rgb);
     return L > 0.5 ? 'light' : L < 0.05 ? 'lightsout' : 'dim';
   }
   return 'lightsout';
@@ -36,21 +33,19 @@ function eachRule(list: CSSRuleList, fn: (rule: CSSStyleRule) => void): void {
   }
 }
 
-function sheets(): CSSStyleSheet[] {
-  const out = [...document.styleSheets];
-  if (document.adoptedStyleSheets) out.push(...document.adoptedStyleSheets);
-  return out;
+function ruleLists(): CSSRuleList[] {
+  return [...document.styleSheets, ...(document.adoptedStyleSheets || [])].flatMap((sh) => {
+    try {
+      return [sh.cssRules];
+    } catch (_) {
+      return []; // cross-origin sheets throw
+    }
+  });
 }
 
 function processRules(all: boolean): void {
   let count = 0;
-  for (const sh of sheets()) {
-    let rules: CSSRuleList;
-    try {
-      rules = sh.cssRules; // cross-origin sheets throw
-    } catch (_) {
-      continue;
-    }
+  for (const rules of ruleLists()) {
     count += rules.length;
     eachRule(rules, (rule) => {
       if (!all && doneRule.has(rule)) return;
@@ -90,6 +85,12 @@ function processTree(root: Node): void {
   for (const e of el.querySelectorAll('[style*="rgb"]')) processEl(e);
 }
 
+function repaint(): void {
+  mapper = ts.palette ? makeMapper(ts.palette, ts.ramp || mode!, ts.accent) : null;
+  processRules(true);
+  processTree(document.documentElement);
+}
+
 function tick(): void {
   themeShadows();
   if (!ts.palette) return;
@@ -98,18 +99,10 @@ function tick(): void {
   const m = detectMode();
   if (varsChanged || m !== mode) {
     mode = m;
-    mapper = makeMapper(ts.palette, ts.ramp || mode, ts.accent);
-    processRules(true);
-    processTree(document.documentElement);
+    repaint();
     return;
   }
-  let count = 0;
-  for (const sh of sheets()) {
-    try {
-      count += sh.cssRules.length;
-    } catch (_) {}
-  }
-  if (count !== ruleCount) processRules(false);
+  if (ruleLists().reduce((n, l) => n + l.length, 0) !== ruleCount) processRules(false);
 }
 
 let tickQueued = false;
@@ -141,7 +134,6 @@ function stop(): void {
   clearInterval(timer);
 }
 
-// on: whether the extension is enabled
 export function applyTheme(t: Settings['theme'], on: boolean): void {
   const root = document.documentElement;
   const p = !on || t.preset === 'off' ? null : t.preset === 'custom' ? t.custom : PRESETS[t.preset];
@@ -153,36 +145,25 @@ export function applyTheme(t: Settings['theme'], on: boolean): void {
   calmBrand(!!(ts.palette && ts.calm));
   mode = detectMode();
   ts.varsFor = null;
+  root.toggleAttribute('data-xs-theme', !!ts.palette);
   if (ts.palette) {
-    root.dataset.xsTheme = '1';
     for (const k of KEYS) root.style.setProperty(`--xs-${k}`, ts.palette[k]);
     root.style.setProperty('--xs-accent', ts.accent || ts.palette.accent);
     setButtonAccent();
     // Use the last generated variable CSS right away to avoid a flash of X's colors.
     try {
       const c = JSON.parse(localStorage.getItem(CACHE) || 'null');
-      if (c && c.p === sig()) {
-        varStyle.textContent = c.css;
-        if (!varStyle.isConnected) root.appendChild(varStyle);
-      }
+      if (c && c.p === sig()) putStyle(varStyle, c.css);
     } catch (_) {}
     refreshVars();
-    mapper = makeMapper(ts.palette, ts.ramp || mode, ts.accent);
     start();
   } else {
-    delete root.dataset.xsTheme;
     varStyle.remove();
-    mapper = null;
     stop();
   }
-  if (ts.palette || wasOn) {
-    processRules(true);
-    processTree(root);
-  }
+  if (ts.palette || wasOn) repaint();
   root.dataset.xsFont = on ? t.font : 'default';
   themeShadows();
-  if (ts.palette && ts.calm) root.dataset.xsCalm = '';
-  else delete root.dataset.xsCalm;
-  if (on && t.softText) root.dataset.xsSoft = '';
-  else delete root.dataset.xsSoft;
+  root.toggleAttribute('data-xs-calm', !!(ts.palette && ts.calm));
+  root.toggleAttribute('data-xs-soft', on && t.softText);
 }

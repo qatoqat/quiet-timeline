@@ -21,19 +21,25 @@ export interface App {
   mediaBox(root: HTMLElement): HTMLElement | null | undefined;
   toggleSlot(root: HTMLElement): { slot: HTMLElement | null; before: Node | null };
   makeNI(box: HTMLElement): HTMLElement;
-  niHost(btn: HTMLElement): HTMLElement;
   moreButton(article: HTMLElement): HTMLElement | undefined;
   isNIItem(item: Element): boolean;
-  collapseCss(sel?: string, why?: string): string;
+  collapseCss(sel?: string): string;
 }
 
 const PERMALINK = /^\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/;
-const MEDIA = 'video, img[src*="pbs.twimg.com/media/"], img[src*="video_thumb"], img[src*="/card_img/"]';
+export const MEDIA_IMG = 'img[src*="pbs.twimg.com/media/"], img[src*="video_thumb"], img[src*="/card_img/"]';
+const MEDIA = `video, ${MEDIA_IMG}`;
 const SAD_FACE =
   '<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 16.2c1.9-1.8 5.1-1.8 7 0"/></g><circle cx="9" cy="10" r=".8" fill="currentColor"/><circle cx="15" cy="10" r=".8" fill="currentColor"/>';
 
 const all = (root: ParentNode, sel: string): HTMLElement[] => [...root.querySelectorAll<HTMLElement>(sel)];
 const outsideOf = (quotes: Element[]) => (el: Element) => !quotes.some((q) => q.contains(el));
+const ni = (b: HTMLElement) => {
+  b.classList.add('xs-ni');
+  b.dataset.xsTip = 'Not interested';
+  b.setAttribute('aria-label', 'Not interested in this post');
+  return b;
+};
 
 const NEW_POST = '[role="link"][data-href*="/status/"]';
 const NEW_HEADER = "[class*='@container/post-actions']";
@@ -89,13 +95,12 @@ export const NEW: App = {
     const pill = bm && bm.querySelector(':scope > span');
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = `${bm ? bm.className : ''} xs-ni`;
+    b.className = bm ? bm.className : '';
     const svg = `<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true">${SAD_FACE}</svg>`;
     b.innerHTML = pill ? `<span class="${pill.className}">${svg}</span>` : svg;
     box.appendChild(b);
-    return b;
+    return ni(b);
   },
-  niHost: (btn) => btn,
   moreButton: (article) =>
     all(article, 'button[aria-haspopup="menu"]:not([data-engagement-action])').find(
       (b) => !b.closest('[role="group"]') && b.closest(NEW_POST) === article.parentElement,
@@ -104,16 +109,15 @@ export const NEW: App = {
 
   // Collapsed post: header row only, no avatar/text/media/actions; posts without that header fall back
   // to a one-line note. `sel` selects the post box (for one id, or by state).
-  collapseCss(sel, why) {
+  collapseCss(sel) {
     const H = NEW_HEADER;
     const has = `${sel}:has(> article ${H})`;
     const not = `${sel}:not(:has(> article ${H}))`;
-    const note = why ? JSON.stringify(why) : 'attr(data-xs-why)';
     return [
       `${has} > article > :not(:has(${H})), ${has} > article > div > :not(:has(${H})) > *, ${has} > article :has(> ${H}) ~ *, ${has} > article :has(> ${H}) > :not(${H}), ${has} ${H} > :last-child > :not(.xs-toggle, [data-slot='xds-menu-trigger']) { display: none !important; }`,
       `${has} > article { opacity: 0.6; transition: opacity 0.15s; } ${has}:hover > article { opacity: 1; }`,
       `${not} > * { display: none !important; }`,
-      `${not}::before { content: '⊘  ' ${note} '  ·  click to show'; display: block; padding: 10px 16px; font: 13px/1.4 system-ui, sans-serif; color: var(--x-fg-secondary, #8b8f97); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }`,
+      `${not}::before { content: '⊘  ' attr(data-xs-why) '  ·  click to show'; display: block; padding: 10px 16px; font: 13px/1.4 system-ui, sans-serif; color: var(--x-fg-secondary, #8b8f97); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }`,
     ].join('\n');
   },
 };
@@ -182,16 +186,14 @@ export const OLD: App = {
   makeNI(box) {
     const b = box.querySelector(BOOKMARK)!.cloneNode(true) as HTMLElement;
     b.removeAttribute('data-testid');
-    b.classList.add('xs-ni');
     const svg = b.querySelector('svg');
     if (svg) svg.innerHTML = SAD_FACE;
     const cell = document.createElement('div');
     cell.className = 'qt-ni-cell';
     cell.appendChild(b);
     box.appendChild(cell);
-    return b;
+    return ni(b);
   },
-  niHost: (btn) => btn.parentElement!,
   moreButton: (article) => all(article, '[data-testid="caret"]').find((b) => !b.closest(OLD_QUOTE)),
   isNIItem: (item) => /not interested/i.test(item.textContent || ''),
 
@@ -204,16 +206,6 @@ export const OLD: App = {
       `${OLD_POST}[data-xs-state="collapsed"] { opacity: 0.6; transition: opacity 0.15s; } ${OLD_POST}[data-xs-state="collapsed"]:hover { opacity: 1; }`,
     ].join('\n'),
 };
-
-for (const A of [NEW, OLD]) {
-  const make = A.makeNI;
-  A.makeNI = (box) => {
-    const b = make(box);
-    b.dataset.xsTip = 'Not interested';
-    b.setAttribute('aria-label', 'Not interested in this post');
-    return b;
-  };
-}
 
 // a selector *list*: don't concatenate it
 export const POST = `${NEW_POST}, ${OLD_POST}`;

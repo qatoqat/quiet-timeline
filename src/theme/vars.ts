@@ -16,20 +16,29 @@ export const ts = {
   ramp: null as Rgb[] | null, // X's own [bg, surface, border, muted, text] from the vars
 };
 
-export const varStyle = (typeof document !== 'undefined' ? document.createElement('style') : null) as HTMLStyleElement;
-if (varStyle) varStyle.id = 'quiettl-vars';
+export const styleEl = (id: string) => Object.assign(document.createElement('style'), { id });
+export function putStyle(el: HTMLStyleElement, css: string, parent: Node = document.documentElement): void {
+  el.textContent = css;
+  if (!el.isConnected) parent.appendChild(el);
+}
+
+export const varStyle = styleEl('quiettl-vars');
+
+function colorVars(el: Element, hsl = false): Vars {
+  const cs = getComputedStyle(el);
+  const vars: Vars = {};
+  for (const name of cs) {
+    const v = cs.getPropertyValue(name).trim();
+    if ((VAR_NAME.test(name) && /#|rgb/.test(v)) || (hsl && name.startsWith('--') && HSL.test(v))) vars[name] = v;
+  }
+  return vars;
+}
 
 // X's own values, with our override switched off.
 function readVars(): Vars {
   const was = varStyle.isConnected;
   if (was) varStyle.remove();
-  const cs = getComputedStyle(document.documentElement);
-  const vars: Vars = {};
-  for (const name of cs) {
-    if (!name.startsWith('--x-') || !VAR_NAME.test(name)) continue;
-    const v = cs.getPropertyValue(name).trim();
-    if (/#|rgb/.test(v)) vars[name] = v;
-  }
+  const vars = colorVars(document.documentElement);
   if (was) document.documentElement.appendChild(varStyle);
   return vars;
 }
@@ -95,8 +104,7 @@ export function refreshVars(): boolean {
   const css = `html[data-xs-theme], html[data-xs-theme] body, html[data-xs-theme] [data-theme] {\n  ${decl}\n}`;
   ts.varsFor = key;
   ts.ramp = varRamp(vars);
-  varStyle.textContent = css;
-  if (!varStyle.isConnected) document.documentElement.appendChild(varStyle);
+  putStyle(varStyle, css);
   try {
     localStorage.setItem(CACHE, JSON.stringify({ p: sig(), css }));
   } catch (_) {}
@@ -119,7 +127,10 @@ export function themeShadows(): void {
     const rootEl = sr.querySelector('[data-xchat-root], [data-theme]');
     let st = shadowStyles.get(sr);
     if (!ts.palette || !rootEl) {
-      if (st) st.textContent = '';
+      if (st) {
+        st.textContent = '';
+        delete st.dataset.key;
+      }
       continue;
     }
     const key = sig() + rootEl.getAttribute('data-theme');
@@ -129,21 +140,16 @@ export function themeShadows(): void {
       shadowStyles.set(sr, st);
     }
     st.textContent = ''; // read X's own values
-    const cs = getComputedStyle(rootEl);
-    const vars: Vars = {};
-    for (const name of cs) {
-      if (!name.startsWith('--')) continue;
-      const v = cs.getPropertyValue(name).trim();
-      if ((name.startsWith('--x-') && VAR_NAME.test(name) && /#|rgb/.test(v)) || HSL.test(v)) vars[name] = v;
-    }
-    const decl = overrides(vars, ts.palette, ts.calm);
+    const decl = overrides(colorVars(rootEl, true), ts.palette, ts.calm);
     if (!decl) continue;
-    st.textContent =
+    putStyle(
+      st,
       `:host, [data-xchat-root], [data-theme] {\n  ${decl}\n}` +
-      // the page stylesheet can't reach in, so calm buttons need their light text here too
-      (ts.calm ? `\n.bg-btn-primary { color: var(--x-fg-primary) !important; }` : '');
+        // the page stylesheet can't reach in, so calm buttons need their light text here too
+        (ts.calm ? `\n.bg-btn-primary { color: var(--x-fg-primary) !important; }` : ''),
+      sr,
+    );
     st.dataset.key = key;
-    if (!st.isConnected) sr.appendChild(st);
   }
 }
 
@@ -178,12 +184,10 @@ export function xDisplayColor(): string | null {
 }
 
 // Old app, calm: its accent-filled buttons (inline style, already remapped to the accent) become quiet surface buttons.
-const calmBrandStyle = typeof document !== 'undefined' ? document.createElement('style') : null;
+const calmBrandStyle = document.createElement('style');
 export function calmBrand(onoff: boolean): void {
-  if (!calmBrandStyle) return;
   if (!onoff) return calmBrandStyle.remove();
   const [r, g, b] = hex(ts.accent || ts.palette!.accent);
   const sel = `:is(a, button, [role='button'])[style*='background-color: rgb(${r}, ${g}, ${b})']`;
-  calmBrandStyle.textContent = `html[data-xs-calm] ${sel} { background-color: var(--xs-border) !important; }\nhtml[data-xs-calm] ${sel} :is(span, div) { color: var(--xs-text) !important; }`;
-  if (!calmBrandStyle.isConnected) document.documentElement.appendChild(calmBrandStyle);
+  putStyle(calmBrandStyle, `html[data-xs-calm] ${sel} { background-color: var(--xs-border) !important; }\nhtml[data-xs-calm] ${sel} :is(span, div) { color: var(--xs-text) !important; }`);
 }

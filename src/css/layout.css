@@ -79,7 +79,7 @@ html[data-xs-calm] [data-slot='xds-callout'] {
   border: 1px solid var(--xs-border);
 }
 
-[data-xs-gone] {
+html[data-xs-upsells] [data-xs-gone] {
   display: none !important;
 }
 

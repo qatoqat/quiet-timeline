@@ -1,9 +1,9 @@
-import { POST, appOf } from '../apps';
+import { MEDIA_IMG, POST } from '../apps';
 import { st, revealed, mediaRevealed, playAllowed } from './state';
 import { sizeState, updateSizeCss, applyKnownSize } from './sizes';
-import { readPost, pageCtx, ownHandle, reset, processPost } from './post';
-import { MEDIA_IMG, restoreMedia, setReblur } from './media';
-import { setToggle, layoutSide } from './side';
+import { readPost, pageCtx, ownHandle, reset, processPost, unset } from './post';
+import { restoreMedia, setReblur } from './media';
+import { setToggle, layoutSide, stop } from './side';
 import { closeNags, navTooltips, hideTip, outlineChecks, hideUpsellCallouts } from './page';
 
 // schedule() re-checks every post (new data, settings); schedule(root) only that post.
@@ -63,10 +63,13 @@ export function clearAll(): void {
     restoreMedia(root);
     setToggle(root, null, null);
     setReblur(root, null, false);
-    const ni = root.querySelector<HTMLElement>('.xs-ni');
-    if (ni) appOf(root).niHost(ni).remove();
-    for (const k of ['xsKey', 'xsSide', 'xsWantSide', 'xsNi']) delete root.dataset[k];
+    const ni = root.querySelector('.xs-ni');
+    if (ni) (ni.closest('.qt-ni-cell') || ni).remove();
+    unset(root, 'xsKey', 'xsSide', 'xsWantSide', 'xsNi');
   }
+  for (const b of document.querySelectorAll<HTMLElement>('button[data-engagement-action="share"][data-xs-tip]')) delete b.dataset.xsTip;
+  navTooltips();
+  outlineChecks();
 }
 
 // Marks the top-level post containing el as needing a re-check → false if none.
@@ -110,8 +113,7 @@ function onClick(e: MouseEvent) {
   if (!tg.closest) return;
   const reblur = tg.closest<HTMLElement>('.qt-reblur');
   if (reblur) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
+    stop(e);
     const root = reblur.closest<HTMLElement>(POST);
     const info = root && readPost(root);
     if (!root || !info) return;
@@ -130,8 +132,7 @@ function onClick(e: MouseEvent) {
   }
   const toggle = tg.closest('.xs-toggle');
   if (toggle) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
+    stop(e);
     const root = toggle.closest<HTMLElement>(POST);
     const info = root && readPost(root);
     if (!root || !info) return;
@@ -151,8 +152,7 @@ function onClick(e: MouseEvent) {
     blurred && tg.closest('article [data-press-control], article video, article img, article div.rounded-md, [data-testid="tweetPhoto"], [data-testid="videoPlayer"]');
   const root = collapsed || (onMedia && blurred);
   if (!root) return;
-  e.preventDefault();
-  e.stopImmediatePropagation();
+  stop(e);
   const info = readPost(root);
   if (collapsed) {
     if (info) revealed.add(info.id);

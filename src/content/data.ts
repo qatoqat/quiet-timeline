@@ -62,12 +62,6 @@ function trackOriginality(t: Tweet): void {
   tallyDirty = true;
 }
 
-function mergeCounts(a: Record<string, number> | false | undefined, b: Record<string, number> | undefined): Record<string, number> {
-  const out = { ...(a || {}) };
-  for (const [k, v] of Object.entries(b || {})) out[k] = (out[k] || 0) + v;
-  return out;
-}
-
 function saveTally(): void {
   if (!tallyDirty) return;
   tallyDirty = false;
@@ -122,7 +116,8 @@ function onHookData(e: MessageEvent): void {
     if (!t.id || tweets.has(t.id)) continue;
     tweets.set(t.id, t);
     trackDup(t);
-    trackOriginality(t);
+    if (unloaded) unloaded.push(t);
+    else trackOriginality(t);
   }
   cap(users, 20000);
   cap(byHandle, 20000);
@@ -131,26 +126,14 @@ function onHookData(e: MessageEvent): void {
   schedule();
 }
 
+// Posts that arrive before storage loads are counted after it, so the saved ids can skip ones already counted.
+let unloaded: Tweet[] | null = [];
+
 function loadTally(r: { tally2?: Record<string, TallyRow> } | undefined): void {
-  for (const [id, saved] of Object.entries((r && r.tally2) || {})) {
-    const cur = tally.get(id);
-    if (!cur) {
-      tally.set(id, saved);
-      continue;
-    }
-    // merge posts counted this session before storage loaded
-    const ids = new Set(saved.ids);
-    tally.set(id, {
-      o: saved.o + cur.o,
-      n: saved.n + cur.n,
-      m: saved.m + cur.m,
-      r: (saved.r || 0) + (cur.r || 0),
-      wt: (saved.wv === WORDS_VERSION ? saved.wt || 0 : 0) + (cur.wt || 0),
-      w: mergeCounts(saved.wv === WORDS_VERSION && saved.w, cur.w),
-      wv: WORDS_VERSION,
-      ids: [...saved.ids, ...cur.ids.filter((x) => !ids.has(x))].slice(-IDS_KEPT),
-    });
-  }
+  for (const [id, saved] of Object.entries((r && r.tally2) || {})) tally.set(id, saved);
+  const queued = unloaded || [];
+  unloaded = null;
+  for (const t of queued) trackOriginality(t);
   schedule();
 }
 

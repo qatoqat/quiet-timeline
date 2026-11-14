@@ -1,32 +1,41 @@
 import { appOf, isRoot, POST } from '../apps';
 
+export const stop = (e: Event): void => {
+  e.preventDefault();
+  e.stopImmediatePropagation();
+};
+
+// Finds root's `.cls` button and keeps it in parent (created if needed); removes it when there's no parent.
+export function placeButton(root: HTMLElement, cls: string, parent: HTMLElement | null | undefined, before: Node | null = null): HTMLButtonElement | null {
+  let btn = root.querySelector<HTMLButtonElement>(`.${cls}`);
+  if (btn && btn.parentElement !== parent) {
+    btn.remove();
+    btn = null;
+  }
+  if (!parent || btn) return btn;
+  btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = cls;
+  parent.insertBefore(btn, before);
+  return btn;
+}
+
 // "show" / "hide" link in a collapsed (or revealed) post's header, just before the ⋯ menu.
 export function setToggle(root: HTMLElement, mode: 'show' | 'hide' | null, verdict?: { why: string; label?: string } | null): void {
   const { slot, before } = appOf(root).toggleSlot(root);
-  let link = root.querySelector<HTMLButtonElement>('.xs-toggle');
-  if (!mode || !slot) {
-    if (link) link.remove();
-    return;
-  }
-  if (!link || link.parentElement !== slot) {
-    if (link) link.remove();
-    link = document.createElement('button');
-    link.type = 'button';
-    link.className = 'xs-toggle';
-    slot.insertBefore(link, before);
-  }
+  const link = placeButton(root, 'xs-toggle', mode ? slot : null, before);
+  if (!link) return;
   const text = mode === 'show' && verdict!.label ? `${verdict!.label} · show` : mode;
   if (link.textContent !== text) link.textContent = text;
   link.dataset.xsTip = mode === 'show' ? verdict!.why : 'Collapse again';
 }
 
 // Move the bookmark/share box (with "Not interested") under the avatar, only when the post is tall enough.
-export const SLOT = 36; // px per button
+const SLOT = 36; // px per button
 const sizeWatch = new ResizeObserver((entries) => {
   for (const e of entries) {
     if (!e.target.isConnected) {
-      sizeWatch.unobserve(e.target);
-      watched.delete(e.target);
+      unwatch(e.target);
       continue;
     }
     const root = isRoot(e.target) ? e.target : e.target.parentElement;
@@ -35,6 +44,10 @@ const sizeWatch = new ResizeObserver((entries) => {
 });
 // An observed element stays alive until unobserved, and X's list throws posts away as you scroll.
 const watched = new Set<Element>();
+const unwatch = (el: Element) => {
+  sizeWatch.unobserve(el);
+  watched.delete(el);
+};
 
 export function layoutSide(root: HTMLElement): void {
   if (root.dataset.xsWantSide !== '1') return;
@@ -127,12 +140,7 @@ async function notInterested(btn: HTMLElement): Promise<void> {
 
 export function initSide(): void {
   setInterval(() => {
-    for (const a of watched) {
-      if (!a.isConnected) {
-        sizeWatch.unobserve(a);
-        watched.delete(a);
-      }
-    }
+    for (const a of watched) if (!a.isConnected) unwatch(a);
   }, 10000);
   // Act on release: X re-renders the action bar on press, which can swallow the click.
   // Keyboard activation still arrives as a click with no pointer (detail 0).
@@ -144,8 +152,7 @@ export function initSide(): void {
     (e) => {
       const b = niTarget(e);
       if (b && e.button === 0) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
+        stop(e);
         notInterested(b);
       }
     },
@@ -156,8 +163,7 @@ export function initSide(): void {
     (e) => {
       const b = niTarget(e);
       if (!b) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
+      stop(e);
       if (e.detail === 0) notInterested(b);
     },
     true,
