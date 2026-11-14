@@ -13,16 +13,23 @@ Plain text, ready to paste (the field doesn't render Markdown): store/descriptio
 
 ## Privacy tab (developer dashboard)
 
-**Single purpose:** Filter and declutter the X (Twitter) timeline and re-theme its interface to be calmer.
+**Single purpose:**
+Quiet Timeline makes the X (Twitter) website calmer to read. On x.com and twitter.com only, it turns down noise in timelines and replies — bot and engagement-farm accounts, paid-checkmark reply spam, slurs, profanity, muted words, ads and nag popups — and gives X's interface a soft, low-contrast, decluttered look. Everything happens locally in the browser.
 
-**Permission justifications**
-- storage: Saves the user's settings and per-account post counts (kept on the device) used to detect repost and aggregator accounts.
-- Host permissions (x.com, twitter.com, mobile.x.com): The extension only works on X; it reads the page and X's own page data to filter posts and applies the theme there.
+**storage justification:**
+chrome.storage.sync keeps the user's settings (filters, display options, theme) so they apply on every X tab and on the user's own synced devices. chrome.storage.local keeps a small on-device tally per X account seen — how many of its posts were original, reposts or media, and their common words — which is how the extension recognizes repost, aggregator and single-topic accounts. It is capped (about 3,000 accounts, oldest dropped first), never leaves the device, and is deleted with the extension.
 
-**Remote code:** No, I am not using remote code.
+**Host permission justification:**
+The extension works only on X: https://x.com/*, https://twitter.com/* and https://mobile.x.com/*. On those pages it reads the posts and the account data X's page already loads (including X's own API responses as the page receives them) to score accounts and find filtered words; changes the page to dim, collapse, hide or blur filtered posts and media and to remove clutter; and applies the chosen theme. It needs no other sites and makes no network requests of its own.
 
-**Data usage:** Collects none of the listed categories. (Website content is processed locally only and never leaves the device, so it is not "collected" under the Chrome Web Store definition.)
-Certify: does not sell or transfer data to third parties, does not use or transfer it for purposes unrelated to the single purpose, and does not use or transfer it to determine creditworthiness or for lending.
+**Data usage:** tick **Website content** (it reads the posts on X pages) and **User activity** (to read X's
+own data it watches the page's network responses on x.com). Nothing else. The store's FAQ: "Extensions are
+required to disclose how they handle user data, even when data is processed or stored locally on a user's
+device and is not transmitted to external servers or third parties."
+Certify all three: no selling / transfer to third parties; no use unrelated to the single purpose; no
+creditworthiness / lending use.
+
+**Remote code:** No.
 
 **Privacy policy URL:** https://qatoqat.com/quiet-timeline/PRIVACY.html
 
