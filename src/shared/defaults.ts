@@ -77,7 +77,7 @@ export const DEFAULTS = {
     viewsInline: true,
     sideActions: true,
     notInterested: true,
-    shareIcon: 'forward', // 'x' | 'forward' | 'nodes'
+    shareIcon: 'nodes', // 'x' | 'forward' | 'nodes'
     bannerRadius: 8,
     menuRadius: 12,
     solidBars: true,

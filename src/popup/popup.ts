@@ -1,4 +1,5 @@
 import { DEFAULTS, merge, NAV_ITEMS } from '../shared/defaults';
+import { hex, KEYS, lum, PRESETS } from '../theme/color';
 
 type Obj = Record<string, unknown>;
 
@@ -9,15 +10,24 @@ type Obj = Record<string, unknown>;
     ['collapse', 'Collapse'],
     ['hide', 'Hide'],
   ];
-  for (const sel of document.querySelectorAll<HTMLSelectElement>('select.action')) {
-    const opts: [string, string][] = sel.classList.contains('mask') ? [ACTIONS[0], ['mask', 'Mask word'], ...ACTIONS.slice(1)] : ACTIONS;
+  const MEDIA: [string, string][] = [
+    ['none', 'Show'],
+    ['blur', 'Blur'],
+    ['unload', "Don't load"],
+    ['hide', 'Hide'],
+  ];
+  const fill = (sel: HTMLSelectElement, opts: [string, string][]) => {
     for (const [v, label] of opts) sel.add(new Option(label, v));
+  };
+  for (const sel of document.querySelectorAll<HTMLSelectElement>('select.action')) {
+    fill(sel, sel.classList.contains('mask') ? [ACTIONS[0], ['mask', 'Mask'], ...ACTIONS.slice(1)] : ACTIONS);
   }
+  for (const sel of document.querySelectorAll<HTMLSelectElement>('select.media')) fill(sel, MEDIA);
 
   const navBox = document.getElementById('nav-items')!;
   for (const [key, label] of NAV_ITEMS) {
     const l = document.createElement('label');
-    l.className = 'check';
+    l.className = 'tg';
     l.innerHTML = `<input type="checkbox" data-path="nav.${key}" /> `;
     l.append(label);
     navBox.append(l);
@@ -62,10 +72,22 @@ type Obj = Record<string, unknown>;
     for (const b of chips) b.setAttribute('aria-pressed', String(b.title === cur));
     pick.style.outline = PRESET_ACCENTS.includes(cur) ? '' : '2px solid var(--text, #e4e6ea)';
   };
+  // the panel wears the chosen theme (X default: its own dark/light colors)
+  const paint = () => {
+    const t = S.theme;
+    const p = t.preset === 'custom' ? t.custom : PRESETS[t.preset];
+    const root = document.documentElement.style;
+    for (const k of [...KEYS, 'accent'] as const) {
+      if (p) root.setProperty(`--${k}`, k === 'accent' && t.accentMode === 'custom' ? t.accentColor : p[k]);
+      else root.removeProperty(`--${k}`);
+    }
+    root.colorScheme = p ? (lum(...hex(p.bg)) > 0.5 ? 'light' : 'dark') : '';
+  };
   const sync = () => {
     custom.hidden = S.theme.preset !== 'custom';
     accentRow.hidden = S.theme.accentMode !== 'custom';
     markChip();
+    paint();
   };
 
   for (const el of fields) {
@@ -93,11 +115,11 @@ type Obj = Record<string, unknown>;
     } catch (_) {}
   };
   for (const b of tabs) b.addEventListener('click', () => show(b.dataset.tab!));
-  let last = 'accounts';
+  let last = 'filter';
   try {
     last = localStorage.getItem('quiettl-tab') || last;
   } catch (_) {}
-  show(last);
+  show([...tabs].some((b) => b.dataset.tab === last) ? last : 'filter');
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   function save() {
@@ -106,7 +128,7 @@ type Obj = Record<string, unknown>;
   }
   addEventListener('pagehide', () => timer && chrome.storage.sync.set({ settings: S })); // closed right after an edit
 
-  const report = () => parent.postMessage({ quiettlPanelHeight: document.documentElement.scrollHeight }, '*');
+  const report = () => parent.postMessage({ quiettlPanelHeight: document.body.offsetHeight }, '*');
   new ResizeObserver(report).observe(document.body);
   report();
   document.getElementById('close')!.addEventListener('click', () => parent.postMessage({ quiettlPanel: 'close' }, '*'));

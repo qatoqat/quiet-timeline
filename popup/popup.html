@@ -9,137 +9,156 @@
   <header>
     <img src="../icons/48.png" alt="" width="22" height="22" />
     <h1>Quiet Timeline</h1>
-    <label class="switch" title="Enable on X">
-      <input type="checkbox" data-path="enabled" />
-      <span></span>
-    </label>
+    <label class="switch" title="On / off"><input type="checkbox" data-path="enabled" /><span></span></label>
     <button id="close" class="close" title="Close (Esc)" aria-label="Close">×</button>
   </header>
-
   <p id="stats" class="stats">Open an X tab to see stats.</p>
 
   <nav class="tabs" role="tablist">
-    <button role="tab" data-tab="accounts">Accounts</button>
-    <button role="tab" data-tab="content">Content</button>
-    <button role="tab" data-tab="look">Theme</button>
-    <button role="tab" data-tab="layout">Layout</button>
+    <button role="tab" data-tab="filter">Filter</button>
+    <button role="tab" data-tab="media">Media</button>
+    <button role="tab" data-tab="posts">Posts</button>
+    <button role="tab" data-tab="page">Page</button>
+    <button role="tab" data-tab="look">Look</button>
   </nav>
 
-  <section data-tab="accounts">
-    <h2>Bots &amp; engagement farmers</h2>
-    <div class="row">
-      <label>Apply to</label>
-      <select data-path="bot.scope">
-        <option value="replies">Replies only</option>
-        <option value="all">All tweets (not followed)</option>
-      </select>
-    </div>
-    <div class="row">
-      <label>Score ≥ <input type="number" min="1" max="100" data-path="bot.high" /></label>
-      <select data-path="bot.highAction" class="action"></select>
-    </div>
-    <div class="row">
-      <label>Score ≥ <input type="number" min="1" max="100" data-path="bot.mid" /></label>
-      <select data-path="bot.midAction" class="action"></select>
-    </div>
-    <label class="check"><input type="checkbox" data-path="bot.badges" /> Show score badge next to names (hover it for reasons)</label>
+  <section data-tab="filter">
+    <h2>Bots &amp; farmers</h2>
+    <div class="row"><span>Apply to</span>
+      <select data-path="bot.scope"><option value="replies">Replies</option><option value="all">All posts</option></select></div>
+    <div class="row"><span>Score ≥ <input type="number" min="1" max="100" data-path="bot.high" /></span><select data-path="bot.highAction" class="action"></select></div>
+    <div class="row"><span>Score ≥ <input type="number" min="1" max="100" data-path="bot.mid" /></span><select data-path="bot.midAction" class="action"></select></div>
+    <label class="tg" title="Hover a badge for the reasons"><input type="checkbox" data-path="bot.badges" /> Score badges</label>
   </section>
 
-  <section data-tab="accounts">
+  <section data-tab="filter">
     <h2>Paid checkmarks</h2>
-    <div class="row">
-      <label>Replies from paid checks</label>
-      <select data-path="paid.replyAction" class="action"></select>
-    </div>
-    <div class="row">
-      <label>Adds to bot score</label>
-      <input type="number" min="0" max="50" data-path="paid.weight" />
-    </div>
-    <div class="row">
-      <label>Checkmark icon</label>
-      <select data-path="paid.check">
-        <option value="keep">Keep</option>
-        <option value="grey">Grey out</option>
-        <option value="hide">Hide</option>
-      </select>
-    </div>
-    <p class="hint">Gold (business), grey (government) and organization-affiliated checks are not counted as paid.</p>
+    <div class="row"><span>Their replies</span><select data-path="paid.replyAction" class="action"></select></div>
+    <div class="row"><span>Bot score +</span><input type="number" min="0" max="50" data-path="paid.weight" /></div>
+    <div class="row" title="Gold, grey and organization checks are never counted as paid"><span>Check icon</span>
+      <select data-path="paid.check"><option value="keep">Keep</option><option value="grey">Grey</option><option value="hide">Hide</option></select></div>
   </section>
 
-  <section data-tab="content">
-    <h2>Reposters &amp; non-original content</h2>
-    <label class="check"><input type="checkbox" data-path="repost.mark" /> Tag accounts that mostly repost / post others' media (♻)</label>
-    <div class="row">
-      <label>Their media</label>
-      <select data-path="repost.media">
-        <option value="none">Show</option>
-        <option value="blur">Blur (click to show)</option>
-        <option value="unload">Don't load (click to load)</option>
-        <option value="hide">Hide completely</option>
-      </select>
-    </div>
-    <label class="check"><input type="checkbox" data-path="repost.noAutoplay" /> Don't autoplay their videos (click to play)</label>
-    <div class="row">
-      <label>Reposter if ≥ <input type="number" min="10" max="100" data-path="repost.ratio" /> %</label>
-      <label>of ≥ <input type="number" min="1" max="50" data-path="repost.minPosts" /> posts</label>
-    </div>
-    <label class="check"><input type="checkbox" data-path="repost.aggregators" /> Count aggregators as reposters</label>
-    <div class="row">
-      <label>Aggregator: ≥ <input type="number" min="5" max="500" data-path="repost.aggPerDay" /> posts/day, mostly media</label>
-    </div>
-    <label class="check"><input type="checkbox" data-path="repost.themed" /> Tag single-topic media accounts (◎ capybara, ◎ fox…)</label>
-    <label class="check"><input type="checkbox" data-path="repost.themedMedia" /> Treat their media like reposters'</label>
-    <textarea data-path="repost.list" rows="2" placeholder="Always treat as reposter: @handle, one per line"></textarea>
-    <p class="hint">Learns as you browse; visiting a profile judges it fastest. Copied media (“From @…”) is caught on the first post.</p>
+  <section data-tab="filter">
+    <h2>Words</h2>
+    <div class="row"><span>Slurs</span><select data-path="lang.slurAction" class="action mask"></select></div>
+    <div class="row"><span>Profanity</span><select data-path="lang.profanityAction" class="action mask"></select></div>
+    <div class="row"><span>Muted words</span><select data-path="lang.customAction" class="action mask"></select></div>
+    <textarea data-path="lang.custom" rows="2" placeholder="Muted words, one per line · word* matches endings" title="Unmasking after a change needs a tab reload"></textarea>
   </section>
 
-  <section data-tab="content">
-    <h2>Replies</h2>
-    <div class="row">
-      <label>Media in replies (accounts you don't follow)</label>
-      <select data-path="replies.media">
-        <option value="none">Show</option>
-        <option value="blur">Blur (click to show)</option>
-        <option value="unload">Don't load (click to load)</option>
-        <option value="hide">Hide completely</option>
-      </select>
+  <section data-tab="filter">
+    <h2>Reposters</h2>
+    <div class="grid2">
+      <label class="tg" title="Accounts that mostly repost or post others' media"><input type="checkbox" data-path="repost.mark" /> Tag ♻</label>
+      <label class="tg" title="High-volume, mostly-media accounts"><input type="checkbox" data-path="repost.aggregators" /> Aggregators</label>
+      <label class="tg" title="Single-topic media accounts (◎ capybara…)"><input type="checkbox" data-path="repost.themed" /> Single-topic ◎</label>
+    </div>
+    <div class="row"><span>Reposter at ≥ <input type="number" min="10" max="100" data-path="repost.ratio" /> % of ≥ <input type="number" min="1" max="50" data-path="repost.minPosts" /> posts</span></div>
+    <div class="row"><span>Aggregator at ≥ <input type="number" min="5" max="500" data-path="repost.aggPerDay" /> posts/day</span></div>
+    <textarea data-path="repost.list" rows="2" placeholder="Always reposters: @handle, one per line"></textarea>
+  </section>
+
+  <section data-tab="filter">
+    <h2>Never filter</h2>
+    <textarea data-path="allow" rows="2" placeholder="@handle, one per line (people you follow are exempt)"></textarea>
+  </section>
+
+  <section data-tab="media">
+    <h2>Hide media</h2>
+    <div class="row"><span>Reposters</span><select data-path="repost.media" class="media"></select></div>
+    <div class="row" title="Replies from accounts you don't follow"><span>Replies</span><select data-path="replies.media" class="media"></select></div>
+    <div class="grid2">
+      <label class="tg"><input type="checkbox" data-path="repost.themedMedia" /> Also single-topic</label>
+      <label class="tg" title="Reposters' videos play only when you click"><input type="checkbox" data-path="repost.noAutoplay" /> No autoplay</label>
     </div>
   </section>
 
-  <section data-tab="content">
-    <h2>Language</h2>
-    <div class="row">
-      <label>Slurs</label>
-      <select data-path="lang.slurAction" class="action mask"></select>
+  <section data-tab="media">
+    <h2>Blur avatars</h2>
+    <div class="grid2" title="Accounts you don't follow; hover a post to see the avatar">
+      <label class="tg"><input type="checkbox" data-path="pfp.others" /> Not followed</label>
+      <label class="tg"><input type="checkbox" data-path="pfp.paid" /> Paid checks</label>
     </div>
-    <div class="row">
-      <label>Profanity</label>
-      <select data-path="lang.profanityAction" class="action mask"></select>
+  </section>
+
+  <section data-tab="media">
+    <h2>Blur look</h2>
+    <div class="row"><span>Style</span>
+      <select data-path="blurStyle"><option value="smooth">Smooth</option><option value="contour">Contour</option></select></div>
+    <label class="tg"><input type="checkbox" data-path="blurMono" /> Greyscale</label>
+  </section>
+
+  <section data-tab="posts">
+    <h2>Under the avatar</h2>
+    <div class="grid2">
+      <label class="tg" title="Only on posts tall enough for them"><input type="checkbox" data-path="declutter.sideActions" /> Bookmark &amp; share</label>
+      <label class="tg" title="Home feed, accounts you don't follow"><input type="checkbox" data-path="declutter.notInterested" /> Not interested</label>
     </div>
-    <div class="row">
-      <label>Your muted words</label>
-      <select data-path="lang.customAction" class="action mask"></select>
+  </section>
+
+  <section data-tab="posts">
+    <h2>Post details</h2>
+    <div class="grid2">
+      <label class="tg"><input type="checkbox" data-path="declutter.viewsInline" /> Views by date</label>
+      <label class="tg"><input type="checkbox" data-path="declutter.outlineChecks" /> Outline checks</label>
+      <label class="tg"><input type="checkbox" data-path="declutter.rounded" /> Rounded hover</label>
+      <label class="tg" title="Center column borders and separators"><input type="checkbox" data-path="declutter.borders" /> No borders</label>
     </div>
-    <textarea data-path="lang.custom" rows="3" placeholder="one per line · word* matches any ending"></textarea>
-    <p class="hint">Unmasking after a change needs a tab reload.</p>
+    <div class="row"><span>Share icon</span>
+      <select data-path="declutter.shareIcon"><option value="nodes">Dots</option><option value="forward">Arrow ↪</option><option value="x">X default</option></select></div>
+    <div class="row"><span>Media corners</span><span><input type="number" min="0" max="40" data-path="declutter.mediaRadius" /> px</span></div>
+  </section>
+
+  <section data-tab="page">
+    <h2>Left menu</h2>
+    <div class="grid2">
+      <label class="tg" title="Names show on hover"><input type="checkbox" data-path="declutter.navIcons" /> Icons only</label>
+      <label class="tg" title="In the logo's place"><input type="checkbox" data-path="declutter.profileTop" /> Profile on top</label>
+      <label class="tg"><input type="checkbox" data-path="declutter.logo" /> Hide X logo</label>
+    </div>
+    <h3>Items</h3>
+    <div id="nav-items" class="grid2"></div>
+  </section>
+
+  <section data-tab="page">
+    <h2>Top &amp; sidebar</h2>
+    <div class="grid2">
+      <label class="tg" title="No see-through blur behind feed tabs / profile header"><input type="checkbox" data-path="declutter.solidBars" /> Solid top bar</label>
+      <label class="tg" title="For you / Following"><input type="checkbox" data-path="declutter.narrowTabs" /> Short tab line</label>
+      <label class="tg" title="Trends and Who to follow"><input type="checkbox" data-path="declutter.sidebar" /> Hide trends</label>
+    </div>
+  </section>
+
+  <section data-tab="page">
+    <h2>Hide</h2>
+    <div class="grid2">
+      <label class="tg" title="Promoted posts"><input type="checkbox" data-path="declutter.ads" /> Ads</label>
+      <label class="tg" title="Premium and verification upsells"><input type="checkbox" data-path="declutter.upsells" /> Upsells</label>
+      <label class="tg" title="Floating button and 'Explain this post'"><input type="checkbox" data-path="declutter.grokButtons" /> Grok buttons</label>
+      <label class="tg" title="Floating chat button (bottom right)"><input type="checkbox" data-path="declutter.chatButton" /> Chat button</label>
+      <label class="tg" title="Premium, 2FA, app and notification nags"><input type="checkbox" data-path="declutter.popups" /> Nag popups</label>
+    </div>
+  </section>
+
+  <section data-tab="page">
+    <h2>Corners (px)</h2>
+    <div class="grid2 nums">
+      <label>Cards <input type="number" min="0" max="40" data-path="declutter.cardRadius" /></label>
+      <label title="999 = pill">Search <input type="number" min="0" max="999" data-path="declutter.searchRadius" /></label>
+      <label title="Menus and search suggestions">Menus <input type="number" min="0" max="40" data-path="declutter.menuRadius" /></label>
+      <label title="Profile banner">Banner <input type="number" min="0" max="40" data-path="declutter.bannerRadius" /></label>
+    </div>
   </section>
 
   <section data-tab="look">
     <h2>Theme</h2>
-    <div class="row">
-      <label>Theme</label>
+    <div class="row"><span>Theme</span>
       <select data-path="theme.preset">
-        <option value="off">X default</option>
-        <option value="quiettl">Quiet</option>
-        <option value="graphite">Graphite</option>
-        <option value="oled">OLED black</option>
-        <option value="nord">Nord</option>
-        <option value="gruvbox">Gruvbox</option>
-        <option value="mocha">Mocha</option>
-        <option value="paper">Paper (light)</option>
-        <option value="custom">Custom…</option>
-      </select>
-    </div>
+        <option value="off">X default</option><option value="quiettl">Quiet</option><option value="graphite">Graphite</option>
+        <option value="oled">OLED black</option><option value="nord">Nord</option><option value="gruvbox">Gruvbox</option>
+        <option value="mocha">Mocha</option><option value="paper">Paper (light)</option><option value="custom">Custom…</option>
+      </select></div>
     <div id="custom" class="swatches">
       <label><input type="color" data-path="theme.custom.bg" />Background</label>
       <label><input type="color" data-path="theme.custom.surface" />Surface</label>
@@ -148,105 +167,27 @@
       <label><input type="color" data-path="theme.custom.text" />Text</label>
       <label><input type="color" data-path="theme.custom.accent" />Accent</label>
     </div>
-    <div class="row">
-      <label>Accent color</label>
-      <select data-path="theme.accentMode">
-        <option value="x">Same as X</option>
-        <option value="theme">Theme's accent</option>
-        <option value="custom">Custom</option>
-      </select>
+    <div class="row"><span>Font</span>
+      <select data-path="theme.font"><option value="default">X default</option><option value="system">System</option></select></div>
+    <div class="grid2">
+      <label class="tg" title="Quiet buttons, no colored banners"><input type="checkbox" data-path="theme.calm" /> Calm contrast</label>
+      <label class="tg" title="Dimmer, semi-bold, airier text"><input type="checkbox" data-path="theme.softText" /> Softer text</label>
     </div>
+  </section>
+
+  <section data-tab="look">
+    <h2>Accent</h2>
+    <div class="row" title="Links, highlights, colored buttons. X's own color: X → Settings → Display"><span>Color</span>
+      <select data-path="theme.accentMode"><option value="x">Same as X</option><option value="theme">Theme's</option><option value="custom">Custom</option></select></div>
     <div class="chips" id="accent-custom">
       <label class="chip pick" title="Pick any color"><input type="color" data-path="theme.accentColor" /><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 7 3 3"/><path d="M5 19l1-4 9-9a2.1 2.1 0 0 1 3 3l-9 9z"/></svg></label>
     </div>
-    <p class="hint">Links, highlights and X's colored buttons. X's own color is set in X → Settings → Display.</p>
-    <label class="check"><input type="checkbox" data-path="theme.accentPost" /> Use it for Post buttons</label>
-    <label class="check"><input type="checkbox" data-path="theme.accentFollow" /> Use it for Follow buttons</label>
-    <label class="check"><input type="checkbox" data-path="theme.accentTabs" /> Use it for the active tab underline</label>
-    <div class="row">
-      <label>Font</label>
-      <select data-path="theme.font">
-        <option value="default">X default</option>
-        <option value="system">System font</option>
-      </select>
+    <h3>Also color</h3>
+    <div class="grid2">
+      <label class="tg"><input type="checkbox" data-path="theme.accentPost" /> Post button</label>
+      <label class="tg"><input type="checkbox" data-path="theme.accentFollow" /> Follow buttons</label>
+      <label class="tg" title="For you / Following underline"><input type="checkbox" data-path="theme.accentTabs" /> Tab line</label>
     </div>
-    <label class="check"><input type="checkbox" data-path="theme.calm" /> Calm contrast (quiet buttons, no colored banners)</label>
-    <label class="check"><input type="checkbox" data-path="theme.softText" /> Softer text (dimmer, semi-bold, airier posts)</label>
-  </section>
-
-  <section data-tab="layout">
-    <h2>Layout &amp; clutter</h2>
-    <label class="check"><input type="checkbox" data-path="declutter.ads" /> Hide ads (promoted posts)</label>
-    <label class="check"><input type="checkbox" data-path="declutter.upsells" /> Hide Premium / verification upsells</label>
-    <label class="check"><input type="checkbox" data-path="declutter.grokButtons" /> Hide Grok buttons (bottom right, and on posts)</label>
-    <label class="check"><input type="checkbox" data-path="declutter.chatButton" /> Hide the floating chat button (bottom right)</label>
-    <label class="check"><input type="checkbox" data-path="declutter.sidebar" /> Hide trends &amp; “Who to follow”</label>
-    <label class="check"><input type="checkbox" data-path="declutter.logo" /> Hide X logo</label>
-    <label class="check"><input type="checkbox" data-path="declutter.borders" /> Remove center column borders</label>
-    <label class="check"><input type="checkbox" data-path="declutter.rounded" /> Rounded post hover</label>
-    <label class="check"><input type="checkbox" data-path="declutter.solidBars" /> Solid top bars (no see-through blur behind feed tabs / profile header)</label>
-    <label class="check"><input type="checkbox" data-path="declutter.narrowTabs" /> Short tab underline (For you / Following)</label>
-    <label class="check"><input type="checkbox" data-path="declutter.outlineChecks" /> Outlined checkmarks</label>
-    <label class="check"><input type="checkbox" data-path="declutter.viewsInline" /> View count next to the date</label>
-    <label class="check"><input type="checkbox" data-path="declutter.sideActions" /> Bookmark &amp; share under the avatar</label>
-    <label class="check"><input type="checkbox" data-path="declutter.notInterested" /> “Not interested” button under the avatar (accounts you don't follow)</label>
-    <div class="row">
-      <label>Share icon</label>
-      <select data-path="declutter.shareIcon">
-        <option value="forward">Forward arrow ↪</option>
-        <option value="nodes">Connected dots</option>
-        <option value="x">X default</option>
-      </select>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <label>Sidebar card corners</label>
-      <span><input type="number" min="0" max="40" data-path="declutter.cardRadius" /> px</span>
-    </div>
-    <div class="row">
-      <label>Post media corners</label>
-      <span><input type="number" min="0" max="40" data-path="declutter.mediaRadius" /> px</span>
-    </div>
-    <div class="row">
-      <label>Profile banner corners</label>
-      <span><input type="number" min="0" max="40" data-path="declutter.bannerRadius" /> px</span>
-    </div>
-    <div class="row">
-      <label>Menu &amp; search suggestion corners</label>
-      <span><input type="number" min="0" max="40" data-path="declutter.menuRadius" /> px</span>
-    </div>
-    <div class="row">
-      <label>Search box corners</label>
-      <span><input type="number" min="0" max="999" data-path="declutter.searchRadius" /> px</span>
-    </div>
-    <label class="check"><input type="checkbox" data-path="declutter.popups" /> Auto-close nag popups (Premium, 2FA, app, notifications…)</label>
-
-  </section>
-
-  <section data-tab="layout">
-    <h2>Left menu</h2>
-    <label class="check"><input type="checkbox" data-path="declutter.navIcons" /> Icons only (names show on hover)</label>
-    <label class="check"><input type="checkbox" data-path="declutter.profileTop" /> Profile button at the top (instead of the logo)</label>
-    <div id="nav-items" class="grid2"></div>
-  </section>
-
-  <section data-tab="accounts">
-    <h2>Profile pictures</h2>
-    <label class="check"><input type="checkbox" data-path="pfp.others" /> Blur avatars of accounts you don't follow</label>
-    <label class="check"><input type="checkbox" data-path="pfp.paid" /> Blur avatars of paid checkmarks you don't follow</label>
-    <div class="row">
-      <label>Blur style (avatars &amp; media)</label>
-      <select data-path="blurStyle">
-        <option value="smooth">Smooth</option>
-        <option value="contour">Contour bands</option>
-      </select>
-    </div>
-    <label class="check"><input type="checkbox" data-path="blurMono" /> Blurred avatars &amp; media in greyscale</label>
-    <p class="hint">Hover a post to see its avatar. Applies to the feed and replies.</p>
-  </section>
-
-  <section data-tab="accounts">
-    <h2>Never filter</h2>
-    <textarea data-path="allow" rows="2" placeholder="@handle, one per line (people you follow are always exempt)"></textarea>
   </section>
 
   <script src="../build/popup.js"></script>

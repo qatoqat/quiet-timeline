@@ -41,16 +41,22 @@ h1 {
   font-weight: 650;
 }
 h2 {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
+h3 {
+  margin: 8px 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
 section {
-  margin-top: 10px;
-  padding: 10px 12px;
+  margin-top: 8px;
+  padding: 8px 12px 10px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -65,18 +71,26 @@ section {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
-.check {
+.tg {
   display: flex;
   gap: 6px;
-  align-items: flex-start;
-  margin-top: 6px;
+  align-items: center;
+  padding: 2px 0;
+  white-space: nowrap;
 }
-.hint {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 11.5px;
+.nums label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+[title] {
+  cursor: help;
+}
+[title] :is(input, select, textarea) {
+  cursor: auto;
 }
 select,
 input[type='number'],
@@ -89,10 +103,10 @@ textarea {
   padding: 3px 6px;
 }
 select {
-  min-width: 128px;
+  min-width: 112px;
 }
 input[type='number'] {
-  width: 52px;
+  width: 50px;
 }
 textarea {
   width: 100%;
@@ -171,7 +185,6 @@ input[type='color'] {
   transform: translateX(14px);
 }
 
-/* ---------- tabs ---------- */
 .tabs {
   display: flex;
   gap: 2px;
@@ -220,7 +233,6 @@ input[type='color'] {
   gap: 0 10px;
 }
 
-/* accent color chips (custom accent) */
 .chips {
   display: flex;
   align-items: center;
@@ -249,7 +261,7 @@ input[type='color'] {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--pick, #4c8bf5); /* the last picked color */
+  background: var(--pick, #4c8bf5);
   color: var(--pick-fg, #fff);
 }
 .chip.pick svg {
