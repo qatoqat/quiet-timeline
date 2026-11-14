@@ -153,6 +153,7 @@ html[data-xs-sidebar] section:not(main section):has([data-who-to-follow]) {
 }
 
 #quiettl-panel {
+  box-sizing: content-box; /* the height it reports is its content's; X sets border-box on everything */
   position: fixed;
   top: 12px;
   right: 12px;
