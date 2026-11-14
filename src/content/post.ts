@@ -136,10 +136,12 @@ export function processPost(root: HTMLElement, page: Page): void {
   }
 
   const rp = reposterInfo(u);
-  // media and the action bar can arrive after the post; X re-renders can drop our buttons; the photo
-  // viewer changes the URL over the page
+  // media and the bookmark button can arrive after the post (the old app fills its action bar in
+  // later, without changing the post's size); X re-renders can drop our buttons; the photo viewer
+  // changes the URL over the page
   const media = root.querySelectorAll(ANY_MEDIA).length; // incl. a quoted post's
-  const key = `${id}|${t ? 1 : 0}|${u ? 1 : 0}|${rp ? rp.tag : 0}|${st.ver}|${revealed.has(id) ? 1 : 0}|${mediaRevealed.has(id) ? 1 : 0}|${playAllowed.has(id) ? 1 : 0}|${media}|${root.querySelector('[role="group"]') ? 1 : 0}|${root.querySelector('.xs-ni, .xs-toggle, .qt-reblur') ? 1 : 0}|${location.pathname}`;
+  const bookmark = root.querySelector('[data-testid="bookmark"], [data-testid="removeBookmark"], [data-engagement-action="bookmark"]');
+  const key = `${id}|${t ? 1 : 0}|${u ? 1 : 0}|${rp ? rp.tag : 0}|${st.ver}|${revealed.has(id) ? 1 : 0}|${mediaRevealed.has(id) ? 1 : 0}|${playAllowed.has(id) ? 1 : 0}|${media}|${bookmark ? 1 : 0}|${root.querySelector('.xs-ni, .xs-toggle, .qt-reblur') ? 1 : 0}|${location.pathname}`;
   if (root.dataset.xsKey === key) return;
   root.dataset.xsKey = key;
   reset(root, info);

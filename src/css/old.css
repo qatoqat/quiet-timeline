@@ -196,6 +196,11 @@ html[data-xs-calm] header[role='banner'] nav :is(a:not([data-xs-active]), button
 html[data-xs-calm] [data-testid='toolBar'] :is([role='button'], button) svg {
   color: var(--xs-muted, #8b919c) !important;
 }
+/* X draws the composer icons dark and brightens their wrapper 2.5×: with the muted color set, that
+   would turn them white */
+html[data-xs-calm] [data-testid='toolBar'] div:has(:is([role='button'], button)) {
+  filter: none !important;
+}
 html[data-xs-calm] header[role='banner'] nav :is(a, button):hover svg,
 html[data-xs-calm] [data-testid='toolBar'] :is([role='button'], button):hover svg {
   color: var(--xs-text, #e3e5e9) !important;

@@ -2,7 +2,7 @@ import type { Kit } from './kit';
 
 // Runs in the page: what each page-level setting promises, on and off.
 export async function pageChecks(K: Kit, deep: boolean) {
-  const { S, D, NAV, PAL, add, all, anyVisible, shown, box, cs, visible, transparent, mid, OLD, POST, html, accent, page } = K;
+  const { S, D, NAV, PAL, add, all, anyVisible, shown, box, cs, visible, transparent, rgb, mid, OLD, POST, html, accent, page } = K;
   const T = S.theme;
   const themed = T.preset !== 'off';
   add('theme applied', themed ? html.hasAttribute('data-xs-theme') : !html.hasAttribute('data-xs-theme'), T.preset);
@@ -111,6 +111,17 @@ export async function pageChecks(K: Kit, deep: boolean) {
       const active = svgs.filter((v) => v.closest('a')!.getAttribute('href') === page);
       const others = svgs.filter((v) => !active.includes(v));
       if (active.length && others.length) add('menu icons muted, active bright', cs(others[0]).color !== cs(active[0]).color, `${cs(others[0]).color} vs ${cs(active[0]).color}`);
+    }
+    // composer icons: the muted color as painted (a filter on the way up changes what you see)
+    const bar = document.querySelector(OLD ? '[data-testid="toolBar"]' : 'main div.text-tertiary.grid');
+    if (bar) {
+      const muted = rgb(cs(html).getPropertyValue('--xs-muted').trim());
+      const onScreen = (e: Element) => { for (let p: Element | null = e; p && p !== bar; p = p.parentElement) if (cs(p).opacity === '0') return false; return visible(e); };
+      const wrong = all('svg', bar).filter(onScreen).filter((v) => {
+        for (let p: Element | null = v; p && p !== bar; p = p.parentElement) if (cs(p).filter !== 'none') return true;
+        return cs(v).color !== muted;
+      });
+      add('composer icons muted', !wrong.length, wrong.map((v) => `${v.closest('button')?.getAttribute('aria-label') || '?'} ${cs(v).color}`).join(', '));
     }
     const dis = document.querySelector("[data-testid='tweetButtonInline'][aria-disabled='true'], main button.bg-btn-primary:disabled");
     if (dis) add('disabled Post button not faded', cs(dis).opacity === '1', cs(dis).opacity);
