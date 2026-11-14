@@ -8,7 +8,7 @@
     ['collapse', 'Collapse'],
     ['hide', 'Hide'],
   ];
-  for (const sel of document.querySelectorAll('select.action')) {
+  for (const sel of /** @type {NodeListOf<HTMLSelectElement>} */ (document.querySelectorAll('select.action'))) {
     const opts = sel.classList.contains('mask') ? [ACTIONS[0], ['mask', 'Mask word'], ...ACTIONS.slice(1)] : ACTIONS;
     for (const [v, label] of opts) sel.add(new Option(label, v));
   }
@@ -33,13 +33,13 @@
   const stored = (await chrome.storage.sync.get('settings')).settings;
   const S = XS.merge(XS.DEFAULTS, stored);
 
-  const fields = document.querySelectorAll('[data-path]');
+  const fields = /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('[data-path]'));
   const custom = document.getElementById('custom');
   const accentRow = document.getElementById('accent-custom');
   // quick picks: X's display colors and the theme's accent; the rainbow chip
   // (first, so its picker opens inside the panel) picks anything
   const PRESET_ACCENTS = ['#1d9bf0', '#ffd400', '#f91880', '#7856ff', '#ff7a00', '#00ba7c', '#4c8bf5'];
-  const accentInput = accentRow.querySelector('input');
+  const accentInput = /** @type {HTMLInputElement} */ (accentRow.querySelector('input'));
   const chips = PRESET_ACCENTS.map((c) => {
     const b = document.createElement('button');
     b.type = 'button';
@@ -74,8 +74,8 @@
     if (el.type === 'checkbox') el.checked = !!v;
     else el.value = v;
     el.addEventListener(el.type === 'color' ? 'input' : 'change', () => {
-      let val = el.type === 'checkbox' ? el.checked : el.value;
-      if (el.type === 'number') val = Math.max(+el.min || 0, Math.min(+el.max || 100, Number(val) || 0));
+      const val =
+        el.type === 'checkbox' ? el.checked : el.type === 'number' ? Math.max(+el.min || 0, Math.min(+el.max || 100, Number(el.value) || 0)) : el.value;
       set(S, el.dataset.path, val);
       sync();
       save();

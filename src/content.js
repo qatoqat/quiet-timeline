@@ -6,17 +6,9 @@
     'home', 'explore', 'notifications', 'messages', 'search', 'settings', 'i', 'compose', 'bookmarks',
     'lists', 'communities', 'jobs', 'premium', 'login', 'logout', 'tos', 'privacy',
   ]);
-  // X serves two web apps. New ("x-web"): a post is a role=link box whose
-  // data-href is its permalink; a quoted post is the same kind of box nested
-  // inside it. Old ("responsive-web"): a post is article[data-testid=tweet]; a
-  // quoted post is a plain role=link div inside it.
-  const NEW_POST = '[role="link"][data-href*="/status/"]';
-  const OLD_POST = 'article[data-testid="tweet"]';
-  const POST = `${NEW_POST}, ${OLD_POST}`;
-  const isOld = (root) => root.tagName === 'ARTICLE';
-  const CELL = 'li[data-index], [data-testid="cellInnerDiv"]'; // a post's row in the (virtual) list
-  const OLD_QUOTE = 'div[role="link"]:has([data-testid="User-Name"])';
-  const MEDIA = 'video, img[src*="pbs.twimg.com/media/"], img[src*="video_thumb"], img[src*="/card_img/"]';
+  // Markup differences between X's two web apps live in apps.js.
+  const { POST, CELL, MEDIA } = XS.apps;
+  const appOf = XS.apps.of;
 
   let S = XS.merge(XS.DEFAULTS, null);
   let ver = 0;
@@ -57,13 +49,13 @@
         if (!/^\d+$/.test(id) || revealed.has(id)) continue;
         const st = sizeState.get(id);
         if (st.hidden) hidden.push(`li[data-index]:has(${top(id)})`);
-        else if (st.why) rules.push(collapseCss(top(id), st.why));
+        else if (st.why) rules.push(XS.apps.NEW.collapseCss(top(id), st.why));
       }
       if (hidden.length) {
         rules.unshift(`${hidden.join(',\n')} { height: 1px !important; overflow: hidden !important; }`);
         rules.unshift(`${hidden.map((h) => h + ' > *').join(',\n')} { display: none !important; }`);
       }
-      rules.unshift(collapseCss('[role="link"][data-xs-state="collapsed"]'), OLD_COLLAPSE);
+      rules.unshift(XS.apps.NEW.collapseCss('[role="link"][data-xs-state="collapsed"]'), XS.apps.OLD.collapseCss());
       sizeCss.textContent = S.enabled ? rules.join('\n') : '';
       if (!sizeCss.isConnected) document.documentElement.appendChild(sizeCss);
     });
@@ -234,64 +226,7 @@
 
   // ---------- reading X's DOM ----------
 
-  const PERMALINK = /^\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/;
-  function readOldPost(root) {
-    const quotes = [...root.querySelectorAll(OLD_QUOTE)];
-    const outside = (el) => !quotes.some((q) => q.contains(el));
-    // permalink: the timestamp link; else the views link in the action bar
-    let m = null;
-    for (const a of root.querySelectorAll('a[href*="/status/"]')) {
-      if (!outside(a)) continue;
-      const r = PERMALINK.exec(a.getAttribute('href') || '');
-      if (!r) continue;
-      if (a.querySelector('time')) {
-        m = r;
-        break;
-      }
-      if (!m && a.closest('[role="group"]')) m = r;
-    }
-    const un = [...root.querySelectorAll('[data-testid="User-Name"]')].find(outside);
-    if (!m || !un) return null;
-    const texts = [...root.querySelectorAll('[data-testid="tweetText"]')];
-    const main = texts.find(outside);
-    return {
-      id: m[2],
-      handle: m[1],
-      nameEl: un.firstElementChild,
-      texts,
-      text: main ? main.textContent : '',
-      media: [...root.querySelectorAll(MEDIA)].filter(outside),
-      paidIcon: !!un.querySelector('svg[data-testid="icon-verified"]'),
-      noTime: ![...root.querySelectorAll('time')].some(outside),
-      old: true,
-    };
-  }
-
-  function readPost(root) {
-    if (isOld(root)) return readOldPost(root);
-    const m = PERMALINK.exec(root.getAttribute('data-href') || '');
-    if (!m) return null;
-    const handle = m[1];
-    const id = m[2];
-    const quotes = [...root.querySelectorAll(NEW_POST)];
-    const outside = (el) => !quotes.some((q) => q.contains(el));
-
-    // Display-name link: links to the profile, has text, isn't the avatar.
-    let nameEl = null;
-    for (const a of root.querySelectorAll(`a[href="/${handle}" i]`)) {
-      if (outside(a) && !a.querySelector('img') && a.textContent.trim() && !a.textContent.trim().startsWith('@')) {
-        nameEl = a.parentElement;
-        break;
-      }
-    }
-    const texts = [...root.querySelectorAll('article div[dir="auto"]')];
-    const main = texts.find(outside);
-    const media = [...root.querySelectorAll(MEDIA)].filter(outside);
-    const paidIcon = [...root.querySelectorAll('svg[aria-label="Verified account"] use')].some(
-      (u) => outside(u) && /premium/.test(u.getAttribute('href') || ''),
-    );
-    return { id, handle, nameEl, texts, text: main ? main.textContent : '', media, paidIcon };
-  }
+  const readPost = (root) => appOf(root).read(root);
 
   function pageCtx() {
     const p = location.pathname;
@@ -416,7 +351,8 @@
   }
 
   function processPost(root, page) {
-    const info = readPost(root);
+    const A = appOf(root);
+    const info = A.read(root);
     if (!info) return;
     const id = info.id;
     const t = tweets.get(id) || null;
@@ -429,11 +365,7 @@
     if (root.dataset.xsMedia === 'unload') stripMedia(root);
 
     // Ads: X marks them in its data; "Ad from …" label as a fallback.
-    const isAd =
-      adIds.has(id) ||
-      (info.old
-        ? info.noTime && !!root.closest('[data-testid="placementTracking"]') // promoted posts have no timestamp
-        : [...root.querySelectorAll('a[target="_blank"] div')].some((d) => /^(Ad from |Promoted\b)/.test(d.textContent)));
+    const isAd = adIds.has(id) || A.isAd(root, info);
     if (S.declutter.ads && isAd) {
       const cell = root.closest(CELL);
       if (cell && !cell.dataset.xsHidden) {
@@ -502,8 +434,7 @@
     const flaggedMedia = (rp && !(rp.themed && !S.repost.themedMedia)) || nonOrig;
     let mediaMode = flaggedMedia ? S.repost.media : 'none';
     if (mediaMode === 'none' && isReply && !focal && !owner) mediaMode = S.replies.media;
-    // Old app draws photos as background images, which can't be kept from loading.
-    if (info.old && mediaMode === 'unload') mediaMode = 'blur';
+    if (mediaMode === 'unload' && !A.canUnload) mediaMode = 'blur';
     const wantMedia = mediaMode !== 'none';
     const coverable = wantMedia && !trusted && (info.media.length || wasUnloaded);
     if (coverable && !mediaRevealed.has(id)) {
@@ -526,10 +457,8 @@
     if (paid && !exempt && isReply) consider(S.paid.replyAction, `@${info.handle} · paid checkmark reply`);
 
     // View count after the date ("· 28M views")
-    const date = info.old
-      ? [...root.querySelectorAll(`a[href$="/status/${id}"]`)].find((a) => a.querySelector('time') && !a.closest(OLD_QUOTE))
-      : [...root.querySelectorAll(`a[href$="/status/${id}"][data-base-ui-tooltip-trigger]`)].find((a) => !a.closest('[role="group"]'));
-    const views = info.old ? root.querySelector(`[role="group"] a[href$="/status/${id}/analytics"]`) : root.querySelector('a[aria-label="View count"]');
+    const date = A.dateLink(root, id);
+    const views = A.viewsLink(root, id);
     if (date) {
       const holder = date.parentElement;
       if (S.declutter.viewsInline && views && views.textContent.trim()) holder.dataset.xsViews = views.textContent.trim();
@@ -547,52 +476,16 @@
     const wantNI = S.declutter.notInterested && timelinePost && location.pathname === '/home' && u && !u.followedByMe && handle !== myHandle;
     // "Not interested" lives in the bookmark/share box (first in line), so it
     // follows that box: in the action bar, or under the avatar with it.
-    // (old app: the action bar is flat, so the button gets its own cell in it)
-    const box = info.old
-      ? [...root.querySelectorAll('[role="group"]')].find((g) => !g.closest(OLD_QUOTE) && g.querySelector('[data-testid="bookmark"], [data-testid="removeBookmark"]'))
-      : root.querySelector(':scope > article [role="group"] > div:has([data-engagement-action="bookmark"])');
+    const box = A.actionBox(root);
     let ni = root.querySelector('.xs-ni');
-    const niHost = ni && (info.old ? ni.parentElement.parentElement : ni.parentElement);
-    if (ni && niHost !== box) {
-      (info.old ? ni.parentElement : ni).remove();
+    if (ni && (!wantNI || A.niHost(ni).parentElement !== box)) {
+      A.niHost(ni).remove();
       ni = null;
     }
-    if (wantNI && box && info.old) {
-      if (!ni) {
-        // a copy of X's bookmark button (same look and hover), with a sad face
-        const bm = box.querySelector('[data-testid="bookmark"], [data-testid="removeBookmark"]');
-        ni = bm.cloneNode(true);
-        ni.removeAttribute('data-testid');
-        ni.classList.add('xs-ni');
-        ni.dataset.xsTip = 'Not interested';
-        ni.setAttribute('aria-label', 'Not interested in this post');
-        const svg = ni.querySelector('svg');
-        if (svg) svg.innerHTML = '<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 16.2c1.9-1.8 5.1-1.8 7 0"/></g><circle cx="9" cy="10" r=".9" fill="currentColor"/><circle cx="15" cy="10" r=".9" fill="currentColor"/>';
-        const cell = document.createElement('div');
-        cell.className = 'qt-ni-cell';
-        cell.appendChild(ni);
-        box.appendChild(cell);
-      }
+    if (wantNI && box) {
+      if (!ni) A.makeNI(box);
       root.dataset.xsNi = '1';
-    } else if (wantNI && box) {
-      if (!ni) {
-        ni = document.createElement('button');
-        ni.type = 'button';
-        // Same look and hover as X's bookmark button: copy its classes.
-        const bmBtn = box.querySelector('[data-engagement-action="bookmark"] button');
-        const pill = bmBtn && bmBtn.querySelector(':scope > span');
-        ni.className = `${bmBtn ? bmBtn.className : ''} xs-ni`;
-        ni.dataset.xsTip = 'Not interested';
-        ni.setAttribute('aria-label', 'Not interested in this post');
-        const face = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 16.2c1.9-1.8 5.1-1.8 7 0"/><circle cx="9" cy="10" r=".6" fill="currentColor"/><circle cx="15" cy="10" r=".6" fill="currentColor"/></svg>';
-        ni.innerHTML = pill ? `<span class="${pill.className}">${face}</span>` : face;
-        box.appendChild(ni);
-      }
-      root.dataset.xsNi = '1';
-    } else {
-      if (ni) (info.old ? ni.parentElement : ni).remove();
-      delete root.dataset.xsNi;
-    }
+    } else delete root.dataset.xsNi;
 
     if (info.nameEl && badge.length) {
       info.nameEl.dataset.xsBadge = badge.join(' · ');
@@ -637,11 +530,7 @@
   // Button over revealed media (top right, on hover) that blurs / unloads it again.
   const EYE_OFF = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.3 2.4-2.6 3.7M6.6 6.6C4.4 8 2.9 10.1 2 12c1 2.5 5 7 10 7 1.9 0 3.6-.6 5-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
   function setReblur(root, mode) {
-    const box =
-      mode &&
-      (isOld(root)
-        ? [...root.querySelectorAll('[data-testid="tweetPhoto"], [data-testid="videoPlayer"]')].find((b) => !b.closest(OLD_QUOTE))
-        : [...root.querySelectorAll(':scope > article div.rounded-md.overflow-hidden')].find((b) => b.querySelector(MEDIA) && b.closest(POST) === root));
+    const box = mode && appOf(root).mediaBox(root);
     let btn = root.querySelector('.qt-reblur');
     if (!box) {
       if (btn) btn.remove();
@@ -662,26 +551,9 @@
   }
 
   // "show" / "hide" link in a collapsed (or revealed) post's header, just
-  // before the ⋯ menu. Collapsed posts keep only that header row.
-  const HEADER = "[class*='@container/post-actions']";
+  // before the ⋯ menu. Collapsed posts keep only that header row (CSS in apps.js).
   function setToggle(root, mode, verdict) {
-    let slot = null;
-    let before = null;
-    if (isOld(root)) {
-      // old app: the row holding [Grok button, ⋯ menu]; the link goes before ⋯
-      const caret = [...root.querySelectorAll('[data-testid="caret"]')].find((c) => !c.closest(OLD_QUOTE));
-      for (let e = caret; e && e !== root; e = e.parentElement) {
-        if (e.parentElement && e.parentElement.children.length > 1) {
-          slot = e.parentElement;
-          before = e;
-          break;
-        }
-      }
-    } else {
-      const header = root.querySelector(`:scope > article ${HEADER}`);
-      slot = header && header.lastElementChild;
-      before = slot && slot.firstChild;
-    }
+    const { slot, before } = appOf(root).toggleSlot(root);
     let link = root.querySelector('.xs-toggle');
     if (!mode || !slot) {
       if (link) link.remove();
@@ -699,30 +571,6 @@
     link.dataset.xsTip = mode === 'show' ? verdict.why : 'Collapse again';
   }
 
-  // Collapsed post: header row only (name, check, badge, handle, date, views,
-  // ⋯), no avatar/text/media/actions. Posts without that header fall back to a
-  // one-line note. `sel` is the post box selector.
-  function collapseCss(sel, why) {
-    const has = `${sel}:has(> article ${HEADER})`;
-    const not = `${sel}:not(:has(> article ${HEADER}))`;
-    const note = why ? JSON.stringify(why) : 'attr(data-xs-why)';
-    return [
-      `${has} > article > :not(:has(${HEADER})), ${has} > article > div > :not(:has(${HEADER})) > *, ${has} > article :has(> ${HEADER}) ~ *, ${has} > article :has(> ${HEADER}) > :not(${HEADER}), ${has} ${HEADER} > :last-child > :not(.xs-toggle, [data-slot='xds-menu-trigger']) { display: none !important; }`,
-      `${has} > article { opacity: 0.6; transition: opacity 0.15s; } ${has}:hover > article { opacity: 1; }`,
-      `${not} > * { display: none !important; }`,
-      `${not}::before { content: '⊘  ' ${note} '  ·  click to show'; display: block; padding: 10px 16px; font: 13px/1.4 system-ui, sans-serif; color: var(--x-fg-secondary, #8b8f97); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }`,
-    ].join('\n');
-  }
-
-  // Old app: collapsed post keeps its header row (name, handle, date, ⋯); the
-  // avatar column keeps its width. The content column is the element whose
-  // first child holds the name and a later child the action bar.
-  const OLD_COLLAPSE = [
-    `${OLD_POST}[data-xs-state="collapsed"] [data-testid="Tweet-User-Avatar"] { display: none !important; }`,
-    `${OLD_POST}[data-xs-state="collapsed"] div:has(> :first-child [data-testid="User-Name"]):has(> :not(:first-child) [role="group"]) > :not(:first-child) { display: none !important; }`,
-    `${OLD_POST}[data-xs-state="collapsed"] { opacity: 0.6; transition: opacity 0.15s; } ${OLD_POST}[data-xs-state="collapsed"]:hover { opacity: 1; }`,
-  ].join('\n');
-
   // Move the bookmark/share box (with "Not interested") under the avatar — only
   // when the post is tall enough for it; short posts keep it in the action bar.
   const SLOT = 36; // px per button
@@ -733,7 +581,7 @@
         watched.delete(e.target);
         continue;
       }
-      const root = e.target.parentElement;
+      const root = e.target.tagName === 'ARTICLE' && XS.apps.isRoot(e.target) ? e.target : e.target.parentElement;
       if (root) layoutSide(root);
     }
   });
@@ -750,12 +598,10 @@
   }, 10000);
   function layoutSide(root) {
     if (root.dataset.xsWantSide !== '1') return;
-    const old = isOld(root);
-    const article = old ? root : root.querySelector(':scope > article');
-    const av = article && article.querySelector(old ? '[data-testid="Tweet-User-Avatar"]' : '[data-post-avatar]');
-    const box =
-      article &&
-      article.querySelector(old ? '[role="group"] [data-testid="bookmark"], [role="group"] [data-testid="removeBookmark"]' : '[role="group"] > div:has([data-engagement-action="bookmark"])');
+    const A = appOf(root);
+    const article = A.article(root);
+    const av = article && A.avatar(article);
+    const box = article && A.sideAnchor(article);
     // watch first: if the avatar / action bar aren't rendered yet, the size
     // change when they arrive brings us back here
     if (article && !watched.has(article)) {
@@ -775,11 +621,7 @@
     let top0 = base + 4; // a little breathing room under the avatar
     // If the post has media or a quoted post, line the stack up with its top…
     const ar = article.getBoundingClientRect();
-    const blocks = old
-      ? [...article.querySelectorAll(`.r-1867qdf, ${OLD_QUOTE}`)].filter((el) => !el.closest('[role="group"]') && !el.parentElement.closest(OLD_QUOTE))
-      : [...article.querySelectorAll('div.rounded-md.overflow-hidden, ' + NEW_POST)].filter(
-          (el) => el !== root && !el.closest('[role="group"]') && el.parentElement.closest(POST) === root,
-        );
+    const blocks = A.blocks(article, root);
     const firstBlock = blocks.map((el) => Math.round(el.getBoundingClientRect().top - ar.top)).sort((x, y) => x - y)[0];
     // …only when it starts right below the avatar (about one line of text above
     // it); with more text the stack stays under the avatar.
@@ -790,7 +632,7 @@
       // placed relative to their own container — shift by its offset
       let dx = 0;
       let dy = 0;
-      if (old) {
+      if (A.buttonsRelative) {
         const cont = (box.closest('[role="group"] > div') || box).offsetParent;
         if (cont && cont !== article) {
           const cr = cont.getBoundingClientRect();
@@ -1160,12 +1002,8 @@
       niBusy = true;
       setTimeout(() => (niBusy = false), 1500);
       const article = btn.closest('article');
-      const old = article.matches(OLD_POST);
-      const more = old
-        ? [...article.querySelectorAll('[data-testid="caret"]')].find((b) => !b.closest(OLD_QUOTE))
-        : [...article.querySelectorAll('button[aria-haspopup="menu"]:not([data-engagement-action])')].find(
-            (b) => !b.closest('[role="group"]') && !b.closest(NEW_POST + ' ' + NEW_POST),
-          );
+      const A = appOf(btn.closest(POST));
+      const more = A.moreButton(article);
       if (!more) return;
       // Keep the menu invisible while we use it (it still opens and loads normally).
       const html = document.documentElement;
@@ -1176,9 +1014,7 @@
       // the first menu after a page load can take a while (X loads its code then)
       for (let i = 0; i < 80; i++) {
         await new Promise((r) => setTimeout(r, 50));
-        const item = [...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find((m) =>
-          old ? /not interested/i.test(m.textContent) : m.querySelector('svg[data-icon="icon-emoji-sad"]'),
-        );
+        const item = [...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find(A.isNIItem);
         if (item) {
           // X's menu needs a real press/release sequence, not just a click event.
           const o = { bubbles: true, cancelable: true, pointerType: 'mouse', button: 0, buttons: 1, isPrimary: true };

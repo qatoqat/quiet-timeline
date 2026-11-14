@@ -45,6 +45,7 @@
         "src/words.js",
         "src/score.js",
         "src/theme.js",
+        "src/apps.js",
         "src/content.js"
       ],
       "css": [

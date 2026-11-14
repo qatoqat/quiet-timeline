@@ -57,11 +57,13 @@
 
   // settings → { find(text) → [{start, end, kind}], mask(text, kinds) → text }
   XS.createWordFilter = function (s) {
-    const cats = [
-      ['custom', matcher(XS.parseList(s.lang.custom))],
-      ['slur', matcher(SLURS)],
-      ['prof', matcher(PROFANITY)],
-    ].filter((c) => c[1]);
+    const cats = /** @type {[string, RegExp][]} */ (
+      [
+        ['custom', matcher(XS.parseList(s.lang.custom))],
+        ['slur', matcher(SLURS)],
+        ['prof', matcher(PROFANITY)],
+      ].filter((c) => c[1])
+    );
 
     const classify = (norm) => {
       if (!norm) return null;

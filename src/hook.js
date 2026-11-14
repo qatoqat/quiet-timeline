@@ -172,7 +172,7 @@
   window.fetch = function (input) {
     const p = origFetch.apply(this, arguments);
     try {
-      const url = typeof input === 'string' ? input : input && input.url;
+      const url = input instanceof Request ? input.url : String(input); // string, URL or Request
       if (url && API.test(url)) {
         dbg.api++;
         p.then((res) => res.clone().json().then((j) => {

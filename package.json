@@ -1,0 +1,14 @@
+{
+  "name": "quiet-timeline",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "node --test test/",
+    "check": "node tools/check.mjs",
+    "pack": "sh tools/pack.sh"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.7",
+    "typescript": "^7.0.2"
+  }
+}
