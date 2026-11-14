@@ -1,7 +1,7 @@
-import { MEDIA_IMG, POST } from '../apps';
-import { st, revealed, mediaRevealed, playAllowed } from './state';
+import { MEDIA_IMG, MEDIA_PRESS, POST, topPost } from '../apps';
+import { st, revealed, mediaRevealed, playAllowed, unset } from './state';
 import { sizeState, updateSizeCss, applyKnownSize } from './sizes';
-import { readPost, pageCtx, ownHandle, reset, processPost, unset } from './post';
+import { readPost, pageCtx, ownHandle, reset, processPost, maskText } from './post';
 import { restoreMedia, setReblur } from './media';
 import { setToggle, layoutSide, stop } from './side';
 import { closeNags, navTooltips, hideTip, outlineChecks, hideUpsellCallouts } from './page';
@@ -23,13 +23,23 @@ export function schedule(root?: Element): void {
 }
 
 let lastGlobal = 0;
+let lastPath = '';
 export function scan(): void {
   pending = false;
+  // a new URL (incl. opening / closing the photo viewer over the feed): every post's context changed
+  if (location.pathname !== lastPath) {
+    lastPath = location.pathname;
+    full = true;
+  }
+  // your own posts are never filtered: once the menu shows who you are, look at every post again
+  if (st.S.enabled && !st.myHandle && (st.myHandle = ownHandle())) {
+    st.ver++;
+    full = true;
+  }
   const roots = full ? [...document.querySelectorAll<HTMLElement>(POST)] : ([...dirty] as HTMLElement[]);
   full = false;
   dirty.clear();
   if (!st.S.enabled) return;
-  st.myHandle = st.myHandle || ownHandle();
   const page = pageCtx();
   for (const root of roots) {
     if (!root.isConnected || (root.parentElement && root.parentElement.closest(POST))) continue; // gone / quoted post
@@ -48,6 +58,9 @@ function globalTasks() {
   lastGlobal = performance.now();
   if (st.S.declutter.popups) closeNags();
   if (st.S.declutter.upsells) hideUpsellCallouts();
+  // the page's own background (old app: the solid top bar without a theme)
+  const bg = getComputedStyle(document.body).backgroundColor;
+  if (!/^transparent$|,\s*0\)$/.test(bg)) document.documentElement.style.setProperty('--qt-page-bg', bg);
   navTooltips();
   outlineChecks();
   // X's share button has no tooltip; give it its own (translated) label
@@ -59,13 +72,15 @@ function globalTasks() {
 export function clearAll(): void {
   for (const root of document.querySelectorAll<HTMLElement>('[data-xs-key]')) {
     const info = readPost(root);
-    if (info) reset(root, info);
+    if (info) {
+      reset(root, info);
+      if (root.dataset.xsMasked) maskText(info, { slur: false, prof: false, custom: false });
+    }
     restoreMedia(root);
     setToggle(root, null, null);
     setReblur(root, null, false);
-    const ni = root.querySelector('.xs-ni');
-    if (ni) (ni.closest('.qt-ni-cell') || ni).remove();
-    unset(root, 'xsKey', 'xsSide', 'xsWantSide', 'xsNi');
+    root.querySelector('.qt-ni-cell')?.remove();
+    unset(root, 'xsKey', 'xsWantBm', 'xsSideNi', 'xsSideBm', 'xsMasked');
   }
   for (const b of document.querySelectorAll<HTMLElement>('button[data-engagement-action="share"][data-xs-tip]')) delete b.dataset.xsTip;
   navTooltips();
@@ -74,9 +89,8 @@ export function clearAll(): void {
 
 // Marks the top-level post containing el as needing a re-check → false if none.
 function markPost(el: Node): boolean {
-  let root = (el as Element).closest?.(POST);
+  const root = (el as Element).closest ? topPost(el as Element) : null;
   if (!root) return false;
-  for (let up = root.parentElement && root.parentElement.closest(POST); up; up = up.parentElement && up.parentElement.closest(POST)) root = up;
   schedule(root);
   return true;
 }
@@ -149,7 +163,7 @@ function onClick(e: MouseEvent) {
   const collapsed = !tg.closest('a, button') && tg.closest<HTMLElement>('[data-xs-state="collapsed"]');
   const blurred = !collapsed && tg.closest<HTMLElement>('[data-xs-media="blur"], [data-xs-media="unload"]');
   const onMedia =
-    blurred && tg.closest('article [data-press-control], article video, article img, article div.rounded-md, [data-testid="tweetPhoto"], [data-testid="videoPlayer"]');
+    blurred && tg.closest(`${MEDIA_PRESS}, article img, article div.rounded-md`);
   const root = collapsed || (onMedia && blurred);
   if (!root) return;
   stop(e);

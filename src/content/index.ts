@@ -3,7 +3,7 @@ import { createWordFilter } from '../shared/words';
 import { applyTheme } from '../theme/index';
 import { st, stats, users, tweets, tally, langCache } from './state';
 import { initData } from './data';
-import { updateSizeCss } from './sizes';
+import { sizeState, updateSizeCss } from './sizes';
 import { processPost, pageCtx } from './post';
 import { ensureContourFilters, initMedia } from './media';
 import { initSide } from './side';
@@ -50,17 +50,20 @@ const DECLUTTER_FLAGS: Record<string, keyof Settings['declutter']> = {
 };
 
 function applySettings(raw: unknown) {
-  const prevEnabled = st.S.enabled;
+  const prev = st.S;
   const S = (st.S = merge(DEFAULTS, raw));
   st.ver++;
   st.filter = createWordFilter(S);
   st.allow = new Set(parseList(S.allow));
   st.repostList = new Set(parseList(S.repost.list));
-  langCache.clear();
+  // found words depend only on the word lists (detecting again would read already-masked text)
+  if (S.lang.custom !== prev.lang.custom) langCache.clear();
+  sizeState.clear(); // remembered sizes of collapsed / hidden posts are from the old settings
 
   const root = document.documentElement;
   const on = S.enabled;
   const flag = (name: string, cond: boolean, val = '') => (on && cond ? root.setAttribute(name, val) : root.removeAttribute(name));
+  flag('data-xs-on', true);
   for (const [a, k] of Object.entries(DECLUTTER_FLAGS)) flag(`data-xs-${a}`, !!S.declutter[k]);
   const themed = S.theme.preset !== 'off';
   flag('data-xs-accent-post', S.theme.accentPost && themed);
@@ -74,7 +77,7 @@ function applySettings(raw: unknown) {
   applyTheme(S.theme, on);
   applyNavVisibility();
 
-  if (!on && prevEnabled) clearAll();
+  if (!on && prev.enabled) clearAll();
   updateSizeCss();
   schedule();
 }

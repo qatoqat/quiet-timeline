@@ -15,6 +15,21 @@ export const NAV_ITEMS: [key: string, label: string, selector: string][] = [
   ['more', 'More', 'button[aria-label="More menu items"]'],
 ];
 
+// The panel's choices for what to do with a post, and with media
+export const ACTIONS: [string, string][] = [
+  ['none', 'Show'],
+  ['dim', 'Dim'],
+  ['collapse', 'Collapse'],
+  ['hide', 'Hide'],
+];
+export const MASK: [string, string] = ['mask', 'Mask']; // words only
+export const MEDIA: [string, string][] = [
+  ['none', 'Show'],
+  ['blur', 'Blur'],
+  ['unload', "Don't load"],
+  ['hide', 'Hide'],
+];
+
 // Actions, from mildest to strongest: none < mask (words only) < dim < collapse < hide
 export const DEFAULTS = {
   enabled: true,

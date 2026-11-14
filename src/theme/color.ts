@@ -35,18 +35,19 @@ export function hue(r: number, g: number, b: number): number {
   return h < 0 ? h + 360 : h;
 }
 
-// mode: a SOURCES key, or an explicit [bg, surface, border, muted, text] ramp. accent: override for X's blue.
+// mode: a SOURCES key, or an explicit [bg, surface, border, muted, text] ramp. accent: replaces X's blue
+// (none: X's own accent stays).
 export function makeMapper(palette: Palette, mode: string | Rgb[], accent?: string | null): Mapper {
   const src = Array.isArray(mode) ? mode : SOURCES[mode] || SOURCES.lightsout;
   const dir = lum(...src[4]) > lum(...src[0]) ? 1 : -1;
   const A = src.map((c) => lum(...c) * dir);
   const dst = KEYS.map((k) => hex(palette[k]));
-  const acc = hex(accent || palette.accent);
+  const acc = accent ? hex(accent) : null;
   return function (r, g, b) {
     const chroma = Math.max(r, g, b) - Math.min(r, g, b);
     if (chroma >= 90) {
       const h = hue(r, g, b);
-      return h >= 195 && h <= 215 ? acc : null;
+      return acc && h >= 195 && h <= 215 ? acc : null;
     }
     if (chroma > 30) return null;
     const L = lum(r, g, b) * dir;

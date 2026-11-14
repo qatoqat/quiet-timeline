@@ -1,6 +1,6 @@
 import type { Settings } from '../shared/defaults';
 import { KEYS, PRESETS, lum, makeMapper, parseColor, remap, remapDecls, type Mapper } from './color';
-import { CACHE, calmBrand, putStyle, refreshVars, setButtonAccent, sig, themeShadows, ts, varStyle } from './vars';
+import { CACHE, calmBrand, pageAccent, putStyle, refreshVars, setButtonAccent, sig, softened, themeShadows, ts, varStyle } from './vars';
 
 let mapper: Mapper | null = null;
 let mode: string | null = null;
@@ -86,7 +86,7 @@ function processTree(root: Node): void {
 }
 
 function repaint(): void {
-  mapper = ts.palette ? makeMapper(ts.palette, ts.ramp || mode!, ts.accent) : null;
+  mapper = ts.palette ? makeMapper(softened(ts.palette), ts.ramp || mode!, ts.accent) : null;
   processRules(true);
   processTree(document.documentElement);
 }
@@ -148,7 +148,7 @@ export function applyTheme(t: Settings['theme'], on: boolean): void {
   root.toggleAttribute('data-xs-theme', !!ts.palette);
   if (ts.palette) {
     for (const k of KEYS) root.style.setProperty(`--xs-${k}`, ts.palette[k]);
-    root.style.setProperty('--xs-accent', ts.accent || ts.palette.accent);
+    root.style.setProperty('--xs-accent', pageAccent());
     setButtonAccent();
     // Use the last generated variable CSS right away to avoid a flash of X's colors.
     try {
@@ -160,6 +160,7 @@ export function applyTheme(t: Settings['theme'], on: boolean): void {
   } else {
     varStyle.remove();
     stop();
+    for (const k of [...KEYS, 'accent']) root.style.removeProperty(`--xs-${k}`); // no theme: X's own colors
   }
   if (ts.palette || wasOn) repaint();
   root.dataset.xsFont = on ? t.font : 'default';

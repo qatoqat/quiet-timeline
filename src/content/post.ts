@@ -1,13 +1,14 @@
-import { appOf, CELL } from '../apps';
+import { addNI, ANY_MEDIA, appOf, CELL } from '../apps';
 import { isPaid, nonOriginal, scoreTweet } from '../shared/score';
+import { MEDIA } from '../shared/defaults';
 import type { PostInfo } from '../shared/types';
 import { dupCounts, reposterInfo } from './data';
 import { restoreMedia, setReblur, stripMedia } from './media';
 import { setToggle } from './side';
 import { sizeState, updateSizeCss } from './sizes';
 import {
-  adIds, byHandle, cap, langCache, LEVEL, mediaRevealed, playAllowed, RESERVED, revealed, st, stats, tally, tweets, users,
-  type LangHits,
+  adIds, byHandle, cap, langCache, LEVEL, mediaRevealed, playAllowed, RESERVED, revealed, setData, st, stats, tally, tweets,
+  unset, users, type LangHits,
 } from './state';
 
 export interface Page {
@@ -24,10 +25,6 @@ export interface Verdict {
 }
 
 export const readPost = (root: HTMLElement): PostInfo | null => appOf(root).read(root);
-
-export const unset = (el: HTMLElement, ...keys: string[]): void => {
-  for (const k of keys) delete el.dataset[k];
-};
 
 function hideCell(cell: HTMLElement, id: string, stat: Set<string>): void {
   cell.dataset.xsHidden = '1';
@@ -47,7 +44,10 @@ export function pageCtx(): Page {
 
 export function ownHandle(): string | null {
   const img = document.querySelector('button[aria-label="Account menu"] img[alt^="@"]');
-  return img ? img.getAttribute('alt')!.slice(1).toLowerCase() : null;
+  if (img) return img.getAttribute('alt')!.slice(1).toLowerCase();
+  // old app: the account button's avatar is named after the handle
+  const av = document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"] [data-testid^="UserAvatar-Container-"]');
+  return (av && av.getAttribute('data-testid')!.replace('UserAvatar-Container-', '').toLowerCase()) || null;
 }
 
 function langFor(id: string, text: string): LangHits {
@@ -61,26 +61,26 @@ function langFor(id: string, text: string): LangHits {
   return r;
 }
 
-function maskText(info: PostInfo): boolean {
-  const S = st.S;
-  const kinds = {
-    slur: S.lang.slurAction === 'mask',
-    prof: S.lang.profanityAction === 'mask',
-    custom: S.lang.customAction === 'mask',
-  };
-  if (!kinds.slur && !kinds.prof && !kinds.custom) return false;
-  let changed = false;
+// What we masked, per text node, so a filter turned off (or the extension) can write the original back;
+// when React changes the node itself, its new text is the original.
+const masked = new WeakMap<Text, { orig: string; out: string }>();
+export function maskText(info: PostInfo, kinds: { slur: boolean; prof: boolean; custom: boolean }): boolean {
+  let any = false;
   for (const el of info.texts) {
     const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
-      const next = st.filter.mask(n.nodeValue!, kinds);
-      if (next !== n.nodeValue) {
-        n.nodeValue = next; // edit in place: React keeps owning the node
-        changed = true;
+    for (let n = walk.nextNode() as Text | null; n; n = walk.nextNode() as Text | null) {
+      const was = masked.get(n);
+      const orig = was && was.out === n.nodeValue ? was.orig : n.nodeValue!;
+      const out = st.filter.mask(orig, kinds);
+      if (out !== n.nodeValue) n.nodeValue = out; // edit in place: React keeps owning the node
+      if (out === orig) masked.delete(n);
+      else {
+        masked.set(n, { orig, out });
+        any = true;
       }
     }
   }
-  return changed;
+  return any;
 }
 
 export function reset(root: HTMLElement, info: PostInfo): void {
@@ -107,15 +107,28 @@ export function processPost(root: HTMLElement, page: Page): void {
   const t = tweets.get(id) || null;
   const u = (t && t.userId && users.get(t.userId)) || byHandle.get(info.handle.toLowerCase()) || null;
 
-  // Detect before masking, then mask on every pass (React may restore the text).
+  // Detect before masking, then mask on every pass (React may restore the text); unmask what a filter
+  // no longer masks.
   const lang = langFor(id, (t && t.text) || info.text);
-  if ((lang.slur || lang.prof || lang.custom) && maskText(info)) stats.masked.add(id);
+  const kinds = {
+    slur: lang.slur && S.lang.slurAction === 'mask',
+    prof: lang.prof && S.lang.profanityAction === 'mask',
+    custom: lang.custom && S.lang.customAction === 'mask',
+  };
+  if (kinds.slur || kinds.prof || kinds.custom || root.dataset.xsMasked) {
+    const did = maskText(info, kinds);
+    setData(root, 'xsMasked', did && '1');
+    if (did) stats.masked.add(id);
+  }
 
   if (root.dataset.xsMedia === 'unload') stripMedia(root);
 
-  // X marks ads in its data; the "Ad from …" label is a fallback.
+  const handle = info.handle.toLowerCase();
+  const focal = page.statusId === id;
+  const owner = (page.profile && page.profile === handle) || page.author === handle; // the profile / thread you opened
+  // X marks ads in its data; the "Ad from …" label is a fallback. The post / profile you opened stays.
   const isAd = adIds.has(id) || A.isAd(root, info);
-  if (S.declutter.ads && isAd) {
+  if (S.declutter.ads && isAd && !focal && !owner) {
     const cell = root.closest<HTMLElement>(CELL);
     if (cell && !cell.dataset.xsHidden) hideCell(cell, id, stats.ads);
     root.dataset.xsKey = 'ad';
@@ -123,18 +136,19 @@ export function processPost(root: HTMLElement, page: Page): void {
   }
 
   const rp = reposterInfo(u);
-  // media can arrive after the post; X re-renders can drop our buttons
-  const key = `${id}|${t ? 1 : 0}|${u ? 1 : 0}|${rp ? rp.tag : 0}|${st.ver}|${revealed.has(id) ? 1 : 0}|${mediaRevealed.has(id) ? 1 : 0}|${playAllowed.has(id) ? 1 : 0}|${info.media.length}|${root.querySelector('.xs-ni, .xs-toggle, .qt-reblur') ? 1 : 0}`;
+  // media and the action bar can arrive after the post; X re-renders can drop our buttons; the photo
+  // viewer changes the URL over the page
+  const media = root.querySelectorAll(ANY_MEDIA).length; // incl. a quoted post's
+  const key = `${id}|${t ? 1 : 0}|${u ? 1 : 0}|${rp ? rp.tag : 0}|${st.ver}|${revealed.has(id) ? 1 : 0}|${mediaRevealed.has(id) ? 1 : 0}|${playAllowed.has(id) ? 1 : 0}|${media}|${root.querySelector('[role="group"]') ? 1 : 0}|${root.querySelector('.xs-ni, .xs-toggle, .qt-reblur') ? 1 : 0}|${location.pathname}`;
   if (root.dataset.xsKey === key) return;
   root.dataset.xsKey = key;
   reset(root, info);
 
-  const handle = info.handle.toLowerCase();
-  const focal = page.statusId === id;
   const trusted = handle === st.myHandle || st.allow.has(handle) || !!(u && u.followedByMe);
-  const owner = (page.profile && page.profile === handle) || page.author === handle; // the profile / thread you opened
   const exempt = trusted || focal || owner;
-  const isReply = t ? !!t.replyTo : !!page.statusId && !focal;
+  const parent = t && t.replyTo ? tweets.get(t.replyTo) : null;
+  // a part of the author's own thread isn't a reply to someone
+  const isReply = t ? !!t.replyTo && !(parent && parent.userId === t.userId) : !!page.statusId && !focal;
   const paid = u ? isPaid(u) : info.paidIcon;
 
   let verdict = null as Verdict | null;
@@ -153,34 +167,42 @@ export function processPost(root: HTMLElement, page: Page): void {
   if (u && !trusted && (S.bot.scope === 'all' || isReply)) {
     const row = u.id ? tally.get(u.id) : undefined;
     const seen = row ? { total: row.o + row.n, replies: row.r || 0 } : undefined;
-    const ctx = { isReply, parent: t && t.replyTo ? tweets.get(t.replyTo) : null, domText: info.text, seen, ...dupCounts(t) };
+    const ctx = { isReply, parent, domText: info.text, seen, ...dupCounts(t) };
     const r = scoreTweet(u, t, ctx, S);
-    reasons = r.reasons;
+    const before = verdict;
     if (!exempt) {
       const why = `@${u.handle} · score ${r.score}: ${r.reasons.join(', ')}`;
+      // each row is "from this score, at least this"; the strongest that applies wins
       if (r.score >= S.bot.high) consider(S.bot.highAction, why);
-      else if (r.score >= S.bot.mid) consider(S.bot.midAction, why);
+      if (r.score >= S.bot.mid) consider(S.bot.midAction, why);
     }
-    if (S.bot.badges && r.score >= 20) {
+    const shown = S.bot.badges && r.score >= Math.min(20, S.bot.mid, S.bot.high);
+    if (shown) {
       badge.push(String(r.score));
       lvl = r.score >= S.bot.high ? 'high' : r.score >= S.bot.mid ? 'mid' : 'low';
     }
+    // the reasons tooltip goes with a badge or an action, not on every name
+    if (shown || verdict !== before) reasons = r.reasons;
   }
 
   const nonOrig = nonOriginal(t);
   if (rp && (rp.themed || S.repost.mark)) {
     badge.unshift(rp.tag);
-    lvl = lvl || (rp.themed ? 'themed' : 'repost');
+    lvl = lvl && lvl !== 'low' ? lvl : rp.themed ? 'themed' : 'repost';
     reasons = [rp.why, ...reasons];
   }
   if (nonOrig) reasons = [`this post: ${nonOrig}`, ...reasons];
-  const wasUnloaded = root.querySelector('img[data-xs-src]');
+  const wasUnloaded = root.querySelector('img[data-xs-src], video[data-xs-poster]');
   const flaggedMedia = (rp && !(rp.themed && !S.repost.themedMedia)) || nonOrig;
-  let mediaMode: string = flaggedMedia ? S.repost.media : 'none';
-  if (mediaMode === 'none' && isReply && !focal && !owner) mediaMode = S.replies.media;
+  // Reposters and Replies can both apply: the stronger mode wins (none < blur < unload < hide)
+  const rank = (m: string) => MEDIA.findIndex(([v]) => v === m);
+  const modes = [flaggedMedia ? S.repost.media : 'none', isReply && !focal && !owner ? S.replies.media : 'none'];
+  let mediaMode = modes.sort((a, b) => rank(b) - rank(a))[0];
+  if (mediaMode === 'hide' && (focal || owner)) mediaMode = 'blur'; // the post / profile you opened stays reachable
   if (mediaMode === 'unload' && !A.canUnload) mediaMode = 'blur';
   const wantMedia = mediaMode !== 'none';
-  const coverable = wantMedia && !trusted && (info.media.length || wasUnloaded);
+  const coverable = wantMedia && !trusted && (media || wasUnloaded);
+  stats.media.delete(id);
   if (coverable && !mediaRevealed.has(id)) {
     root.dataset.xsMedia = mediaMode;
     stats.media.add(id);
@@ -189,7 +211,7 @@ export function processPost(root: HTMLElement, page: Page): void {
   setReblur(root, coverable && mediaMode !== 'hide' ? mediaMode : null, !mediaRevealed.has(id));
   if (wasUnloaded && root.dataset.xsMedia !== 'unload') restoreMedia(root);
   const quiet = (S.repost.noAutoplay && flaggedMedia) || root.dataset.xsMedia;
-  if (quiet && !trusted && !playAllowed.has(id) && (t ? t.hasMedia : info.media.length)) {
+  if (quiet && !trusted && !playAllowed.has(id) && ((t && t.hasMedia) || media)) {
     root.dataset.xsNoplay = '1';
     for (const v of root.querySelectorAll('video')) if (!v.paused) v.pause();
   }
@@ -203,27 +225,22 @@ export function processPost(root: HTMLElement, page: Page): void {
   if (date) {
     const holder = date.parentElement!;
     const vt = views ? (views.textContent || '').trim() : '';
-    if (S.declutter.viewsInline && vt) holder.dataset.xsViews = vt;
-    else delete holder.dataset.xsViews;
+    setData(holder, 'xsViews', vt); // shown by the date with Views by date, and on a collapsed post
   }
 
-  // under-avatar extras: timeline posts only; replies and thread pages keep X's layout
-  const timelinePost = !isReply && !page.statusId;
-  if (S.declutter.sideActions && timelinePost) root.dataset.xsWantSide = '1';
-  else unset(root, 'xsWantSide', 'xsSide');
+  // Under the avatar (timeline posts only): bookmark & share, with "Not interested" on top of them;
+  // side.ts places them on posts tall enough.
+  const wantBm = S.declutter.sideActions && !isReply && !page.statusId;
+  setData(root, 'xsWantBm', wantBm && '1');
   // X only offers "Not interested" in the home feed
-  const wantNI = S.declutter.notInterested && timelinePost && location.pathname === '/home' && u && !u.followedByMe && handle !== st.myHandle;
-  const box = A.actionBox(root);
-  let ni = root.querySelector('.xs-ni');
-  const niHost = ni && (ni.closest('.qt-ni-cell') || ni);
-  if (niHost && (!wantNI || niHost.parentElement !== box)) {
-    niHost.remove();
+  const wantNI = wantBm && S.declutter.notInterested && location.pathname === '/home' && u && !u.followedByMe && handle !== st.myHandle;
+  const bm = A.bookmarkCell(root);
+  let ni = root.querySelector('.qt-ni-cell');
+  if (ni && (!wantNI || ni.nextElementSibling !== bm)) {
+    ni.remove();
     ni = null;
   }
-  if (wantNI && box) {
-    if (!ni) A.makeNI(box);
-    root.dataset.xsNi = '1';
-  } else delete root.dataset.xsNi;
+  if (wantNI && bm && !ni) addNI(A, bm);
 
   if (info.nameEl && badge.length) {
     info.nameEl.dataset.xsBadge = badge.join(' · ');

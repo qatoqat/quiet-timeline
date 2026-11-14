@@ -15,12 +15,12 @@ export interface App {
   viewsLink(root: HTMLElement, id: string): HTMLElement | null;
   article(root: HTMLElement): HTMLElement | null;
   avatar(article: HTMLElement): HTMLElement | null;
-  actionBox(root: HTMLElement): HTMLElement | null | undefined;
-  sideAnchor(article: HTMLElement): HTMLElement | null;
+  // the action bar's child holding bookmark (new app: the bookmark/share box)
+  bookmarkCell(root: HTMLElement): HTMLElement | null | undefined;
   blocks(article: HTMLElement, root: HTMLElement): HTMLElement[];
   mediaBox(root: HTMLElement): HTMLElement | null | undefined;
   toggleSlot(root: HTMLElement): { slot: HTMLElement | null; before: Node | null };
-  makeNI(box: HTMLElement): HTMLElement;
+  niButton(bookmarkCell: HTMLElement): HTMLElement;
   moreButton(article: HTMLElement): HTMLElement | undefined;
   isNIItem(item: Element): boolean;
   collapseCss(sel?: string): string;
@@ -28,18 +28,12 @@ export interface App {
 
 const PERMALINK = /^\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/;
 export const MEDIA_IMG = 'img[src*="pbs.twimg.com/media/"], img[src*="video_thumb"], img[src*="/card_img/"]';
-const MEDIA = `video, ${MEDIA_IMG}`;
+export const ANY_MEDIA = `video, ${MEDIA_IMG}`; // a post's photos / videos / card images
 const SAD_FACE =
   '<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 16.2c1.9-1.8 5.1-1.8 7 0"/></g><circle cx="9" cy="10" r=".8" fill="currentColor"/><circle cx="15" cy="10" r=".8" fill="currentColor"/>';
 
 const all = (root: ParentNode, sel: string): HTMLElement[] => [...root.querySelectorAll<HTMLElement>(sel)];
 const outsideOf = (quotes: Element[]) => (el: Element) => !quotes.some((q) => q.contains(el));
-const ni = (b: HTMLElement) => {
-  b.classList.add('xs-ni');
-  b.dataset.xsTip = 'Not interested';
-  b.setAttribute('aria-label', 'Not interested in this post');
-  return b;
-};
 
 const NEW_POST = '[role="link"][data-href*="/status/"]';
 const NEW_HEADER = "[class*='@container/post-actions']";
@@ -53,21 +47,17 @@ export const NEW: App = {
     if (!m) return null;
     const [, handle, id] = m;
     const outside = outsideOf(all(root, NEW_POST));
-    // display-name link: links to the profile, has text, isn't the avatar
-    let nameEl: HTMLElement | null = null;
-    for (const a of all(root, `a[href="/${handle}" i]`)) {
-      const t = (a.textContent || '').trim();
-      if (outside(a) && !a.querySelector('img') && t && !t.startsWith('@')) {
-        nameEl = a.parentElement;
-        break;
-      }
-    }
+    // display name: the profile link with text (the avatar link has none) that isn't the @handle
+    // (a name may itself start with "@")
+    const named = all(root, `a[href="/${handle}" i]`).filter((a) => outside(a) && (a.textContent || '').trim());
+    const nameLink = named.find((a) => a.textContent!.trim().toLowerCase() !== `@${handle}`.toLowerCase()) || named[0];
+    const nameEl = nameLink ? nameLink.parentElement : null;
     const texts = all(root, 'article div[dir="auto"]');
     const main = texts.find(outside);
     const paidIcon = [...root.querySelectorAll('svg[aria-label="Verified account"] use')].some(
       (u) => outside(u) && /premium/.test(u.getAttribute('href') || ''),
     );
-    return { id, handle, nameEl, texts, text: main ? main.textContent || '' : '', media: all(root, MEDIA).filter(outside), paidIcon };
+    return { id, handle, nameEl, texts, text: main ? main.textContent || '' : '', paidIcon };
   },
   isAd: (root) => all(root, 'a[target="_blank"] div').some((d) => /^(Ad from |Promoted\b)/.test(d.textContent || '')),
   dateLink: (root, id) => all(root, `a[href$="/status/${id}"][data-base-ui-tooltip-trigger]`).find((a) => !a.closest('[role="group"]')),
@@ -75,31 +65,28 @@ export const NEW: App = {
 
   article: (root) => root.querySelector<HTMLElement>(':scope > article'),
   avatar: (article) => article.querySelector<HTMLElement>('[data-post-avatar]'),
-  // the bookmark/share box: "Not interested" joins it, and it moves under the avatar
-  actionBox: (root) => root.querySelector<HTMLElement>(':scope > article [role="group"] > div:has([data-engagement-action="bookmark"])'),
-  sideAnchor: (article) => article.querySelector<HTMLElement>('[role="group"] > div:has([data-engagement-action="bookmark"])'),
+  bookmarkCell: (root) => root.querySelector<HTMLElement>(':scope > article [role="group"] > div:has([data-engagement-action="bookmark"])'),
   blocks: (article, root) =>
     all(article, `div.rounded-md.overflow-hidden, ${NEW_POST}`).filter(
       (el) => el !== root && !el.closest('[role="group"]') && el.parentElement!.closest(NEW_POST) === root,
     ),
   mediaBox: (root) =>
-    all(root, ':scope > article div.rounded-md.overflow-hidden').find((b) => b.querySelector(MEDIA) && b.closest(NEW_POST) === root),
+    all(root, ':scope > article div.rounded-md.overflow-hidden').find((b) => b.querySelector(`${ANY_MEDIA}, img[data-xs-src]`) && b.closest(NEW_POST) === root),
   toggleSlot(root) {
     const header = root.querySelector(`:scope > article ${NEW_HEADER}`);
     const slot = header && (header.lastElementChild as HTMLElement | null);
     return { slot, before: slot && slot.firstChild };
   },
 
-  makeNI(box) {
-    const bm = box.querySelector('[data-engagement-action="bookmark"] button');
+  niButton(cell) {
+    const bm = cell.querySelector('[data-engagement-action="bookmark"] button');
     const pill = bm && bm.querySelector(':scope > span');
     const b = document.createElement('button');
     b.type = 'button';
     b.className = bm ? bm.className : '';
     const svg = `<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true">${SAD_FACE}</svg>`;
     b.innerHTML = pill ? `<span class="${pill.className}">${svg}</span>` : svg;
-    box.appendChild(b);
-    return ni(b);
+    return b;
   },
   moreButton: (article) =>
     all(article, 'button[aria-haspopup="menu"]:not([data-engagement-action])').find(
@@ -154,7 +141,6 @@ export const OLD: App = {
       nameEl: un.firstElementChild as HTMLElement | null,
       texts,
       text: main ? main.textContent || '' : '',
-      media: all(root, MEDIA).filter(outside),
       paidIcon: !!un.querySelector('svg[data-testid="icon-verified"]'),
       noTime: ![...root.querySelectorAll('time')].some(outside),
     };
@@ -166,9 +152,8 @@ export const OLD: App = {
 
   article: (root) => root,
   avatar: (article) => article.querySelector<HTMLElement>('[data-testid="Tweet-User-Avatar"]'),
-  // the action bar is flat: "Not interested" gets its own cell in it
-  actionBox: (root) => all(root, '[role="group"]').find((g) => !g.closest(OLD_QUOTE) && g.querySelector(BOOKMARK)),
-  sideAnchor: (article) => article.querySelector<HTMLElement>(`[role="group"] ${BOOKMARK}`),
+  // the action bar is flat: bookmark and share have a cell each
+  bookmarkCell: (root) => all(root, `[role="group"] > div:has(${BOOKMARK})`).find((c) => !c.closest(OLD_QUOTE)),
   blocks: (article) =>
     all(article, `.r-1867qdf, ${OLD_QUOTE}`).filter((el) => !el.closest('[role="group"]') && !el.parentElement!.closest(OLD_QUOTE)),
   // the blur is on the photo box itself, so the button goes on its parent
@@ -183,16 +168,12 @@ export const OLD: App = {
     return { slot: null, before: null };
   },
 
-  makeNI(box) {
-    const b = box.querySelector(BOOKMARK)!.cloneNode(true) as HTMLElement;
+  niButton(cell) {
+    const b = cell.querySelector(BOOKMARK)!.cloneNode(true) as HTMLElement;
     b.removeAttribute('data-testid');
     const svg = b.querySelector('svg');
     if (svg) svg.innerHTML = SAD_FACE;
-    const cell = document.createElement('div');
-    cell.className = 'qt-ni-cell';
-    cell.appendChild(b);
-    box.appendChild(cell);
-    return ni(b);
+    return b;
   },
   moreButton: (article) => all(article, '[data-testid="caret"]').find((b) => !b.closest(OLD_QUOTE)),
   isNIItem: (item) => /not interested/i.test(item.textContent || ''),
@@ -209,9 +190,30 @@ export const OLD: App = {
 
 // a selector *list*: don't concatenate it
 export const POST = `${NEW_POST}, ${OLD_POST}`;
+// where a press on a post's photo / video lands (both apps)
+export const MEDIA_PRESS = 'article [data-press-control], article video, [data-testid="videoPlayer"], [data-testid="tweetPhoto"]';
 // a post's row in the (virtual) list
 export const CELL = 'li[data-index], [data-testid="cellInnerDiv"]';
 export const appOf = (root: Element): App => (root.tagName === 'ARTICLE' ? OLD : NEW);
+
+// "Not interested" is a cell of its own just before bookmark, so it can move under the avatar
+// with or without bookmark & share.
+export function addNI(A: App, bookmarkCell: HTMLElement): void {
+  const b = A.niButton(bookmarkCell);
+  b.classList.add('xs-ni');
+  b.dataset.xsTip = 'Not interested';
+  b.setAttribute('aria-label', 'Not interested in this post');
+  const cell = document.createElement('div');
+  cell.className = 'qt-ni-cell';
+  cell.appendChild(b);
+  bookmarkCell.before(cell);
+}
 // top-level post (not a quoted one)
 export const isRoot = (el: Element): boolean =>
   el.tagName === 'ARTICLE' ? el.matches(OLD_POST) : el.matches(NEW_POST) && !el.parentElement!.closest(NEW_POST);
+// the top-level post holding el (new app: a quoted post is a post box inside another)
+export function topPost(el: Element): HTMLElement | null {
+  let root = el.closest<HTMLElement>(POST);
+  for (let up = root?.parentElement?.closest<HTMLElement>(POST); up; up = up.parentElement?.closest<HTMLElement>(POST)) root = up;
+  return root;
+}

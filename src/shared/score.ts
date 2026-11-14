@@ -153,7 +153,7 @@ export function scoreTweet(u: User | null, t: Tweet | null, ctx: ScoreCtx, s: Se
       else if (perDay > 100) add(20, `${Math.round(perDay)} posts/day`);
       else if (perDay > 50) add(10, `${Math.round(perDay)} posts/day`);
     }
-    if (isPaid(u)) {
+    if (isPaid(u) && s.paid.weight > 0) {
       add(s.paid.weight, 'paid check');
       if (typeof u.followers === 'number' && u.followers < 1000) add(10, 'paid check on tiny account');
     }

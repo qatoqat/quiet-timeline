@@ -21,15 +21,14 @@ html[data-xs-no-grok] button[aria-label='Grok actions'] {
 html[data-xs-no-chat-button] [data-testid='chat-drawer-root'] {
   display: none !important;
 }
-html[data-xs-logo] header[role='banner'] h1:has(a[aria-label='X']),
-html[data-xs-profile-top] header[role='banner'] h1:has(a[aria-label='X']) {
+html[data-xs-logo] header[role='banner'] h1:has(a[aria-label='X']) {
   display: none !important;
 }
 html[data-xs-sidebar] [data-testid='sidebarColumn'] :is(section, div[aria-label]):has([data-testid='trend'], [data-testid='UserCell']) {
   display: none !important;
 }
 html[data-xs-upsells] [data-testid='sidebarColumn'] :is(aside, .r-1867qdf):has(a[href^='/i/premium']),
-html[data-xs-upsells] a[href^='/i/premium_sign_up'],
+html[data-xs-upsells] a[href^='/i/premium_sign_up']:not(nav a),
 html[data-xs-upsells] [data-testid='verified_profile_upsell'] {
   display: none !important;
 }
@@ -52,35 +51,35 @@ html[data-xs-noborders] [data-testid='primaryColumn'] :is(.r-qklmqi, .r-5kkj8d) 
 html[data-xs-noborders] [data-testid='primaryColumn'] div.r-109y4c4.r-gu4em3 {
   background-color: transparent !important;
 }
-html[data-xs-rounded] [data-testid='cellInnerDiv'] article[data-testid='tweet'] {
+html[data-xs-rounded][data-xs-noborders] [data-testid='cellInnerDiv'] article[data-testid='tweet'] {
   border-radius: 16px;
 }
-html[data-xs-rounded] [data-testid='cellInnerDiv'] > div:has(article[data-testid='tweet']) {
+html[data-xs-rounded][data-xs-noborders] [data-testid='cellInnerDiv'] > div:has(article[data-testid='tweet']) {
   margin-inline: 6px;
   border-radius: 16px;
   overflow: hidden;
 }
-[data-testid='sidebarColumn'] .r-1867qdf {
+html[data-xs-on] [data-testid='sidebarColumn'] .r-1867qdf {
   border-radius: var(--xs-card-radius, 16px) !important;
 }
-[data-testid='sidebarColumn'] form[role='search'] .r-sdzlij,
-[data-testid='sidebarColumn'] form[role='search'] .r-sdzlij * {
+html[data-xs-on] form[role='search'] .r-sdzlij,
+html[data-xs-on] form[role='search'] .r-sdzlij * {
   border-radius: var(--xs-search-radius, 9999px) !important;
 }
-article .r-1867qdf:has([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid='videoComponent']) {
+html[data-xs-on] article .r-1867qdf:has([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid='videoComponent']) {
   border-radius: var(--xs-media-radius, 16px) !important;
 }
-a[href$='/header_photo'] {
+html[data-xs-on] a[href$='/header_photo'] {
   border-radius: var(--xs-banner-radius, 0px);
   overflow: hidden;
 }
-[data-testid='Dropdown'][role='menu'],
-div:has(> [data-testid='Dropdown'][role='menu']) {
+html[data-xs-on] :is([data-testid='Dropdown'][role='menu'], div:has(> [data-testid='Dropdown'][role='menu'])) {
   border-radius: var(--xs-menu-radius, 12px) !important;
 }
+/* the page's own background (set by scan.ts), not a theme color: right on X's light and dim too */
 html[data-xs-solid-bars] [data-testid='primaryColumn'] .r-5zmot {
   backdrop-filter: none !important;
-  background-color: var(--xs-bg, rgb(0, 0, 0)) !important;
+  background-color: var(--xs-bg, var(--qt-page-bg, rgb(0, 0, 0))) !important;
 }
 /* icon-only menu: narrow the left column, hide labels, round Post button */
 html[data-xs-navicons] header[role='banner'] > div,
@@ -138,15 +137,13 @@ html[data-xs-profile-top] header[role='banner'] div:has(> div > [data-testid='Si
 html[data-xs-profile-top] header[role='banner'] div:has(> div > div > [data-testid='SideNav_AccountSwitcher_Button']) {
   justify-content: flex-start !important;
 }
-html[data-xs-views-inline] article [role='group'] > div:has(a[href$='/analytics']) {
+html[data-xs-views-inline] article:has([data-xs-views]) [role='group'] > div:has(a[href$='/analytics']) {
   display: none !important;
 }
-/* bookmark / share (and "Not interested") under the avatar. The old action bar
-   is flat, so each button is placed on its own; share is found by its icon. */
-article[data-xs-side] {
-  position: relative;
-}
-article[data-xs-side] [role='group'] > :is(.qt-ni-cell, div:has(:is([data-testid='bookmark'], [data-testid='removeBookmark'])), div:has(svg path[d^='M12 2.59l5.7'])) {
+/* under the avatar: the old action bar is flat, so each button is placed on its own;
+   share is found by its icon */
+article[data-xs-side-ni] [role='group'] > .qt-ni-cell,
+article[data-xs-side-bm] [role='group'] > :is(div:has(:is([data-testid='bookmark'], [data-testid='removeBookmark'])), div:has(svg path[d^='M12 2.59l5.7'])) {
   position: absolute;
   left: var(--xs-side-left, 2px);
   width: 36px;
@@ -155,17 +152,14 @@ article[data-xs-side] [role='group'] > :is(.qt-ni-cell, div:has(:is([data-testid
   align-items: center !important;
   justify-content: center !important;
 }
-article[data-xs-side] [role='group'] > .qt-ni-cell {
+article[data-xs-side-ni] [role='group'] > .qt-ni-cell {
   top: var(--xs-stack-top, 68px);
 }
-article[data-xs-side] [role='group'] > div:has(:is([data-testid='bookmark'], [data-testid='removeBookmark'])) {
+article[data-xs-side-bm] [role='group'] > div:has(:is([data-testid='bookmark'], [data-testid='removeBookmark'])) {
   top: calc(var(--xs-stack-top, 68px) + var(--qt-ni-slot, 0px));
 }
-article[data-xs-side] [role='group'] > div:has(svg path[d^='M12 2.59l5.7']) {
+article[data-xs-side-bm] [role='group'] > div:has(svg path[d^='M12 2.59l5.7']) {
   top: calc(var(--xs-stack-top, 68px) + var(--qt-ni-slot, 0px) + 36px);
-}
-article[data-xs-side][data-xs-ni] {
-  --qt-ni-slot: 36px;
 }
 /* calm: no bright white buttons */
 html[data-xs-calm] :is([data-testid='SideNav_NewTweet_Button'], [data-testid$='-follow'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']) {
@@ -180,8 +174,10 @@ html[data-xs-calm] [data-testid='SideNav_NewTweet_Button']::before {
 }
 
 article[data-testid='tweet'] [data-xs-views]::after {
-  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 15px;
+}
+html:not([data-xs-font='system']) article[data-testid='tweet'] [data-xs-views]::after {
+  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 article[data-testid='tweet'] .xs-toggle {

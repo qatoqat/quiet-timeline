@@ -24,23 +24,24 @@ html[data-xs-noborders] main div.border-divider:is(.border-t, .border-b) {
   }
 }
 
-/* Right sidebar cards: no gradient, adjustable radius. Search box radius. */
-section[class*='bg-linear-to-br'] {
+/* Right sidebar cards: no gradient, adjustable radius. Search box radius. (html[data-xs-on]: none of
+   this while the extension is off) */
+html[data-xs-on] section[class*='bg-linear-to-br'] {
   background-image: none !important;
 }
-section.rounded-2xl {
+html[data-xs-on] section.rounded-2xl {
   border-radius: var(--xs-card-radius, 16px) !important;
 }
-form[role='search'] [data-slot='xds-combobox-input-group'],
-form[role='search'] [data-slot='xds-combobox-input-group'] *,
-div.rounded-full:has(> form[role='search']) {
+html[data-xs-on] form[role='search'] [data-slot='xds-combobox-input-group'],
+html[data-xs-on] form[role='search'] [data-slot='xds-combobox-input-group'] *,
+html[data-xs-on] div.rounded-full:has(> form[role='search']) {
   border-radius: var(--xs-search-radius, 9999px) !important;
 }
 
-article div.rounded-md.overflow-hidden:has(img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[data-xs-src], video) {
+html[data-xs-on] article div.rounded-md.overflow-hidden:has(img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[data-xs-src], video) {
   border-radius: var(--xs-media-radius, 16px) !important;
 }
-main div[class*='aspect-[3/1]'] {
+html[data-xs-on] main div[class*='aspect-[3/1]'] {
   border-radius: var(--xs-banner-radius, 0px) !important;
 }
 
@@ -95,9 +96,8 @@ html[data-xs-profile-top] div.sticky > div.mt-auto:has(> button[aria-label='Acco
   margin-top: 0 !important;
   padding: 8px !important;
 }
-/* (the logo's slot is a <div> on some pages and an <h1> on others) */
-html[data-xs-profile-top] div.sticky > :has(a[aria-label='X'][href='/home']),
-html[data-xs-logo] div.sticky > .shrink-0:has(a[aria-label='X'][href='/home']) {
+/* Hide X logo: its slot in the left column (a <div> on some pages, an <h1> on others) */
+html[data-xs-logo] div.sticky:has(nav) > :has(a[aria-label='X'][href='/home']) {
   display: none !important;
 }
 
@@ -106,13 +106,13 @@ html[data-xs-noborders] [role='dialog']:has(img[src*='pbs.twimg.com/media/'], vi
   border-color: transparent !important;
 }
 
-/* Rounded hover shape for posts */
-html[data-xs-rounded] main [role='link'][data-href*='/status/']:not([role='link'] [role='link']) {
+/* Rounded hover shape for posts (with No borders: it would cut the separators short) */
+html[data-xs-rounded][data-xs-noborders] main [role='link'][data-href*='/status/']:not([role='link'] [role='link']) {
   border-radius: 16px;
   margin-inline: 6px;
 }
 /* …and the same for the "Show N posts" bar */
-html[data-xs-rounded] main button[class*='--media-overhang-start'] {
+html[data-xs-rounded][data-xs-noborders] main button[class*='--media-overhang-start'] {
   border-radius: 16px;
   margin-inline: 6px;
   width: calc(100% - 12px);
@@ -123,21 +123,21 @@ html[data-xs-logo] div:has(> svg[aria-label='X'][viewBox='0 0 480 490']) {
   display: none !important;
 }
 
-html[data-xs-upsells] section:has(a[href^='/i/premium']),
-html[data-xs-upsells] a[href^='/i/premium'],
-html[data-xs-upsells] a[href^='/i/verified'],
-html[data-xs-upsells] a[href^='/i/jobs'] {
+/* (not in the left menu: its Premium item has its own switch; never a section holding posts) */
+html[data-xs-upsells] section:not(main section):not(:has(article)):has(a[href^='/i/premium']),
+html[data-xs-upsells] a[href^='/i/premium']:not(nav a),
+html[data-xs-upsells] a[href^='/i/verified']:not(nav a) {
   display: none !important;
 }
 
-/* Grok: floating button (bottom right), "Explain this post" in post headers,
-   Grok links in posts. The left-menu item has its own switch. */
-html[data-xs-no-grok] main a[href='/i/grok'],
-html[data-xs-no-grok] main a[href^='/i/grok?'],
-html[data-xs-no-grok] [data-slot='xds-dock-window']:has([data-icon='icon-logo-grok']),
+/* Grok: floating button (bottom right; an open Grok window stays), "Explain this post" in post
+   headers, Grok links in posts. The left-menu item and the Grok page are left alone. */
+html[data-xs-no-grok] main :is(article, [data-href*='/status/']) a[href='/i/grok'],
+html[data-xs-no-grok] main :is(article, [data-href*='/status/']) a[href^='/i/grok?'],
+html[data-xs-no-grok] [data-slot='xds-dock-window'][data-closed]:has([data-icon='icon-logo-grok']),
 html[data-xs-no-grok] span:has(> button[aria-label='Explain this post']),
 html[data-xs-no-grok] button[aria-label='Explain this post'],
-html[data-xs-no-grok] main button:has(> span > svg[data-icon='icon-logo-grok']) {
+html[data-xs-no-grok] main :is(article, [data-href*='/status/']) button:has(> span > svg[data-icon='icon-logo-grok']) {
   display: none !important;
 }
 /* Floating chat button (bottom right); an open chat window stays */
@@ -145,9 +145,10 @@ html[data-xs-no-chat-button] [data-slot='xds-dock-window'][data-closed]:has([dat
   display: none !important;
 }
 
-html[data-xs-sidebar] section:has(a[href^='/i/trending/']),
-html[data-xs-sidebar] section:has(> a[href='/explore']),
-html[data-xs-sidebar] section:has([data-who-to-follow]) {
+/* sidebar only: Explore's own trends and in-feed suggestions stay */
+html[data-xs-sidebar] section:not(main section):has(a[href^='/i/trending/']),
+html[data-xs-sidebar] section:not(main section):has(> a[href='/explore']),
+html[data-xs-sidebar] section:not(main section):has([data-who-to-follow]) {
   display: none !important;
 }
 

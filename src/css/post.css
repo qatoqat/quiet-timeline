@@ -1,39 +1,47 @@
-/* View count after the date, action-bar copy hidden */
-html[data-xs-views-inline] [data-xs-views]::after {
+/* View count after the date (always on a collapsed post, whose action bar is gone); the bar's copy
+   is hidden only in posts that got it */
+html[data-xs-views-inline] [data-xs-views]::after,
+[data-xs-state='collapsed'] [data-xs-views]::after {
   content: ' · ' attr(data-xs-views);
   white-space: pre;
-  color: var(--x-fg-secondary);
+  color: var(--x-fg-secondary, var(--xs-muted, rgb(113, 118, 123)));
 }
-html[data-xs-views-inline] main [role='group'] > div:has(> a[aria-label='View count']) {
+html[data-xs-views-inline] [data-href]:has([data-xs-views]) > article [role='group'] > div:has(> a[aria-label='View count']) {
   display: none !important;
 }
 
-/* Under the avatar (timeline posts with room for it; content.js decides and sets
-   the position): [data-xs-side] = the bookmark/share box, incl. "Not interested" */
-[data-xs-side] > article {
+/* Under the avatar (side.ts sets the flags and the position): [data-xs-side-bm] = bookmark & share,
+   [data-xs-side-ni] = "Not interested" on top of them; it isn't shown anywhere else */
+[data-xs-side-bm] > article,
+article[data-xs-side-bm] {
   position: relative;
 }
-[role='group'] > div:has(> .xs-ni) {
-  display: flex;
-  align-items: center;
+[data-xs-side-ni] {
+  --qt-ni-slot: 36px;
 }
-[data-xs-side] > article [role='group'] > div:has([data-engagement-action='bookmark']) {
+.qt-ni-cell {
+  display: none;
+}
+[data-xs-side-ni] > article [role='group'] > .qt-ni-cell,
+[data-xs-side-bm] > article [role='group'] > div:has([data-engagement-action='bookmark']) {
   position: absolute;
   left: var(--xs-side-left, 2px);
   top: var(--xs-stack-top, 68px);
+  display: flex;
   flex-direction: column;
   gap: 0;
 }
-[data-xs-side] > article [role='group'] > div:has([data-engagement-action='bookmark']) > * {
+[data-xs-side-bm] > article [role='group'] > div:has([data-engagement-action='bookmark']) {
+  top: calc(var(--xs-stack-top, 68px) + var(--qt-ni-slot, 0px));
+}
+[data-xs-side-ni] > article [role='group'] > .qt-ni-cell > *,
+[data-xs-side-bm] > article [role='group'] > div:has([data-engagement-action='bookmark']) > * {
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 !important;
-}
-.xs-ni {
-  order: -1; /* before bookmark */
 }
 /* While "Not interested" drives the ⋯ menu, keep the menu invisible */
 html[data-xs-menu-busy] [role='menu'],
@@ -61,12 +69,10 @@ html[data-xs-menu-busy] [data-base-ui-portal]:has([role='menu']) {
   height: 18px;
 }
 
-[role='menu'],
-[role='presentation']:has(> [role='listbox']) {
+html[data-xs-on] :is([role='menu'], [role='presentation']:has(> [role='listbox'])) {
   border-radius: var(--xs-menu-radius, 12px) !important;
 }
-[role='menu'] [role='menuitem'],
-[role='listbox'] [role='option'] {
+html[data-xs-on] :is([role='menu'] [role='menuitem'], [role='listbox'] [role='option']) {
   border-radius: max(calc(var(--xs-menu-radius, 12px) - 4px), 4px) !important;
 }
 

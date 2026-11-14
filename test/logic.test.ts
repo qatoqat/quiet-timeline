@@ -129,10 +129,11 @@ test('score: copy-paste networks', () => {
 
 test('theme mapper', () => {
   const p = PRESETS.nord;
-  const m = makeMapper(p, 'lightsout');
+  const m = makeMapper(p, 'lightsout', p.accent);
   assert.deepEqual(m(0, 0, 0), [0x2e, 0x34, 0x40]); // bg
   assert.deepEqual(m(231, 233, 234), [0xec, 0xef, 0xf4]); // text
-  assert.deepEqual(m(29, 155, 240), [0x5e, 0x81, 0xac]); // accent
+  assert.deepEqual(m(29, 155, 240), [0x5e, 0x81, 0xac]); // X's blue → the accent
+  assert.equal(makeMapper(p, 'lightsout')(29, 155, 240), null); // "Same as X": X's blue stays
   assert.equal(m(249, 24, 128), null); // like-pink untouched
   const md = makeMapper(p, 'dim');
   assert.deepEqual(md(21, 32, 43), [0x2e, 0x34, 0x40]);
@@ -168,7 +169,7 @@ test('new x-web schema, embedded page data, originality', () => {
   assert.equal(nonOriginal(as({ text: 'amazing 🎥: @bob', hasMedia: true })), 'credited to someone else');
   assert.equal(snowflakeMs('177101260'), null);
   assert.equal(parseColor('#ffffff26')!.a, '0.149');
-  const m = makeMapper(PRESETS.nord, [[0, 0, 0], [20, 20, 20], [38, 38, 38], [153, 153, 153], [255, 255, 255]]);
+  const m = makeMapper(PRESETS.nord, [[0, 0, 0], [20, 20, 20], [38, 38, 38], [153, 153, 153], [255, 255, 255]], PRESETS.nord.accent);
   assert.equal(remap('color-mix(in srgb, #1d9bf0 14%, #000)', m), 'color-mix(in srgb, rgb(94, 129, 172) 14%, rgb(46, 52, 64))');
 });
 

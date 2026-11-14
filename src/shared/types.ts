@@ -51,7 +51,6 @@ export interface PostInfo {
   nameEl: HTMLElement | null;
   texts: HTMLElement[];
   text: string;
-  media: HTMLElement[];
   paidIcon: boolean;
   noTime?: boolean;
 }

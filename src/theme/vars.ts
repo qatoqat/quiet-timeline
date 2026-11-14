@@ -71,7 +71,7 @@ const brandVars = (a: string, p: Palette): Vars => ({
 });
 
 // Easing the text color toward the bg softens every text variable derived from it (primary, alpha whites, icons).
-const softened = (pal: Palette): Palette =>
+export const softened = (pal: Palette): Palette =>
   ts.soft ? { ...pal, text: '#' + lerp(hex(pal.text), hex(pal.bg), 0.14).map((v) => v.toString(16).padStart(2, '0')).join('') } : pal;
 
 function overrides(vars: Vars, pal: Palette, calm: boolean): string | null {
@@ -114,12 +114,12 @@ export function refreshVars(): boolean {
 // X Chat renders inside a shadow root with its own copy of the variables.
 const shadowStyles = new WeakMap<ShadowRoot, HTMLStyleElement>();
 export function themeShadows(): void {
-  // Only the chat page or the docked chat window use a shadow root (scanning every div of a long feed froze tabs).
-  const dock = document.querySelector('[data-slot="xds-dock-window"]');
+  // Only the chat page or a docked window use a shadow root (scanning every div of a long feed froze tabs).
+  const docks = [...document.querySelectorAll('[data-slot="xds-dock-window"]')];
   const onChat = location.pathname.startsWith('/i/chat');
-  if (!dock && !onChat) return;
+  if (!docks.length && !onChat) return;
   const hosts: Element[] = [];
-  for (const scope of [dock, onChat && document.querySelector('main')]) {
+  for (const scope of [...docks, onChat && document.querySelector('main')]) {
     if (scope) for (const e of scope.querySelectorAll('div')) if (e.shadowRoot) hosts.push(e);
   }
   for (const host of hosts) {
@@ -153,9 +153,12 @@ export function themeShadows(): void {
   }
 }
 
-// Post / Follow buttons: the override, else X's display color (e.g. purple), else the theme's; plus readable text on it.
+// The accent on the page: the override, else X's own (its display color, e.g. purple; blue by default).
+export const pageAccent = (): string => ts.accent || xDisplayColor() || '#1d9bf0';
+
+// Post / Follow buttons in the accent, with readable text on it.
 export function setButtonAccent(): void {
-  const c = ts.accent || xDisplayColor() || ts.palette!.accent;
+  const c = pageAccent();
   const root = document.documentElement;
   if (root.style.getPropertyValue('--qt-accent') === c) return;
   root.style.setProperty('--qt-accent', c);
@@ -187,7 +190,7 @@ export function xDisplayColor(): string | null {
 const calmBrandStyle = document.createElement('style');
 export function calmBrand(onoff: boolean): void {
   if (!onoff) return calmBrandStyle.remove();
-  const [r, g, b] = hex(ts.accent || ts.palette!.accent);
+  const [r, g, b] = hex(pageAccent());
   const sel = `:is(a, button, [role='button'])[style*='background-color: rgb(${r}, ${g}, ${b})']`;
   putStyle(calmBrandStyle, `html[data-xs-calm] ${sel} { background-color: var(--xs-border) !important; }\nhtml[data-xs-calm] ${sel} :is(span, div) { color: var(--xs-text) !important; }`);
 }

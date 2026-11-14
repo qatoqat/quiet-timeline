@@ -21,6 +21,8 @@ const closed = new WeakSet<Element>();
 export function closeNags(): void {
   for (const d of document.querySelectorAll<HTMLElement>('[role="dialog"], [role="alertdialog"]')) {
     if (closed.has(d) || !d.isConnected) continue;
+    // never a reply / compose window or the photo viewer, whatever its text says
+    if (d.querySelector('[contenteditable], textarea, article, video, img[src*="pbs.twimg.com/media/"]')) continue;
     const text = d.innerText || '';
     if (!NAG.test(text.slice(0, 600))) continue;
     const btns = [...d.querySelectorAll<HTMLElement>('button, [role="button"]')];
@@ -41,7 +43,7 @@ export function navTooltips(): void {
     if (on !== a.hasAttribute('data-xs-active')) a.toggleAttribute('data-xs-active', on);
   }
   for (const el of nav.querySelectorAll<HTMLElement>('a, button')) {
-    const label = (el.textContent ?? '').trim();
+    const label = (el.textContent ?? '').trim().replace(/^\d+\+?\s*/, ''); // without the unread count
     if (st.S.enabled && st.S.declutter.navIcons && label) {
       if (el.dataset.xsTip !== label) el.dataset.xsTip = label;
     } else if (el.dataset.xsTip) {
@@ -137,7 +139,7 @@ function swapOldIcon(svg: SVGSVGElement, symbol: string | null): void {
 const OLD_SHARE_PATH = 'M12 2.59l5.7 5.7';
 
 function oldIcons(want: string, checks: boolean): void {
-  for (const p of document.querySelectorAll(`article [role="group"] svg path[d^="${OLD_SHARE_PATH}"]`)) {
+  for (const p of document.querySelectorAll(`[role="group"] svg path[d^="${OLD_SHARE_PATH}"]`)) {
     const svg = p.closest('svg')!;
     if (svg.dataset.qtv === want) continue; // already done for these settings
     svg.dataset.qtv = want;
@@ -178,9 +180,11 @@ export function outlineChecks(): void {
 }
 
 const navStyle = styleEl('quiettl-nav');
+// the left menu, not a tab strip (the old app's For you / Following tabs are a <nav> linking /home too)
+const MENU = "nav:has(a[href='/home']):not(:has([role='tab']))";
 
 export function applyNavVisibility(): void {
-  const hidden = NAV_ITEMS.filter(([k]) => st.S.enabled && st.S.nav[k] === false).map(([, , sel]) => `nav ${sel}`);
+  const hidden = NAV_ITEMS.filter(([k]) => st.S.enabled && st.S.nav[k] === false).map(([, , sel]) => `${MENU} ${sel}`);
   putStyle(navStyle, hidden.length ? `${hidden.join(',\n')} { display: none !important; }` : '');
 }
 

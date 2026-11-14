@@ -1,26 +1,14 @@
-import { DEFAULTS, merge, NAV_ITEMS } from '../shared/defaults';
+import { ACTIONS, DEFAULTS, MASK, MEDIA, merge, NAV_ITEMS } from '../shared/defaults';
 import { hex, KEYS, lum, PRESETS } from '../theme/color';
 
 type Obj = Record<string, unknown>;
 
 (async function () {
-  const ACTIONS: [string, string][] = [
-    ['none', 'Show'],
-    ['dim', 'Dim'],
-    ['collapse', 'Collapse'],
-    ['hide', 'Hide'],
-  ];
-  const MEDIA: [string, string][] = [
-    ['none', 'Show'],
-    ['blur', 'Blur'],
-    ['unload', "Don't load"],
-    ['hide', 'Hide'],
-  ];
   const fill = (sel: HTMLSelectElement, opts: [string, string][]) => {
     for (const [v, label] of opts) sel.add(new Option(label, v));
   };
   for (const sel of document.querySelectorAll<HTMLSelectElement>('select.action')) {
-    fill(sel, sel.classList.contains('mask') ? [ACTIONS[0], ['mask', 'Mask'], ...ACTIONS.slice(1)] : ACTIONS);
+    fill(sel, sel.classList.contains('mask') ? [ACTIONS[0], MASK, ...ACTIONS.slice(1)] : ACTIONS);
   }
   for (const sel of document.querySelectorAll<HTMLSelectElement>('select.media')) fill(sel, MEDIA);
 
@@ -83,9 +71,17 @@ type Obj = Record<string, unknown>;
     }
     root.colorScheme = p ? (lum(...hex(p.bg)) > 0.5 ? 'light' : 'dark') : '';
   };
+  // data-needs="path" or "path!=value": a control that only works while that holds
+  const needy = [...fields].filter((el) => el.dataset.needs);
+  const holds = (need: string) => {
+    const [path, not] = need.split('!=');
+    const v = get(S as unknown as Obj, path);
+    return not === undefined ? !!v : v !== not;
+  };
   const sync = () => {
     custom.hidden = S.theme.preset !== 'custom';
-    accentRow.hidden = S.theme.accentMode !== 'custom';
+    accentRow.hidden = S.theme.accentMode !== 'custom' || S.theme.preset === 'off';
+    for (const el of needy) el.disabled = !holds(el.dataset.needs!);
     markChip();
     paint();
   };
@@ -126,7 +122,12 @@ type Obj = Record<string, unknown>;
     clearTimeout(timer);
     timer = setTimeout(() => chrome.storage.sync.set({ settings: S }), 250);
   }
-  addEventListener('pagehide', () => timer && chrome.storage.sync.set({ settings: S })); // closed right after an edit
+  addEventListener('pagehide', () => {
+    // closed while typing (Esc, a click on the page): the field never sent its change
+    const el = document.activeElement as HTMLElement | null;
+    if (el && el.dataset.path) el.dispatchEvent(new Event('change'));
+    if (timer) chrome.storage.sync.set({ settings: S });
+  });
 
   const report = () => parent.postMessage({ quiettlPanelHeight: document.body.offsetHeight }, '*');
   new ResizeObserver(report).observe(document.body);
@@ -139,7 +140,7 @@ type Obj = Record<string, unknown>;
     const r = await chrome.tabs.sendMessage(tab.id!, { type: 'quiettl-stats' });
     if (r) {
       document.getElementById('stats')!.textContent =
-        `This tab: ${r.hidden} hidden · ${r.collapsed} collapsed · ${r.dimmed} dimmed · ${r.masked} masked · ${r.media} media blurred · ${r.ads} ads · ${r.popups} popups closed`;
+        `This tab: ${r.hidden} hidden · ${r.collapsed} collapsed · ${r.dimmed} dimmed · ${r.masked} masked · ${r.media} media covered · ${r.ads} ads · ${r.popups} popups closed`;
     }
   } catch (_) {
     // not an X tab

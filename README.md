@@ -39,16 +39,24 @@ Listing text, privacy answers and screenshots: `store/`. Privacy policy: `PRIVAC
 
     bun test
 
+Besides the logic, this checks that every setting has exactly one control in the panel and
+the other way round. Each setting owns one thing on the page; a control that only works
+together with another setting says so with `data-needs` in `popup/popup.html` (the panel
+greys it out while that setting is off).
+
 ## End-to-end checks (both X web apps)
 
     bun tools/check.ts --old --url /home        # X's old app (entered via /i/topics)
     bun tools/check.ts --url /home              # whatever X serves (usually the new app)
     bun tools/check.ts --old --url /<user>/status/<id>   # replies, collapsed posts
     CDP_PORT=9334 bun tools/check.ts --url /Reuters      # logged-out profile: new app
+    bun tools/check.ts --matrix [--old]         # every panel control set to each other value
 
-Each setting with a visible effect is asserted on the live page (borders, icon-only
-menu, side buttons, views, checkmarks, corners, blur, collapsed replies, ads…);
-failures exit 1.
+Each setting's visible effect is asserted on the live page as its panel label describes it,
+on and off (borders, menu, under-the-avatar buttons, views, checkmarks, corners, blur,
+collapsed replies, ads…); failures exit 1. `--matrix` runs all checks once per setting
+change, from the defaults and from "all switches on", so one setting quietly depending on
+another fails there (stored settings are restored afterwards; `--only <text>` picks variants).
 
 ## Dev loop against live X
 

@@ -35,7 +35,7 @@
     <h2>Paid checkmarks</h2>
     <div class="row"><span>Their replies</span><select data-path="paid.replyAction" class="action"></select></div>
     <div class="row"><span>Bot score +</span><input type="number" min="0" max="50" data-path="paid.weight" /></div>
-    <div class="row" title="Gold, grey and organization checks are never counted as paid"><span>Check icon</span>
+    <div class="row" title="On post authors' names · gold, grey and organization checks are never counted as paid"><span>Check icon</span>
       <select data-path="paid.check"><option value="keep">Keep</option><option value="grey">Grey</option><option value="hide">Hide</option></select></div>
   </section>
 
@@ -44,13 +44,13 @@
     <div class="row"><span>Slurs</span><select data-path="lang.slurAction" class="action mask"></select></div>
     <div class="row"><span>Profanity</span><select data-path="lang.profanityAction" class="action mask"></select></div>
     <div class="row"><span>Muted words</span><select data-path="lang.customAction" class="action mask"></select></div>
-    <textarea data-path="lang.custom" rows="2" placeholder="Muted words, one per line · word* matches endings" title="Unmasking after a change needs a tab reload"></textarea>
+    <textarea data-path="lang.custom" rows="2" placeholder="Muted words, one per line (single words) · word* matches endings"></textarea>
   </section>
 
   <section data-tab="filter">
     <h2>Reposters</h2>
     <div class="grid2">
-      <label class="tg" title="Accounts that mostly repost or post others' media"><input type="checkbox" data-path="repost.mark" /> Tag ♻</label>
+      <label class="tg" title="Tag reposters, aggregators and your list: accounts that mostly repost or post others' media"><input type="checkbox" data-path="repost.mark" /> Tag ♻</label>
       <label class="tg" title="High-volume, mostly-media accounts"><input type="checkbox" data-path="repost.aggregators" /> Aggregators</label>
       <label class="tg" title="Single-topic media accounts (◎ capybara…)"><input type="checkbox" data-path="repost.themed" /> Single-topic ◎</label>
     </div>
@@ -61,22 +61,22 @@
 
   <section data-tab="filter">
     <h2>Never filter</h2>
-    <textarea data-path="allow" rows="2" placeholder="@handle, one per line (people you follow are exempt)"></textarea>
+    <textarea data-path="allow" rows="2" placeholder="@handle, one per line (people you follow are exempt)" title="No bot, paid or reposter rules for them; word filters still apply"></textarea>
   </section>
 
   <section data-tab="media">
-    <h2>Hide media</h2>
-    <div class="row"><span>Reposters</span><select data-path="repost.media" class="media"></select></div>
+    <h2 title="Don't load: X's old layout blurs instead">Hide media</h2>
+    <div class="row" title="Reposters, and posts whose media is copied or credited to someone else"><span>Reposters</span><select data-path="repost.media" class="media"></select></div>
     <div class="row" title="Replies from accounts you don't follow"><span>Replies</span><select data-path="replies.media" class="media"></select></div>
     <div class="grid2">
-      <label class="tg"><input type="checkbox" data-path="repost.themedMedia" /> Also single-topic</label>
+      <label class="tg" title="Needs Filter › Single-topic ◎"><input type="checkbox" data-path="repost.themedMedia" data-needs="repost.themed" /> Also single-topic</label>
       <label class="tg" title="Reposters' videos play only when you click"><input type="checkbox" data-path="repost.noAutoplay" /> No autoplay</label>
     </div>
   </section>
 
   <section data-tab="media">
     <h2>Blur avatars</h2>
-    <div class="grid2" title="Accounts you don't follow; hover a post to see the avatar">
+    <div class="grid2" title="Accounts you don't follow (those with a paid check by their own switch); hover a post to see the avatar">
       <label class="tg"><input type="checkbox" data-path="pfp.others" /> Not followed</label>
       <label class="tg"><input type="checkbox" data-path="pfp.paid" /> Paid checks</label>
     </div>
@@ -92,8 +92,8 @@
   <section data-tab="posts">
     <h2>Under the avatar</h2>
     <div class="grid2">
-      <label class="tg" title="Only on posts tall enough for them"><input type="checkbox" data-path="declutter.sideActions" /> Bookmark &amp; share</label>
-      <label class="tg" title="Home feed, accounts you don't follow"><input type="checkbox" data-path="declutter.notInterested" /> Not interested</label>
+      <label class="tg" title="Timeline posts (not replies) tall enough for them"><input type="checkbox" data-path="declutter.sideActions" /> Bookmark &amp; share</label>
+      <label class="tg" title="On top of bookmark &amp; share, when there's room · home feed, accounts you don't follow"><input type="checkbox" data-path="declutter.notInterested" data-needs="declutter.sideActions" /> Not interested</label>
     </div>
   </section>
 
@@ -102,7 +102,7 @@
     <div class="grid2">
       <label class="tg"><input type="checkbox" data-path="declutter.viewsInline" /> Views by date</label>
       <label class="tg"><input type="checkbox" data-path="declutter.outlineChecks" /> Outline checks</label>
-      <label class="tg"><input type="checkbox" data-path="declutter.rounded" /> Rounded hover</label>
+      <label class="tg" title="With No borders"><input type="checkbox" data-path="declutter.rounded" data-needs="declutter.borders" /> Rounded hover</label>
       <label class="tg" title="Center column borders and separators"><input type="checkbox" data-path="declutter.borders" /> No borders</label>
     </div>
     <div class="row"><span>Share icon</span>
@@ -114,7 +114,7 @@
     <h2>Left menu</h2>
     <div class="grid2">
       <label class="tg" title="Names show on hover"><input type="checkbox" data-path="declutter.navIcons" /> Icons only</label>
-      <label class="tg" title="In the logo's place"><input type="checkbox" data-path="declutter.profileTop" /> Profile on top</label>
+      <label class="tg" title="At the top of the left column"><input type="checkbox" data-path="declutter.profileTop" /> Profile on top</label>
       <label class="tg"><input type="checkbox" data-path="declutter.logo" /> Hide X logo</label>
     </div>
     <h3>Items</h3>
@@ -125,7 +125,7 @@
     <h2>Top &amp; sidebar</h2>
     <div class="grid2">
       <label class="tg" title="No see-through blur behind feed tabs / profile header"><input type="checkbox" data-path="declutter.solidBars" /> Solid top bar</label>
-      <label class="tg" title="For you / Following"><input type="checkbox" data-path="declutter.narrowTabs" /> Short tab line</label>
+      <label class="tg" title="The active tab's underline"><input type="checkbox" data-path="declutter.narrowTabs" /> Short tab line</label>
       <label class="tg" title="Trends and Who to follow"><input type="checkbox" data-path="declutter.sidebar" /> Hide trends</label>
     </div>
   </section>
@@ -170,23 +170,23 @@
     <div class="row"><span>Font</span>
       <select data-path="theme.font"><option value="default">X default</option><option value="system">System</option></select></div>
     <div class="grid2">
-      <label class="tg" title="Quiet buttons, no colored banners"><input type="checkbox" data-path="theme.calm" /> Calm contrast</label>
-      <label class="tg" title="Dimmer, semi-bold, airier text"><input type="checkbox" data-path="theme.softText" /> Softer text</label>
+      <label class="tg" title="Quiet buttons and menu icons, no colored banners · needs a theme"><input type="checkbox" data-path="theme.calm" data-needs="theme.preset!=off" /> Calm contrast</label>
+      <label class="tg" title="Semi-bold, airier text; dimmer with a theme"><input type="checkbox" data-path="theme.softText" /> Softer text</label>
     </div>
   </section>
 
   <section data-tab="look">
     <h2>Accent</h2>
-    <div class="row" title="Links, highlights, colored buttons. X's own color: X → Settings → Display"><span>Color</span>
-      <select data-path="theme.accentMode"><option value="x">Same as X</option><option value="theme">Theme's</option><option value="custom">Custom</option></select></div>
+    <div class="row" title="Links, highlights, colored buttons · needs a theme. X's own color: X → Settings → Display"><span>Color</span>
+      <select data-path="theme.accentMode" data-needs="theme.preset!=off"><option value="x">Same as X</option><option value="theme">Theme's</option><option value="custom">Custom</option></select></div>
     <div class="chips" id="accent-custom">
       <label class="chip pick" title="Pick any color"><input type="color" data-path="theme.accentColor" /><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 7 3 3"/><path d="M5 19l1-4 9-9a2.1 2.1 0 0 1 3 3l-9 9z"/></svg></label>
     </div>
     <h3>Also color</h3>
     <div class="grid2">
-      <label class="tg"><input type="checkbox" data-path="theme.accentPost" /> Post button</label>
-      <label class="tg"><input type="checkbox" data-path="theme.accentFollow" /> Follow buttons</label>
-      <label class="tg" title="For you / Following underline"><input type="checkbox" data-path="theme.accentTabs" /> Tab line</label>
+      <label class="tg"><input type="checkbox" data-path="theme.accentPost" data-needs="theme.preset!=off" /> Post button</label>
+      <label class="tg"><input type="checkbox" data-path="theme.accentFollow" data-needs="theme.preset!=off" /> Follow buttons</label>
+      <label class="tg" title="The active tab's underline"><input type="checkbox" data-path="theme.accentTabs" data-needs="theme.preset!=off" /> Tab line</label>
     </div>
   </section>
 

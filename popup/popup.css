@@ -80,6 +80,10 @@ section {
   padding: 2px 0;
   white-space: nowrap;
 }
+.tg:has(:disabled),
+.row:has(:disabled) {
+  opacity: 0.45;
+}
 .nums label {
   display: flex;
   align-items: center;

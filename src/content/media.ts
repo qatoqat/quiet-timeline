@@ -1,4 +1,4 @@
-import { appOf, MEDIA_IMG, POST } from '../apps';
+import { appOf, MEDIA_IMG, MEDIA_PRESS, topPost } from '../apps';
 import { st, playAllowed } from './state';
 import { readPost, pageCtx, processPost } from './post';
 import { placeButton } from './side';
@@ -29,6 +29,10 @@ export function stripMedia(root: ParentNode): void {
   for (const v of root.querySelectorAll('video')) {
     v.preload = 'none';
     if (!v.paused) v.pause();
+    if (v.hasAttribute('poster')) {
+      v.dataset.xsPoster = v.getAttribute('poster')!;
+      v.removeAttribute('poster');
+    }
   }
 }
 
@@ -38,6 +42,10 @@ export function restoreMedia(root: ParentNode): void {
     img.setAttribute('src', img.dataset.xsSrc!);
     delete img.dataset.xsSrc;
     delete img.dataset.xsSrcset;
+  }
+  for (const v of root.querySelectorAll<HTMLVideoElement>('video[data-xs-poster]')) {
+    v.setAttribute('poster', v.dataset.xsPoster!);
+    delete v.dataset.xsPoster;
   }
 }
 
@@ -88,7 +96,7 @@ export function initMedia(): void {
       const v = e.target as HTMLVideoElement | null;
       if (!v || v.tagName !== 'VIDEO' || !st.S.enabled) return;
       // The video may mount before the post has been processed.
-      const root = v.closest<HTMLElement>(POST);
+      const root = topPost(v);
       if (root && !root.dataset.xsKey) {
         try {
           processPost(root, pageCtx());
@@ -104,7 +112,7 @@ export function initMedia(): void {
     (e) => {
       const t = e.target as Element;
       const root = t.closest && t.closest<HTMLElement>('[data-xs-noplay]');
-      if (!root || !t.closest('article [data-press-control], article video')) return;
+      if (!root || !t.closest(MEDIA_PRESS)) return;
       const info = readPost(root);
       if (info) playAllowed.add(info.id);
       delete root.dataset.xsNoplay;

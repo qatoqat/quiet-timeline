@@ -46,6 +46,15 @@ export const RESERVED = new Set([
   'lists', 'communities', 'jobs', 'premium', 'login', 'logout', 'tos', 'privacy',
 ]);
 
+export const unset = (el: HTMLElement, ...keys: string[]): void => {
+  for (const k of keys) delete el.dataset[k];
+};
+// a data-* flag on one of X's elements: set to val, or removed when val is empty
+export const setData = (el: HTMLElement, key: string, val: string | false | null | undefined): void => {
+  if (!val) delete el.dataset[key];
+  else if (el.dataset[key] !== val) el.dataset[key] = val;
+};
+
 export function cap(map: Map<unknown, unknown>, max: number): void {
   if (map.size <= max) return;
   let n = map.size - max * 0.8;

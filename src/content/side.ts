@@ -1,4 +1,5 @@
 import { appOf, isRoot, POST } from '../apps';
+import { setData } from './state';
 
 export const stop = (e: Event): void => {
   e.preventDefault();
@@ -30,7 +31,8 @@ export function setToggle(root: HTMLElement, mode: 'show' | 'hide' | null, verdi
   link.dataset.xsTip = mode === 'show' ? verdict!.why : 'Collapse again';
 }
 
-// Move the bookmark/share box (with "Not interested") under the avatar, only when the post is tall enough.
+// Under the avatar: bookmark & share on posts tall enough for them, with "Not interested" on top
+// when there's room for it too (it's never shown anywhere else).
 const SLOT = 36; // px per button
 const sizeWatch = new ResizeObserver((entries) => {
   for (const e of entries) {
@@ -50,50 +52,42 @@ const unwatch = (el: Element) => {
 };
 
 export function layoutSide(root: HTMLElement): void {
-  if (root.dataset.xsWantSide !== '1') return;
   const A = appOf(root);
-  const article = A.article(root);
+  const article = root.dataset.xsWantBm ? A.article(root) : null;
+  const bm = article && A.bookmarkCell(root);
+  const ni = bm && root.querySelector<HTMLElement>('.qt-ni-cell');
   const av = article && A.avatar(article);
-  const box = article && A.sideAnchor(article);
   // watch first: if the avatar / action bar aren't rendered yet, their arrival brings us back here
   if (article && !watched.has(article)) {
     watched.add(article);
     sizeWatch.observe(article);
   }
-  if (!article || !av || !box) return;
-  let top = av.offsetHeight;
-  let left = av.offsetWidth / 2;
-  for (let e: HTMLElement | null = av; e && e !== article; e = e.offsetParent as HTMLElement | null) {
-    top += e.offsetTop;
-    left += e.offsetLeft;
-    if (e.offsetParent && !article.contains(e.offsetParent)) break;
-  }
-  const base = Math.round(top + 8);
-  let top0 = base + 4;
-  const ar = article.getBoundingClientRect();
-  const blocks = A.blocks(article, root);
-  const firstBlock = blocks.map((el) => Math.round(el.getBoundingClientRect().top - ar.top)).sort((x, y) => x - y)[0];
-  // Line the stack up with media / a quoted post only when it starts right below the avatar.
-  if (firstBlock !== undefined && firstBlock >= base - 8 && firstBlock <= base + 34) top0 = firstBlock;
-  const count = root.dataset.xsNi ? 3 : 2;
-  if (article.offsetHeight - top0 >= count * SLOT) {
-    // old app: nearly everything is position:relative, so shift by the buttons' container offset
-    let dx = 0;
-    let dy = 0;
-    if (A.buttonsRelative) {
-      const cont = ((box.closest('[role="group"] > div') || box) as HTMLElement).offsetParent;
+  let room = 0;
+  if (bm && av) {
+    // relative to the article's box (offsetTop would count from whichever ancestor is positioned)
+    const ar = article.getBoundingClientRect();
+    const avr = av.getBoundingClientRect();
+    const avBottom = Math.round(avr.bottom - ar.top);
+    const firstBlock = A.blocks(article, root).map((el) => Math.round(el.getBoundingClientRect().top - ar.top)).sort((x, y) => x - y)[0];
+    // Line the stack up with media / a quoted post when it starts right below the avatar.
+    const top = firstBlock !== undefined && firstBlock >= avBottom && firstBlock <= avBottom + 42 ? firstBlock : avBottom + 12;
+    room = Math.floor((ar.height - top) / SLOT);
+    if (room >= 2) {
+      // old app: nearly everything is position:relative, so shift by the buttons' container offset
+      let dx = 0;
+      let dy = 0;
+      const cont = A.buttonsRelative && bm.offsetParent;
       if (cont && cont !== article) {
         const cr = cont.getBoundingClientRect();
         dx = Math.round(cr.left - ar.left);
         dy = Math.round(cr.top - ar.top);
       }
+      article.style.setProperty('--xs-side-left', `${Math.round(avr.left + avr.width / 2 - ar.left - SLOT / 2) - dx}px`);
+      article.style.setProperty('--xs-stack-top', `${top - dy}px`);
     }
-    article.style.setProperty('--xs-side-left', `${Math.round(left - SLOT / 2) - dx}px`);
-    article.style.setProperty('--xs-stack-top', `${top0 - dy}px`);
-    root.dataset.xsSide = '1';
-  } else {
-    delete root.dataset.xsSide;
   }
+  setData(root, 'xsSideBm', room >= 2 && '1');
+  setData(root, 'xsSideNi', !!ni && room >= 3 && '1');
 }
 
 // "Not interested": open the post's ⋯ menu and pick X's own item (found by its icon, so any language works).

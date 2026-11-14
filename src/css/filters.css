@@ -33,7 +33,7 @@
   cursor: pointer;
 }
 .xs-toggle:hover {
-  color: var(--x-fg-primary, #e7e9ea);
+  color: var(--x-fg-primary, var(--xs-text, currentColor));
   text-decoration: underline;
 }
 
@@ -116,11 +116,11 @@ html[data-xs-blur='contour'] {
   color: #e86a6a;
 }
 
-html[data-xs-paid-check='grey'] [data-xs-paid] svg[aria-label='Verified account'] {
+html[data-xs-paid-check='grey'] [data-xs-paid] :is(svg[data-testid='icon-verified'], svg:has(> use[href*='verified'], > use[data-xs-orig])) {
   filter: grayscale(1);
   opacity: 0.4;
 }
-html[data-xs-paid-check='hide'] [data-xs-paid] svg[aria-label='Verified account'] {
+html[data-xs-paid-check='hide'] [data-xs-paid] :is(svg[data-testid='icon-verified'], svg:has(> use[href*='verified'], > use[data-xs-orig])) {
   display: none !important;
 }
 
