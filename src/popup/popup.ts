@@ -117,23 +117,31 @@ type Obj = Record<string, unknown>;
   } catch (_) {}
   show([...tabs].some((b) => b.dataset.tab === last) ? last : 'filter');
 
+  const close = () => parent.postMessage({ quiettlPanel: 'close' }, '*');
   let timer: ReturnType<typeof setTimeout> | undefined;
+  function flush() {
+    clearTimeout(timer);
+    timer = undefined;
+    // after an extension reload or update the open panel is left behind and chrome.* calls throw: close it
+    if (!chrome.runtime?.id) return close();
+    chrome.storage.sync.set({ settings: S });
+  }
   function save() {
     clearTimeout(timer);
-    timer = setTimeout(() => chrome.storage.sync.set({ settings: S }), 250);
+    timer = setTimeout(flush, 250);
   }
   addEventListener('pagehide', () => {
     // closed while typing (Esc, a click on the page): the field never sent its change
     const el = document.activeElement as HTMLElement | null;
     if (el && el.dataset.path) el.dispatchEvent(new Event('change'));
-    if (timer) chrome.storage.sync.set({ settings: S });
+    if (timer) flush();
   });
 
   const report = () => parent.postMessage({ quiettlPanelHeight: document.body.offsetHeight }, '*');
   new ResizeObserver(report).observe(document.body);
   report();
-  document.getElementById('close')!.addEventListener('click', () => parent.postMessage({ quiettlPanel: 'close' }, '*'));
-  window.addEventListener('keydown', (e) => e.key === 'Escape' && parent.postMessage({ quiettlPanel: 'close' }, '*'));
+  document.getElementById('close')!.addEventListener('click', close);
+  window.addEventListener('keydown', (e) => e.key === 'Escape' && close());
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
