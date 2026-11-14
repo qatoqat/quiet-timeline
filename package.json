@@ -6,7 +6,7 @@
     "typecheck": "tsc -p . && tsc -p tools",
     "test": "bun test",
     "check": "bun tools/check.ts",
-    "pack": "bun run build && sh tools/pack.sh"
+    "pack": "bun tools/build.ts --release && sh tools/pack.sh && bun tools/build.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",

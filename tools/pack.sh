@@ -1,6 +1,6 @@
 #!/bin/sh
-# Chrome Web Store upload: dist/quiet-timeline-<version>.zip (run `bun run build` first;
-# extension files only, source maps included).
+# Chrome Web Store upload: dist/quiet-timeline-<version>.zip from a release build
+# (no source maps; `bun run pack` builds it first).
 set -e
 cd "$(dirname "$0")/.."
 v=$(node -p "require('./manifest.json').version")

@@ -3,6 +3,7 @@ import { rmSync, statSync } from 'node:fs';
 
 const root = new URL('..', import.meta.url).pathname;
 const out = `${root}build`;
+const release = process.argv.includes('--release'); // no source maps
 const entries: [string, string][] = [
   ['src/hook/index.ts', 'hook.js'],
   ['src/content/index.ts', 'content.js'],
@@ -21,7 +22,7 @@ for (const [src, name] of entries) {
     naming: name,
     target: 'browser',
     minify: true,
-    ...(js ? { format: 'iife' as const, sourcemap: 'linked' as const } : {}),
+    ...(js ? { format: 'iife' as const, sourcemap: release ? ('none' as const) : ('linked' as const) } : {}),
   });
   if (!r.success) {
     failed = true;
