@@ -398,6 +398,18 @@
     clearInterval(timer);
   }
 
+  // X's display color setting (Settings → Display), shared by both web apps.
+  const X_COLORS = { blue: '#1d9bf0', yellow: '#ffd400', magenta: '#f91880', pink: '#f91880', purple: '#7856ff', orange: '#ff7a00', green: '#00ba7c' };
+  function xDisplayColor() {
+    try {
+      const c = JSON.parse(localStorage.getItem('xweb.display') || 'null');
+      const name = c && /^[a-z]+/.exec(String(c.color || ''));
+      return (name && X_COLORS[name[0]]) || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // Old app, calm: its accent-filled buttons (inline style, already remapped to
   // the accent) become quiet surface buttons, like the new app's.
   const calmBrandStyle = typeof document !== 'undefined' ? document.createElement('style') : null;
@@ -426,8 +438,12 @@
       root.dataset.xsTheme = '1';
       for (const k of KEYS) root.style.setProperty(`--xs-${k}`, palette[k]);
       root.style.setProperty('--xs-accent', accent || palette.accent);
+      // Accent for Post / Follow buttons: the override, else X's own color
+      // (your X display color, e.g. purple), else the theme's.
+      const btnAccent = accent || xDisplayColor() || palette.accent;
+      root.style.setProperty('--qt-accent', btnAccent);
       // readable text on accent-colored buttons
-      const [ar, ag, ab] = hex(accent || palette.accent);
+      const [ar, ag, ab] = hex(btnAccent);
       root.style.setProperty('--qt-on-accent', 0.2126 * ar + 0.7152 * ag + 0.0722 * ab > 150 ? '#15171b' : '#ffffff');
       // Use the last generated variable CSS right away to avoid a flash of X's colors.
       try {

@@ -145,9 +145,15 @@ try {
     const x = await xTab();
     await evaluate(x, `(chrome.runtime.sendMessage({ type: 'quiettl-dev-reload' }), 1)`, await extContext(x));
     await sleep(1500);
-    await x.send('Page.reload');
-    out('extension + X tab reloaded');
     x.close();
+    // every X tab: the reload strips the extension's styles from all of them
+    const tabs = (await targets()).filter((t) => t.type === 'page' && /^https:\/\/(x|twitter)\.com\//.test(t.url));
+    for (const t of tabs) {
+      const c = await connect(t.webSocketDebuggerUrl);
+      await c.send('Page.reload');
+      c.close();
+    }
+    out(`extension + ${tabs.length} X tab(s) reloaded`);
   } else if (cmd === 'net') {
     // net <url-regex> <out-dir>: reload the X tab and save matching JSON responses.
     const re = new RegExp(a1 || 'graphql|/i/api/');

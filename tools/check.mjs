@@ -213,7 +213,7 @@ const checks = async (S) => {
     add('accent override', got.toLowerCase() === want.toLowerCase(), `${got} (want ${want})`);
   }
   // accent-colored Post / Follow buttons
-  const accentHex = getComputedStyle(document.documentElement).getPropertyValue('--xs-accent').trim();
+  const accentHex = getComputedStyle(document.documentElement).getPropertyValue('--qt-accent').trim();
   const accentRgb = accentHex.startsWith('#') ? `rgb(${parseInt(accentHex.slice(1, 3), 16)}, ${parseInt(accentHex.slice(3, 5), 16)}, ${parseInt(accentHex.slice(5, 7), 16)})` : '';
   for (const [key, label, sel] of [
     ['accentPost', 'Post button in accent', "a[aria-label='Post'][href='/compose/post'], [data-testid='SideNav_NewTweet_Button']"],
