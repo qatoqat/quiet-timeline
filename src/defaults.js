@@ -84,6 +84,8 @@
       home: true, explore: true, notifications: true, follow: true, chat: true, calls: true, grok: true,
       history: true, creators: true, premium: true, profile: true, more: true,
     },
+    blurStyle: 'smooth', // 'smooth' | 'contour' | 'mosaic' — for blurred avatars and media
+    blurMono: true, // blurred avatars and media in greyscale
     allow: '',
   };
 

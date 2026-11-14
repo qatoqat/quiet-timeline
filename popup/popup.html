@@ -214,6 +214,15 @@
     <h2>Profile pictures</h2>
     <label class="check"><input type="checkbox" data-path="pfp.others" /> Blur avatars of accounts you don't follow</label>
     <label class="check"><input type="checkbox" data-path="pfp.paid" /> Blur avatars of paid checkmarks you don't follow</label>
+    <div class="row">
+      <label>Blur style (avatars &amp; media)</label>
+      <select data-path="blurStyle">
+        <option value="smooth">Smooth</option>
+        <option value="contour">Contour bands</option>
+        <option value="mosaic">Mosaic</option>
+      </select>
+    </div>
+    <label class="check"><input type="checkbox" data-path="blurMono" /> Blurred avatars &amp; media in greyscale</label>
     <p class="hint">Hover a post to see its avatar. Applies to the feed and replies.</p>
   </section>
 
