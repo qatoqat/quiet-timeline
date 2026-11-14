@@ -150,7 +150,7 @@ const checks = async (S) => {
   add('solid top bars', D.solidBars ? bars.length === 0 : null, bars.map((b) => cs(b).backdropFilter).join(','));
   // side buttons / not interested (home feed only)
   const side = roots.filter((r) => r.dataset.xsSide);
-  if (D.sideActions && onHome && side.length) {
+  if (D.sideActions && side.length) {
     const r = side[0];
     const bm = r.querySelector('[data-testid="bookmark"], [data-testid="removeBookmark"], [data-engagement-action="bookmark"] button');
     const av = r.querySelector('[data-testid="Tweet-User-Avatar"], [data-post-avatar]');
@@ -158,10 +158,11 @@ const checks = async (S) => {
     const ar = av && av.getBoundingClientRect();
     const sh = OLD ? [...r.querySelectorAll('[role="group"] svg path[d^="M12 2.59l5.7"]')].map((p) => p.closest('button'))[0] : r.querySelector('[data-engagement-action="share"]');
     const ni = r.querySelector('.xs-ni');
-    const cols = [bm, sh, ni].filter(visible).map((e) => { const q = e.getBoundingClientRect(); return Math.round(q.left + q.width / 2); });
+    const circ = (e) => (e && (e.querySelector('svg') || e));
+    const cols = [bm, sh, ni].filter(visible).map((e) => { const q = circ(e).getBoundingClientRect(); return Math.round(q.left + q.width / 2); });
     add('side buttons on one line', cols.length > 1 ? Math.max(...cols) - Math.min(...cols) <= 3 : null, cols.join(', '));
     add('bookmark under the avatar', !!(br && ar && Math.abs(br.left + br.width / 2 - (ar.left + ar.width / 2)) < 12 && br.top > ar.bottom), br && ar ? `bm ${Math.round(br.left)},${Math.round(br.top)} av ${Math.round(ar.left)},${Math.round(ar.bottom)}` : '');
-  } else add('bookmark under the avatar', D.sideActions && onHome ? (roots.length ? false : null) : null, 'no post got side buttons');
+  } else add('bookmark under the avatar', D.sideActions && onHome && roots.length ? false : null, 'no post got side buttons');
   add('"Not interested" button', D.notInterested && onHome && roots.length ? anyVisible('.xs-ni') : null);
   // views by the date
   const viewsDone = document.querySelectorAll('[data-xs-views]').length;
@@ -205,6 +206,22 @@ const checks = async (S) => {
   // ads
   const adLike = OLD ? roots.filter((r) => !r.querySelector('time') && r.closest('[data-testid="placementTracking"]') && visible(r)) : [];
   add('ads hidden', D.ads && OLD ? adLike.length === 0 : null, adLike.length ? `${adLike.length} visible` : '');
+  // accent override (new app: X's brand variables)
+  if (S.theme.accentMode !== 'x' && S.theme.preset !== 'off' && !OLD) {
+    const want = S.theme.accentMode === 'custom' ? S.theme.accentColor : getComputedStyle(document.documentElement).getPropertyValue('--xs-accent').trim();
+    const got = getComputedStyle(document.querySelector('[data-theme]') || document.documentElement).getPropertyValue('--x-fg-brand').trim();
+    add('accent override', got.toLowerCase() === want.toLowerCase(), `${got} (want ${want})`);
+  }
+  // accent-colored Post / Follow buttons
+  const accentHex = getComputedStyle(document.documentElement).getPropertyValue('--xs-accent').trim();
+  const accentRgb = accentHex.startsWith('#') ? `rgb(${parseInt(accentHex.slice(1, 3), 16)}, ${parseInt(accentHex.slice(3, 5), 16)}, ${parseInt(accentHex.slice(5, 7), 16)})` : '';
+  for (const [key, label, sel] of [
+    ['accentPost', 'Post button in accent', "a[aria-label='Post'][href='/compose/post'], [data-testid='SideNav_NewTweet_Button']"],
+    ['accentFollow', 'Follow buttons in accent', "button[aria-label^='Follow @'], [data-testid$='-follow']"],
+  ]) {
+    const el = [...document.querySelectorAll(sel)].find(visible);
+    add(label, S.theme[key] && el && S.theme.preset !== 'off' ? cs(el).backgroundColor === accentRgb : null, el ? `${cs(el).backgroundColor} vs ${accentRgb}` : '');
+  }
   // calm: muted menu icons except the active page, disabled Post not faded
   if (S.theme.calm && S.theme.preset !== 'off' && home) {
     const navSvgs = [...home.closest('nav').querySelectorAll('a[href] svg')].filter(visible);
@@ -216,8 +233,12 @@ const checks = async (S) => {
   }
   // calm buttons (no bright white)
   if (S.theme.calm && S.theme.preset !== 'off') {
-    const btns = [...document.querySelectorAll("[data-testid='SideNav_NewTweet_Button'], [data-testid$='-follow'], .bg-btn-primary")].filter(visible);
+    const btns = [...document.querySelectorAll("[data-testid='SideNav_NewTweet_Button'], [data-testid$='-follow'], .bg-btn-primary")].filter(visible).filter((b) => !(S.theme.accentPost && b.matches("a[aria-label='Post'], [data-testid='SideNav_NewTweet_Button'], main button.bg-btn-primary:not([aria-label])")) && !(S.theme.accentFollow && b.matches("button[aria-label^='Follow @'], [data-testid$='-follow']")));
     const bright = btns.filter((b) => { const m = cs(b).backgroundColor.match(/\d+/g); return m && +m[0] > 200 && +m[1] > 200 && +m[2] > 200; });
+    // old app: accent-filled buttons (inline background) become quiet too
+    const acc = getComputedStyle(document.documentElement).getPropertyValue('--xs-accent').trim();
+    const accRgb = acc && acc.startsWith('#') ? `rgb(${parseInt(acc.slice(1, 3), 16)}, ${parseInt(acc.slice(3, 5), 16)}, ${parseInt(acc.slice(5, 7), 16)})` : null;
+    if (OLD && accRgb) for (const b of document.querySelectorAll("a[style*='background-color'], button[style*='background-color'], [role='button'][style*='background-color']")) if (visible(b) && cs(b).backgroundColor === accRgb && !(S.theme.accentFollow && b.matches("[data-testid$='-follow']")) && !(S.theme.accentPost && b.matches("[data-testid^='SideNav_NewTweet'], [data-testid^='tweetButton']"))) bright.push(b);
     add('calm buttons', btns.length ? bright.length === 0 : null, bright.map((b) => b.getAttribute('data-testid') || b.textContent.trim().slice(0, 12)).join(', '));
   }
   // tooltip: X look, below action buttons
@@ -226,7 +247,7 @@ const checks = async (S) => {
     tipTarget.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     await new Promise((r) => setTimeout(r, 1300));
     const tip = document.getElementById('quiettl-tip');
-    const ok = tip && tip.classList.contains('xs-show') && !transparent(cs(tip).backgroundColor) && tip.getBoundingClientRect().top >= tipTarget.getBoundingClientRect().bottom - 1;
+    const ok = tip && tip.classList.contains('xs-show') && !transparent(cs(tip).backgroundColor) && tip.getBoundingClientRect().top >= (() => { const q = tipTarget.getBoundingClientRect(); return Math.max(q.bottom, q.top + q.height / 2 + 18); })() - 1;
     add('tooltip styled, below the button', !!ok, tip ? `${cs(tip).backgroundColor} "${tip.textContent}"` : 'no tooltip');
     tipTarget.dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
   } else add('tooltip styled, below the button', null);

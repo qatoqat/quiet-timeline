@@ -36,6 +36,10 @@
       font: 'default',
       calm: true, // tone down bright buttons, colored banners, pink badges
       softText: true, // slightly dimmer text, semi-bold instead of bold, airier post text
+      accentMode: 'x', // links / brand buttons / hover tint: 'x' (your X color) | 'theme' | 'custom'
+      accentColor: '#8b7cf6',
+      accentPost: false, // Post buttons in the accent color
+      accentFollow: false, // Follow buttons in the accent color
       custom: {
         bg: '#121316',
         surface: '#1b1d22',

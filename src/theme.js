@@ -46,7 +46,7 @@
     const dir = lum(...src[4]) > lum(...src[0]) ? 1 : -1;
     const A = src.map((c) => lum(...c) * dir);
     const dst = KEYS.map((k) => hex(palette[k]));
-    const acc = hex(palette.accent);
+    const acc = hex(accent || palette.accent);
     return function (r, g, b) {
       const chroma = Math.max(r, g, b) - Math.min(r, g, b);
       if (chroma >= 90) {
@@ -95,6 +95,7 @@
   const VAR_NAME = /^--x-(?:bg|fg|border|btn|brand|ring|overlay|toast|tooltip|skeleton|segmented|shadow|black|white|neutral|gray|grey)/;
   let calm = false;
   let soft = false;
+  let accent = null; // accent override (hex) or null = X's own accent color
   const varStyle = typeof document !== 'undefined' ? document.createElement('style') : null;
   if (varStyle) varStyle.id = 'quiettl-vars';
 
@@ -131,6 +132,17 @@
     '--x-bg-warning': p.surface,
   });
 
+  // Accent override (new app): X's brand color → links, brand buttons, hover tints.
+  // Like / repost / etc. have their own colors and stay.
+  const brandVars = (a, p) => ({
+    '--x-fg-brand': a,
+    '--x-btn-brand': a,
+    '--x-btn-brand-hover': `color-mix(in srgb, ${a} 82%, ${p.text})`,
+    '--x-btn-brand-pressed': `color-mix(in srgb, ${a} 64%, ${p.text})`,
+    '--x-brand-subtle': `color-mix(in srgb, ${a} 14%, ${p.bg})`,
+    '--x-brand-wash': `color-mix(in srgb, ${a} 58%, transparent)`,
+  });
+
   // Softer text: ease the text color toward the background, so every text
   // variable derived from it (primary, alpha whites, icons) softens together.
   const softened = (pal) => (soft ? { ...pal, text: '#' + lerp(hex(pal.text), hex(pal.bg), 0.14).map((v) => v.toString(16).padStart(2, '0')).join('') } : pal);
@@ -144,6 +156,7 @@
     const out = {};
     for (const [k, v] of Object.entries(vars)) out[k] = /^\d/.test(v) ? remapHsl(v, map) : remap(v, map);
     if (calm) Object.assign(out, calmVars(p2));
+    if (accent) Object.assign(out, brandVars(accent, p2));
     return Object.entries(out)
       .map(([k, v]) => `${k}: ${v} !important;`)
       .join('\n  ');
@@ -276,7 +289,7 @@
   const CACHE = 'quiettl-var-css';
 
   function refreshVars() {
-    const key = `${document.documentElement.getAttribute('data-theme')}|${JSON.stringify(palette)}|${calm}|${soft}`;
+    const key = `${document.documentElement.getAttribute('data-theme')}|${JSON.stringify(palette)}|${calm}|${soft}|${accent}`;
     if (key === varsFor) return false;
     const css = varCss(palette, calm);
     if (!css) return false;
@@ -285,7 +298,7 @@
     varStyle.textContent = css;
     if (!varStyle.isConnected) document.documentElement.appendChild(varStyle);
     try {
-      localStorage.setItem(CACHE, JSON.stringify({ p: JSON.stringify(palette) + calm + soft, css }));
+      localStorage.setItem(CACHE, JSON.stringify({ p: JSON.stringify(palette) + calm + soft + accent, css }));
     } catch (_) {}
     return true;
   }
@@ -310,7 +323,7 @@
         if (st) st.textContent = '';
         continue;
       }
-      const key = JSON.stringify(palette) + calm + soft + rootEl.getAttribute('data-theme');
+      const key = JSON.stringify(palette) + calm + soft + accent + rootEl.getAttribute('data-theme');
       if (st && st.dataset.key === key && st.isConnected) continue;
       if (!st) {
         st = document.createElement('style');
@@ -385,6 +398,18 @@
     clearInterval(timer);
   }
 
+  // Old app, calm: its accent-filled buttons (inline style, already remapped to
+  // the accent) become quiet surface buttons, like the new app's.
+  const calmBrandStyle = typeof document !== 'undefined' ? document.createElement('style') : null;
+  function calmBrand(onoff) {
+    if (!calmBrandStyle) return;
+    if (!onoff) return calmBrandStyle.remove();
+    const [r, g, b] = hex(accent || palette.accent);
+    const sel = `:is(a, button, [role='button'])[style*='background-color: rgb(${r}, ${g}, ${b})']`;
+    calmBrandStyle.textContent = `html[data-xs-calm] ${sel} { background-color: var(--xs-border) !important; }\nhtml[data-xs-calm] ${sel} :is(span, div) { color: var(--xs-text) !important; }`;
+    if (!calmBrandStyle.isConnected) document.documentElement.appendChild(calmBrandStyle);
+  }
+
   // themeSettings: S.theme; on: whether the extension is enabled
   function apply(t, on) {
     const root = document.documentElement;
@@ -393,15 +418,21 @@
     palette = p || null;
     calm = !!t.calm;
     soft = !!t.softText;
+    accent = palette ? (t.accentMode === 'theme' ? palette.accent : t.accentMode === 'custom' ? t.accentColor : null) : null;
+    calmBrand(on && palette && calm);
     mode = detectMode();
     varsFor = null;
     if (palette) {
       root.dataset.xsTheme = '1';
-      for (const k of [...KEYS, 'accent']) root.style.setProperty(`--xs-${k}`, palette[k]);
+      for (const k of KEYS) root.style.setProperty(`--xs-${k}`, palette[k]);
+      root.style.setProperty('--xs-accent', accent || palette.accent);
+      // readable text on accent-colored buttons
+      const [ar, ag, ab] = hex(accent || palette.accent);
+      root.style.setProperty('--qt-on-accent', 0.2126 * ar + 0.7152 * ag + 0.0722 * ab > 150 ? '#15171b' : '#ffffff');
       // Use the last generated variable CSS right away to avoid a flash of X's colors.
       try {
         const c = JSON.parse(localStorage.getItem(CACHE) || 'null');
-        if (c && c.p === JSON.stringify(palette) + calm + soft) {
+        if (c && c.p === JSON.stringify(palette) + calm + soft + accent) {
           varStyle.textContent = c.css;
           if (!varStyle.isConnected) root.appendChild(varStyle);
         }

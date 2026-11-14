@@ -718,3 +718,28 @@ html[data-xs-calm] :is([data-testid='tweetButtonInline'], [data-testid='tweetBut
 html[data-xs-soft] [data-testid='primaryColumn'] .r-b88u0q {
   font-weight: 600 !important;
 }
+
+/* ---------- accent-colored Post / Follow buttons (both apps; beat calm) ---------- */
+
+html[data-xs-accent-post][data-xs-accent-post] :is(a[aria-label='Post'][href='/compose/post'], main button.bg-btn-primary:not([aria-label]), [data-testid='SideNav_NewTweet_Button'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']),
+html[data-xs-accent-follow][data-xs-accent-follow] :is(button[aria-label^='Follow @'], [data-testid$='-follow']) {
+  background-color: var(--xs-accent) !important;
+  border-color: transparent !important;
+  color: var(--qt-on-accent, #fff) !important;
+}
+html[data-xs-accent-post][data-xs-accent-post] :is(a[aria-label='Post'][href='/compose/post'], main button.bg-btn-primary:not([aria-label]), [data-testid='SideNav_NewTweet_Button'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']) :is(span, div, svg),
+html[data-xs-accent-follow][data-xs-accent-follow] :is(button[aria-label^='Follow @'], [data-testid$='-follow']) :is(span, div) {
+  color: var(--qt-on-accent, #fff) !important;
+}
+html[data-xs-accent-post][data-xs-accent-post] [data-testid='SideNav_NewTweet_Button']::before {
+  background: var(--qt-on-accent, #fff) !important;
+}
+/* disabled (empty composer): a muted accent, not faded */
+html[data-xs-accent-post][data-xs-accent-post] :is(main button.bg-btn-primary:not([aria-label]):disabled, [data-testid='tweetButtonInline'][aria-disabled='true'], [data-testid='tweetButton'][aria-disabled='true']) {
+  background-color: color-mix(in srgb, var(--xs-accent) 45%, var(--xs-bg, #15171b)) !important;
+  opacity: 1 !important;
+}
+html[data-xs-accent-post][data-xs-accent-post] :is(a[aria-label='Post'][href='/compose/post'], [data-testid='SideNav_NewTweet_Button'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']):hover,
+html[data-xs-accent-follow][data-xs-accent-follow] :is(button[aria-label^='Follow @'], [data-testid$='-follow']):hover {
+  background-color: color-mix(in srgb, var(--xs-accent) 85%, var(--qt-on-accent, #fff)) !important;
+}

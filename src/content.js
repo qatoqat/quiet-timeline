@@ -946,7 +946,8 @@
       const below = !!el.closest('[role="group"]'); // post action buttons: below, like X's
       tip.classList.toggle('xs-below', below);
       tip.style.left = `${Math.round(below ? r.left + r.width / 2 : r.right + 8)}px`;
-      tip.style.top = `${Math.round(below ? r.bottom + 4 : r.top + r.height / 2)}px`;
+      // below the hover circle (36px), not the button box — the old app's buttons are smaller than their circle
+      tip.style.top = `${Math.round(below ? Math.max(r.bottom, r.top + r.height / 2 + 18) + 4 : r.top + r.height / 2)}px`;
       tip.classList.add('xs-show');
     }, TIP_DELAY);
   });
@@ -1304,6 +1305,8 @@
     flag('data-xs-solid-bars', S.declutter.solidBars);
     flag('data-xs-no-grok', S.declutter.grokButtons);
     flag('data-xs-no-chat-button', S.declutter.chatButton);
+    flag('data-xs-accent-post', S.theme.accentPost && S.theme.preset !== 'off');
+    flag('data-xs-accent-follow', S.theme.accentFollow && S.theme.preset !== 'off');
     flag('data-xs-views-inline', S.declutter.viewsInline);
     flag('data-xs-paid-check', true, S.paid.check);
     flag('data-xs-blur', true, S.blurStyle);

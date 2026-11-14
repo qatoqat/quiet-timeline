@@ -149,6 +149,20 @@
       <label><input type="color" data-path="theme.custom.accent" />Accent</label>
     </div>
     <div class="row">
+      <label>Accent (links, buttons)</label>
+      <select data-path="theme.accentMode">
+        <option value="x">X's color</option>
+        <option value="theme">Theme's accent</option>
+        <option value="custom">Custom…</option>
+      </select>
+    </div>
+    <div class="row" id="accent-custom">
+      <label>Accent color</label>
+      <input type="color" data-path="theme.accentColor" />
+    </div>
+    <label class="check"><input type="checkbox" data-path="theme.accentPost" /> Post buttons in the accent color</label>
+    <label class="check"><input type="checkbox" data-path="theme.accentFollow" /> Follow buttons in the accent color</label>
+    <div class="row">
       <label>Font</label>
       <select data-path="theme.font">
         <option value="default">X default</option>

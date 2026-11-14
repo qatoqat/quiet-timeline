@@ -35,7 +35,11 @@
 
   const fields = document.querySelectorAll('[data-path]');
   const custom = document.getElementById('custom');
-  const sync = () => (custom.hidden = S.theme.preset !== 'custom');
+  const accentRow = document.getElementById('accent-custom');
+  const sync = () => {
+    custom.hidden = S.theme.preset !== 'custom';
+    accentRow.hidden = S.theme.accentMode !== 'custom';
+  };
 
   for (const el of fields) {
     const v = get(S, el.dataset.path);
