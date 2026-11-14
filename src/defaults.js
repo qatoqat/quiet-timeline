@@ -78,6 +78,7 @@
       shareIcon: 'forward', // 'x' | 'forward' | 'nodes'
       bannerRadius: 8, // profile banner, px
       menuRadius: 12, // popup menus and search suggestions, px
+      solidBars: true, // sticky top bars (feed tabs, profile header) solid instead of see-through blur
     },
     // Left menu items: true = shown
     nav: {
