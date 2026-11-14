@@ -37,6 +37,17 @@ Listing text, privacy answers and screenshots: `store/`. Privacy policy: `PRIVAC
 
     node --test test/
 
+## End-to-end checks (both X web apps)
+
+    node tools/check.mjs --old --url /home        # X's old app (entered via /i/topics)
+    node tools/check.mjs --url /home              # whatever X serves (usually the new app)
+    node tools/check.mjs --old --url /<user>/status/<id>   # replies, collapsed posts
+    CDP_PORT=9334 node tools/check.mjs --url /Reuters      # logged-out profile: new app
+
+Each setting with a visible effect is asserted on the live page (borders, icon-only
+menu, side buttons, views, checkmarks, corners, blur, collapsed replies, ads…);
+failures exit 1.
+
 ## Dev loop against live X
 
     tools/vivaldi.sh                 # separate Vivaldi profile with DevTools on :9333

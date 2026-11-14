@@ -526,8 +526,10 @@
     if (paid && !exempt && isReply) consider(S.paid.replyAction, `@${info.handle} · paid checkmark reply`);
 
     // View count after the date ("· 28M views")
-    const date = [...root.querySelectorAll(`a[href$="/status/${id}"][data-base-ui-tooltip-trigger]`)].find((a) => !a.closest('[role="group"]'));
-    const views = root.querySelector('a[aria-label="View count"]');
+    const date = info.old
+      ? [...root.querySelectorAll(`a[href$="/status/${id}"]`)].find((a) => a.querySelector('time') && !a.closest(OLD_QUOTE))
+      : [...root.querySelectorAll(`a[href$="/status/${id}"][data-base-ui-tooltip-trigger]`)].find((a) => !a.closest('[role="group"]'));
+    const views = info.old ? root.querySelector(`[role="group"] a[href$="/status/${id}/analytics"]`) : root.querySelector('a[aria-label="View count"]');
     if (date) {
       const holder = date.parentElement;
       if (S.declutter.viewsInline && views && views.textContent.trim()) holder.dataset.xsViews = views.textContent.trim();
@@ -535,7 +537,7 @@
     }
 
     // Under-avatar extras: timeline posts only — replies and thread pages keep X's layout.
-    const timelinePost = !isReply && !page.statusId && !info.old; // under-avatar extras: new app only
+    const timelinePost = !isReply && !page.statusId;
     if (S.declutter.sideActions && timelinePost) root.dataset.xsWantSide = '1';
     else {
       delete root.dataset.xsWantSide;
@@ -545,13 +547,34 @@
     const wantNI = S.declutter.notInterested && timelinePost && location.pathname === '/home' && u && !u.followedByMe && handle !== myHandle;
     // "Not interested" lives in the bookmark/share box (first in line), so it
     // follows that box: in the action bar, or under the avatar with it.
-    const box = root.querySelector(':scope > article [role="group"] > div:has([data-engagement-action="bookmark"])');
-    let ni = root.querySelector(':scope > article .xs-ni');
-    if (ni && ni.parentElement !== box) {
-      ni.remove();
+    // (old app: the action bar is flat, so the button gets its own cell in it)
+    const box = info.old
+      ? [...root.querySelectorAll('[role="group"]')].find((g) => !g.closest(OLD_QUOTE) && g.querySelector('[data-testid="bookmark"], [data-testid="removeBookmark"]'))
+      : root.querySelector(':scope > article [role="group"] > div:has([data-engagement-action="bookmark"])');
+    let ni = root.querySelector('.xs-ni');
+    const niHost = ni && (info.old ? ni.parentElement.parentElement : ni.parentElement);
+    if (ni && niHost !== box) {
+      (info.old ? ni.parentElement : ni).remove();
       ni = null;
     }
-    if (wantNI && box) {
+    if (wantNI && box && info.old) {
+      if (!ni) {
+        // a copy of X's bookmark button (same look and hover), with a sad face
+        const bm = box.querySelector('[data-testid="bookmark"], [data-testid="removeBookmark"]');
+        ni = bm.cloneNode(true);
+        ni.removeAttribute('data-testid');
+        ni.classList.add('xs-ni');
+        ni.dataset.xsTip = 'Not interested';
+        ni.setAttribute('aria-label', 'Not interested in this post');
+        const svg = ni.querySelector('svg');
+        if (svg) svg.innerHTML = '<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 16.2c1.9-1.8 5.1-1.8 7 0"/></g><circle cx="9" cy="10" r=".9" fill="currentColor"/><circle cx="15" cy="10" r=".9" fill="currentColor"/>';
+        const cell = document.createElement('div');
+        cell.className = 'qt-ni-cell';
+        cell.appendChild(ni);
+        box.appendChild(cell);
+      }
+      root.dataset.xsNi = '1';
+    } else if (wantNI && box) {
       if (!ni) {
         ni = document.createElement('button');
         ni.type = 'button';
@@ -567,7 +590,7 @@
       }
       root.dataset.xsNi = '1';
     } else {
-      if (ni) ni.remove();
+      if (ni) (info.old ? ni.parentElement : ni).remove();
       delete root.dataset.xsNi;
     }
 
@@ -727,9 +750,12 @@
   }, 10000);
   function layoutSide(root) {
     if (root.dataset.xsWantSide !== '1') return;
-    const article = root.querySelector(':scope > article');
-    const av = article && article.querySelector('[data-post-avatar]');
-    const box = article && article.querySelector('[role="group"] > div:has([data-engagement-action="bookmark"])');
+    const old = isOld(root);
+    const article = old ? root : root.querySelector(':scope > article');
+    const av = article && article.querySelector(old ? '[data-testid="Tweet-User-Avatar"]' : '[data-post-avatar]');
+    const box =
+      article &&
+      article.querySelector(old ? '[role="group"] [data-testid="bookmark"], [role="group"] [data-testid="removeBookmark"]' : '[role="group"] > div:has([data-engagement-action="bookmark"])');
     if (!av || !box) return;
     if (!watched.has(article)) {
       watched.add(article);
@@ -747,17 +773,31 @@
     let top0 = base + 4; // a little breathing room under the avatar
     // If the post has media or a quoted post, line the stack up with its top…
     const ar = article.getBoundingClientRect();
-    const blocks = [...article.querySelectorAll('div.rounded-md.overflow-hidden, ' + POST)].filter(
-      (el) => el !== root && !el.closest('[role="group"]') && el.parentElement.closest(POST) === root,
-    );
+    const blocks = old
+      ? [...article.querySelectorAll(`.r-1867qdf, ${OLD_QUOTE}`)].filter((el) => !el.closest('[role="group"]') && !el.parentElement.closest(OLD_QUOTE))
+      : [...article.querySelectorAll('div.rounded-md.overflow-hidden, ' + POST)].filter(
+          (el) => el !== root && !el.closest('[role="group"]') && el.parentElement.closest(POST) === root,
+        );
     const firstBlock = blocks.map((el) => Math.round(el.getBoundingClientRect().top - ar.top)).sort((x, y) => x - y)[0];
     // …only when it starts right below the avatar (about one line of text above
     // it); with more text the stack stays under the avatar.
     if (firstBlock !== undefined && firstBlock >= base - 8 && firstBlock <= base + 34) top0 = firstBlock;
-    const count = box.querySelector('.xs-ni') ? 3 : 2;
+    const count = root.dataset.xsNi ? 3 : 2;
     if (article.offsetHeight - top0 >= count * SLOT) {
-      article.style.setProperty('--xs-side-left', `${Math.round(left - SLOT / 2)}px`);
-      article.style.setProperty('--xs-stack-top', `${top0}px`);
+      // old app: nearly every element is position:relative, so the buttons are
+      // placed relative to their own container — shift by its offset
+      let dx = 0;
+      let dy = 0;
+      if (old) {
+        const cont = (box.closest('[role="group"] > div') || box).offsetParent;
+        if (cont && cont !== article) {
+          const cr = cont.getBoundingClientRect();
+          dx = Math.round(cr.left - ar.left);
+          dy = Math.round(cr.top - ar.top);
+        }
+      }
+      article.style.setProperty('--xs-side-left', `${Math.round(left - SLOT / 2) - dx}px`);
+      article.style.setProperty('--xs-stack-top', `${top0 - dy}px`);
       root.dataset.xsSide = '1';
     } else {
       delete root.dataset.xsSide;
@@ -941,10 +981,50 @@
     }
   }
 
+  // Old app: icons are inline <svg> paths, so hide its <g> and add a <use>.
+  function swapOldIcon(svg, symbol) {
+    const g = svg.querySelector(':scope > g:not(.qt-icon)');
+    let use = svg.querySelector(':scope > use.qt-icon');
+    if (!symbol) {
+      if (use) use.remove();
+      if (g) g.style.display = '';
+      return;
+    }
+    if (!use) {
+      use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      use.setAttribute('class', 'qt-icon');
+      svg.appendChild(use);
+    }
+    const vb = (svg.getAttribute('viewBox') || '0 0 24 24').split(' ');
+    use.setAttribute('width', vb[2]);
+    use.setAttribute('height', vb[3]);
+    if (use.getAttribute('href') !== `#${symbol}`) use.setAttribute('href', `#${symbol}`);
+    if (g) g.style.display = 'none';
+  }
+  const OLD_SHARE_PATH = 'M12 2.59l5.7 5.7';
+  function oldIcons() {
+    const want = S.declutter.shareIcon;
+    for (const p of document.querySelectorAll(`article [role="group"] svg path[d^="${OLD_SHARE_PATH}"]`)) {
+      const svg = p.closest('svg');
+      if (svg.dataset.qtv === want) continue; // already done for these settings
+      svg.dataset.qtv = want;
+      swapOldIcon(svg, want !== 'x' ? `xs-share-${want}` : null);
+    }
+    const on = String(S.declutter.outlineChecks);
+    for (const svg of document.querySelectorAll('svg[data-testid="icon-verified"]')) {
+      if (svg.dataset.qtv === on) continue;
+      svg.dataset.qtv = on;
+      // gold checks carry a gradient; grey ones are plain grey
+      const kind = svg.querySelector('linearGradient') ? 'business' : /829aab|130, 154, 171/i.test(svg.innerHTML + getComputedStyle(svg).color) ? 'government' : 'premium';
+      swapOldIcon(svg, S.declutter.outlineChecks ? `xs-check-${kind}` : null);
+    }
+  }
+
   function outlineChecks() {
     const on = S.declutter.outlineChecks;
     if ((on || S.declutter.shareIcon !== 'x') && document.body) ensureCheckSprite();
     swapShareIcons();
+    oldIcons();
     for (const u of document.querySelectorAll('use[href^="#icon-verified-"], use[data-xs-orig]')) {
       const href = u.getAttribute('href');
       if (on && href.startsWith('#icon-verified-')) {
@@ -1066,9 +1146,12 @@
       e.preventDefault();
       e.stopImmediatePropagation();
       const article = btn.closest('article');
-      const more = [...article.querySelectorAll('button[aria-haspopup="menu"]:not([data-engagement-action])')].find(
-        (b) => !b.closest('[role="group"]') && !b.closest(POST + ' ' + POST),
-      );
+      const old = article.matches(OLD_POST);
+      const more = old
+        ? [...article.querySelectorAll('[data-testid="caret"]')].find((b) => !b.closest(OLD_QUOTE))
+        : [...article.querySelectorAll('button[aria-haspopup="menu"]:not([data-engagement-action])')].find(
+            (b) => !b.closest('[role="group"]') && !b.closest(POST + ' ' + POST),
+          );
       if (!more) return;
       // Keep the menu invisible while we use it (it still opens and loads normally).
       const html = document.documentElement;
@@ -1078,7 +1161,9 @@
       more.click();
       for (let i = 0; i < 20; i++) {
         await new Promise((r) => setTimeout(r, 50));
-        const item = [...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find((m) => m.querySelector('svg[data-icon="icon-emoji-sad"]'));
+        const item = [...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find((m) =>
+          old ? /not interested/i.test(m.textContent) : m.querySelector('svg[data-icon="icon-emoji-sad"]'),
+        );
         if (item) {
           // X's menu needs a real press/release sequence, not just a click event.
           const o = { bubbles: true, cancelable: true, pointerType: 'mouse', button: 0, buttons: 1, isPrimary: true };

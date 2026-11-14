@@ -24,7 +24,7 @@ Quiet Timeline makes X (formerly Twitter) calm again. It turns down the noise an
 • Soft low-contrast themes (Quiet, Graphite, Nord, Gruvbox, Mocha, OLED, Paper, or your own colors), calmer buttons and softer text. X Chat is themed too.
 • Declutter: icon-only menu, hide the logo and trends, no center borders, solid top bars, adjustable corners, view counts next to the date, outlined checkmarks, and a quick "Not interested" button.
 
-Works with both of X's web apps. A few layout options (corners, borders, icon-only menu and similar) apply only to X's new web app.
+Works with both of X's web apps (the new one and the older one X still serves to some accounts).
 
 **Private by design**
 Everything runs in your browser. No accounts, no analytics, no servers: Quiet Timeline makes no network requests of its own.

@@ -94,6 +94,17 @@ try {
     const c = await xTab();
     out(await evaluate(c, a1, await extContext(c)));
     c.close();
+  } else if (cmd === 'oldapp') {
+    // X decides per page load which web app to serve; /i/topics still gets the
+    // old one, and the old app keeps itself for in-app navigation. → old app at
+    // the given path (default /home).
+    const c = await xTab();
+    await c.send('Page.navigate', { url: 'https://x.com/i/topics' });
+    await sleep(7000);
+    const path = a1 || '/home';
+    out(await evaluate(c, `(() => { if (![...document.scripts].some((s) => /responsive-web/.test(s.src))) return 'X served the new app'; history.pushState({}, '', ${JSON.stringify(path)}); dispatchEvent(new PopStateEvent('popstate')); return 'old app at ' + location.pathname; })()`));
+    await sleep(5000);
+    c.close();
   } else if (cmd === 'click') {
     // real mouse click at viewport x,y:  click 900,32
     const c = await xTab();
