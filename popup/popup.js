@@ -54,6 +54,12 @@
     return b;
   });
   const markChip = () => {
+    // the picker chip shows the current custom color, with a pen icon in a readable color
+    const pick = accentRow.querySelector('.pick');
+    const c = /^#[0-9a-f]{6}$/i.test(S.theme.accentColor || '') ? S.theme.accentColor : '#4c8bf5';
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+    pick.style.setProperty('--pick', c);
+    pick.style.setProperty('--pick-fg', 0.2126 * r + 0.7152 * g + 0.0722 * b > 150 ? '#15171b' : '#fff');
     for (const b of chips) b.setAttribute('aria-pressed', String(b.title === (S.theme.accentColor || '').toLowerCase()));
     accentRow.querySelector('.pick').style.outline = PRESET_ACCENTS.includes((S.theme.accentColor || '').toLowerCase()) ? '' : '2px solid var(--text, #e4e6ea)';
   };
