@@ -323,21 +323,22 @@
     }
   }
 
-  // SVG filters for the "contour" style: blur, then band only the lightness
-  // into flat steps (soft-edged) while keeping the blur's own colours — banding
-  // red/green/blue separately gives false rainbow colours.
+  // SVG filters for the "contour" style: blur, band only the lightness into
+  // flat soft-edged steps while keeping the blur's own colours (banding
+  // red/green/blue separately gives false rainbow colours), then blend 70/30
+  // with the plain blur so it stays light and soft.
   function ensureContourFilters() {
     if (document.getElementById('quiettl-contour')) return;
-    // compressed range: no pure white (glow) or black, softer contrast
-    const steps = '0.22 0.34 0.46 0.58 0.7';
+    const steps = '0.36 0.485 0.61 0.735 0.86'; // no pure white (glow) or black
     const f = (id, sd, soft) =>
       `<filter id="${id}" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">` +
       `<feGaussianBlur in="SourceGraphic" stdDeviation="${sd}" edgeMode="duplicate" result="b0"/>` +
-      `<feColorMatrix in="b0" type="saturate" values="0.8" result="b"/>` +
+      `<feColorMatrix in="b0" type="saturate" values="0.9" result="b"/>` +
       `<feColorMatrix in="b" type="saturate" values="0" result="g"/>` +
       `<feComponentTransfer in="g" result="p">${['R', 'G', 'B'].map((c) => `<feFunc${c} type="discrete" tableValues="${steps}"/>`).join('')}</feComponentTransfer>` +
       `<feGaussianBlur in="p" stdDeviation="${soft}" result="ps"/>` +
-      `<feBlend in="ps" in2="b" mode="luminosity"/></filter>`;
+      `<feBlend in="ps" in2="b" mode="luminosity" result="c"/>` +
+      `<feComposite in="c" in2="b" operator="arithmetic" k2="0.7" k3="0.3"/></filter>`;
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.id = 'quiettl-contour';
     svg.setAttribute('width', '0');
