@@ -343,7 +343,7 @@
     svg.setAttribute('width', '0');
     svg.setAttribute('height', '0');
     svg.style.position = 'absolute';
-    svg.innerHTML = f('quiettl-contour-sm', 4, 0.5) + f('quiettl-contour-lg', 18, 1.2);
+    svg.innerHTML = f('quiettl-contour-sm', 3, 0.5) + f('quiettl-contour-lg', 10, 1);
     document.documentElement.appendChild(svg);
   }
 
