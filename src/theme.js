@@ -154,7 +154,10 @@
     const p2 = softened(pal);
     const map = makeMapper(p2, ramp);
     const out = {};
-    for (const [k, v] of Object.entries(vars)) out[k] = /^\d/.test(v) ? remapHsl(v, map) : remap(v, map);
+    for (const [k, v] of Object.entries(vars)) {
+      const nv = /^\d/.test(v) ? remapHsl(v, map) : remap(v, map);
+      if (nv !== v) out[k] = nv; // leave X's own (e.g. its brand color) live, not frozen in our sheet
+    }
     if (calm) Object.assign(out, calmVars(p2));
     if (accent) Object.assign(out, brandVars(accent, p2));
     return Object.entries(out)
@@ -289,7 +292,7 @@
   const CACHE = 'quiettl-var-css';
 
   function refreshVars() {
-    const key = `${document.documentElement.getAttribute('data-theme')}|${JSON.stringify(palette)}|${calm}|${soft}|${accent}`;
+    const key = `${document.documentElement.getAttribute('data-theme')}|${JSON.stringify(palette)}|${calm}|${soft}|${accent}|${xDisplayColor()}`;
     if (key === varsFor) return false;
     const css = varCss(palette, calm);
     if (!css) return false;
@@ -298,7 +301,7 @@
     varStyle.textContent = css;
     if (!varStyle.isConnected) document.documentElement.appendChild(varStyle);
     try {
-      localStorage.setItem(CACHE, JSON.stringify({ p: JSON.stringify(palette) + calm + soft + accent, css }));
+      localStorage.setItem(CACHE, JSON.stringify({ p: JSON.stringify(palette) + calm + soft + accent + xDisplayColor(), css }));
     } catch (_) {}
     return true;
   }
@@ -323,7 +326,7 @@
         if (st) st.textContent = '';
         continue;
       }
-      const key = JSON.stringify(palette) + calm + soft + accent + rootEl.getAttribute('data-theme');
+      const key = JSON.stringify(palette) + calm + soft + accent + xDisplayColor() + rootEl.getAttribute('data-theme');
       if (st && st.dataset.key === key && st.isConnected) continue;
       if (!st) {
         st = document.createElement('style');
@@ -351,6 +354,7 @@
   function tick() {
     themeShadows();
     if (!palette) return;
+    setButtonAccent(); // X's display color can change any time (Settings → Display)
     const varsChanged = refreshVars();
     const m = detectMode();
     if (varsChanged || m !== mode) {
@@ -398,6 +402,17 @@
     clearInterval(timer);
   }
 
+  // Accent for Post / Follow buttons: the override, else X's own color (your X
+  // display color, e.g. purple), else the theme's; plus readable text on it.
+  function setButtonAccent() {
+    const c = accent || xDisplayColor() || palette.accent;
+    const root = document.documentElement;
+    if (root.style.getPropertyValue('--qt-accent') === c) return;
+    root.style.setProperty('--qt-accent', c);
+    const [r, g, b] = hex(c);
+    root.style.setProperty('--qt-on-accent', 0.2126 * r + 0.7152 * g + 0.0722 * b > 150 ? '#15171b' : '#ffffff');
+  }
+
   // X's display color setting (Settings → Display), shared by both web apps.
   const X_COLORS = { blue: '#1d9bf0', yellow: '#ffd400', magenta: '#f91880', pink: '#f91880', purple: '#7856ff', orange: '#ff7a00', green: '#00ba7c' };
   function xDisplayColor() {
@@ -438,17 +453,11 @@
       root.dataset.xsTheme = '1';
       for (const k of KEYS) root.style.setProperty(`--xs-${k}`, palette[k]);
       root.style.setProperty('--xs-accent', accent || palette.accent);
-      // Accent for Post / Follow buttons: the override, else X's own color
-      // (your X display color, e.g. purple), else the theme's.
-      const btnAccent = accent || xDisplayColor() || palette.accent;
-      root.style.setProperty('--qt-accent', btnAccent);
-      // readable text on accent-colored buttons
-      const [ar, ag, ab] = hex(btnAccent);
-      root.style.setProperty('--qt-on-accent', 0.2126 * ar + 0.7152 * ag + 0.0722 * ab > 150 ? '#15171b' : '#ffffff');
+      setButtonAccent();
       // Use the last generated variable CSS right away to avoid a flash of X's colors.
       try {
         const c = JSON.parse(localStorage.getItem(CACHE) || 'null');
-        if (c && c.p === JSON.stringify(palette) + calm + soft + accent) {
+        if (c && c.p === JSON.stringify(palette) + calm + soft + accent + xDisplayColor()) {
           varStyle.textContent = c.css;
           if (!varStyle.isConnected) root.appendChild(varStyle);
         }
