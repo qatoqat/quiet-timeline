@@ -369,17 +369,25 @@
     }
   }
 
-  // SVG filters for the "contour" style: blur, then posterize into flat bands.
+  // SVG filters for the "contour" style: blur, then band only the lightness
+  // into flat steps (soft-edged) while keeping the blur's own colours — banding
+  // red/green/blue separately gives false rainbow colours.
   function ensureContourFilters() {
     if (document.getElementById('quiettl-contour')) return;
     const steps = '0 0.2 0.4 0.6 0.8 1';
-    const f = (id, sd) => `<filter id="${id}" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feGaussianBlur stdDeviation="${sd}" edgeMode="duplicate"/><feComponentTransfer>${['R', 'G', 'B'].map((c) => `<feFunc${c} type="discrete" tableValues="${steps}"/>`).join('')}</feComponentTransfer></filter>`;
+    const f = (id, sd, soft) =>
+      `<filter id="${id}" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">` +
+      `<feGaussianBlur in="SourceGraphic" stdDeviation="${sd}" edgeMode="duplicate" result="b"/>` +
+      `<feColorMatrix in="b" type="saturate" values="0" result="g"/>` +
+      `<feComponentTransfer in="g" result="p">${['R', 'G', 'B'].map((c) => `<feFunc${c} type="discrete" tableValues="${steps}"/>`).join('')}</feComponentTransfer>` +
+      `<feGaussianBlur in="p" stdDeviation="${soft}" result="ps"/>` +
+      `<feBlend in="ps" in2="b" mode="luminosity"/></filter>`;
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.id = 'quiettl-contour';
     svg.setAttribute('width', '0');
     svg.setAttribute('height', '0');
     svg.style.position = 'absolute';
-    svg.innerHTML = f('quiettl-contour-sm', 4) + f('quiettl-contour-lg', 14);
+    svg.innerHTML = f('quiettl-contour-sm', 4, 0.5) + f('quiettl-contour-lg', 18, 1.2);
     document.documentElement.appendChild(svg);
   }
 
