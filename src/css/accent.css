@@ -1,10 +1,10 @@
-html[data-xs-accent-post][data-xs-accent-post] :is(a[aria-label='Post'][href='/compose/post'], main button.bg-btn-primary:not([aria-label]), [data-testid='SideNav_NewTweet_Button'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']),
+html[data-xs-accent-post][data-xs-accent-post] :is(a.bg-btn-primary[href^='/compose/post'], main button.bg-btn-primary:not([aria-label]), [data-testid='SideNav_NewTweet_Button'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']),
 html[data-xs-accent-follow][data-xs-accent-follow] :is(button[aria-label^='Follow @'], [data-testid$='-follow']) {
   background-color: var(--qt-accent, var(--xs-accent)) !important;
   border-color: transparent !important;
   color: var(--qt-on-accent, #fff) !important;
 }
-html[data-xs-accent-post][data-xs-accent-post] :is(a[aria-label='Post'][href='/compose/post'], main button.bg-btn-primary:not([aria-label]), [data-testid='SideNav_NewTweet_Button'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']) :is(span, div, svg),
+html[data-xs-accent-post][data-xs-accent-post] :is(a.bg-btn-primary[href^='/compose/post'], main button.bg-btn-primary:not([aria-label]), [data-testid='SideNav_NewTweet_Button'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']) :is(span, div, svg),
 html[data-xs-accent-follow][data-xs-accent-follow] :is(button[aria-label^='Follow @'], [data-testid$='-follow']) :is(span, div) {
   color: var(--qt-on-accent, #fff) !important;
 }
@@ -16,7 +16,7 @@ html[data-xs-accent-post][data-xs-accent-post] :is(main button.bg-btn-primary:no
   background-color: color-mix(in srgb, var(--qt-accent, var(--xs-accent)) 45%, var(--xs-bg, #15171b)) !important;
   opacity: 1 !important;
 }
-html[data-xs-accent-post][data-xs-accent-post] :is(a[aria-label='Post'][href='/compose/post'], [data-testid='SideNav_NewTweet_Button'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']):hover,
+html[data-xs-accent-post][data-xs-accent-post] :is(a.bg-btn-primary[href^='/compose/post'], [data-testid='SideNav_NewTweet_Button'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']):hover,
 html[data-xs-accent-follow][data-xs-accent-follow] :is(button[aria-label^='Follow @'], [data-testid$='-follow']):hover {
   background-color: color-mix(in srgb, var(--qt-accent, var(--xs-accent)) 85%, var(--qt-on-accent, #fff)) !important;
 }

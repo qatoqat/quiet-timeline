@@ -53,7 +53,7 @@ export async function pageChecks(K: Kit, deep: boolean) {
   }
   if (D.navIcons && home) {
     const pic = document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"] [data-testid^="UserAvatar-Container"], button[aria-label="Account menu"] img');
-    const post = document.querySelector('[data-testid="SideNav_NewTweet_Button"], a[href="/compose/post"]');
+    const post = document.querySelector('[data-testid="SideNav_NewTweet_Button"], a.bg-btn-primary[href^="/compose/post"]');
     const xs = [home.querySelector('svg'), pic, post].filter(visible).map((e) => Math.round(mid(e)));
     add('left menu aligned', xs.length > 1 ? Math.max(...xs) - Math.min(...xs) <= 4 : null, xs.join(', '));
   }
@@ -94,7 +94,8 @@ export async function pageChecks(K: Kit, deep: boolean) {
     const inner = all(`${OLD ? 'article' : POST} div`, col).filter((d) => {
       const c = cs(d);
       if (!visible(d) || c.borderLeftWidth !== '0px' || c.borderRightWidth !== '0px') return false;
-      for (let p = d.parentElement; p && !p.matches(POST); p = p.parentElement) if (cs(p).borderLeftWidth !== '0px') return false;
+      // up to the top-level post (a card inside can be a post-like link itself)
+      for (let p = d.parentElement; p && !(p.matches(POST) && !p.parentElement!.closest(POST)); p = p.parentElement) if (cs(p).borderLeftWidth !== '0px') return false;
       return (c.borderTopWidth !== '0px' && !transparent(c.borderTopColor)) || (c.borderBottomWidth !== '0px' && !transparent(c.borderBottomColor));
     });
     add('no separator lines inside posts', !inner.length, inner.slice(0, 3).map((d) => String(d.className).slice(0, 40)).join(' | '));
@@ -117,7 +118,7 @@ export async function pageChecks(K: Kit, deep: boolean) {
     add('accent override', got.toLowerCase() === want.toLowerCase(), `${got} (want ${want})`);
   }
   for (const [key, label, sel] of [
-    ['accentPost', 'Post button in accent', "a[aria-label='Post'][href='/compose/post'], [data-testid='SideNav_NewTweet_Button']"],
+    ['accentPost', 'Post button in accent', "a.bg-btn-primary[href^='/compose/post'], [data-testid='SideNav_NewTweet_Button']"],
     ['accentFollow', 'Follow buttons in accent', "button[aria-label^='Follow @'], [data-testid$='-follow']"],
     ['accentTabs', 'tab underline in accent', "span[class*='w-(--active-tab-width)'], [role='tablist'] [role='tab'][aria-selected='true'] div[style*='background-color']"],
   ]) {
@@ -147,7 +148,7 @@ export async function pageChecks(K: Kit, deep: boolean) {
     }
     const dis = document.querySelector("[data-testid='tweetButtonInline'][aria-disabled='true'], main button.bg-btn-primary:disabled");
     if (dis) add('disabled Post button not faded', cs(dis).opacity === '1', cs(dis).opacity);
-    const post = "a[aria-label='Post'], [data-testid='SideNav_NewTweet_Button'], main button.bg-btn-primary:not([aria-label]), [data-testid^='tweetButton']";
+    const post = "a.bg-btn-primary[href^='/compose/post'], [data-testid='SideNav_NewTweet_Button'], main button.bg-btn-primary:not([aria-label]), [data-testid^='tweetButton']";
     const follow = "button[aria-label^='Follow @'], [data-testid$='-follow']";
     const mine = (b: Element) => (T.accentPost && b.matches(post)) || (T.accentFollow && b.matches(follow));
     const btns = all("[data-testid='SideNav_NewTweet_Button'], [data-testid$='-follow'], .bg-btn-primary").filter((b) => visible(b) && !mine(b));
