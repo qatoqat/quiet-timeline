@@ -999,7 +999,7 @@
 
   function applySettings(raw) {
     const prevEnabled = S.enabled;
-    S = XS.loadSettings(raw);
+    S = XS.merge(XS.DEFAULTS, raw);
     ver++;
     filter = XS.createWordFilter(S);
     allow = new Set(XS.parseList(S.allow));

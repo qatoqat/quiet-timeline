@@ -114,13 +114,6 @@
     return over === undefined || typeof over !== typeof base ? base : over;
   };
 
-  // Stored settings → full settings (fills defaults, migrates old values).
-  XS.loadSettings = function (raw) {
-    const s = XS.merge(XS.DEFAULTS, raw);
-    if (s.theme.preset === 'x' + 'sieve') s.theme.preset = 'quiettl'; // renamed theme key
-    return s;
-  };
-
   XS.parseList = function (s) {
     return String(s || '')
       .split(/[\n,]+/)

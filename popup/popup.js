@@ -31,7 +31,7 @@
   };
 
   const stored = (await chrome.storage.sync.get('settings')).settings;
-  const S = XS.loadSettings(stored);
+  const S = XS.merge(XS.DEFAULTS, stored);
 
   const fields = document.querySelectorAll('[data-path]');
   const custom = document.getElementById('custom');
