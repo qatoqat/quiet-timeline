@@ -112,7 +112,7 @@ textarea:focus {
 
 .swatches {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr; /* pickers at the left edge: their popup opens inward, not off the panel */
   gap: 4px 10px;
   margin: 2px 0 8px;
 }
@@ -230,4 +230,41 @@ section[hidden] {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 10px;
+}
+
+/* accent color chips (custom accent) */
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+.chips[hidden] {
+  display: none;
+}
+.chip {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  cursor: pointer;
+  outline-offset: 1px;
+}
+.chip[aria-pressed='true'] {
+  outline: 2px solid var(--text, #e4e6ea);
+}
+.chip.pick {
+  position: relative;
+  overflow: hidden;
+  background: conic-gradient(#f66, #fd4, #6d6, #4cf, #86f, #f6c, #f66);
+}
+.chip.pick input {
+  position: absolute;
+  inset: -6px;
+  width: 40px;
+  height: 40px;
+  opacity: 0;
+  cursor: pointer;
 }

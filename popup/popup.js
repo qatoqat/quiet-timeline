@@ -36,9 +36,31 @@
   const fields = document.querySelectorAll('[data-path]');
   const custom = document.getElementById('custom');
   const accentRow = document.getElementById('accent-custom');
+  // quick picks: X's display colors and the theme's accent; the rainbow chip
+  // (first, so its picker opens inside the panel) picks anything
+  const PRESET_ACCENTS = ['#1d9bf0', '#ffd400', '#f91880', '#7856ff', '#ff7a00', '#00ba7c', '#4c8bf5'];
+  const accentInput = accentRow.querySelector('input');
+  const chips = PRESET_ACCENTS.map((c) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.style.background = c;
+    b.title = c;
+    b.addEventListener('click', () => {
+      accentInput.value = c;
+      accentInput.dispatchEvent(new Event('input'));
+    });
+    accentRow.appendChild(b);
+    return b;
+  });
+  const markChip = () => {
+    for (const b of chips) b.setAttribute('aria-pressed', String(b.title === (S.theme.accentColor || '').toLowerCase()));
+    accentRow.querySelector('.pick').style.outline = PRESET_ACCENTS.includes((S.theme.accentColor || '').toLowerCase()) ? '' : '2px solid var(--text, #e4e6ea)';
+  };
   const sync = () => {
     custom.hidden = S.theme.preset !== 'custom';
     accentRow.hidden = S.theme.accentMode !== 'custom';
+    markChip();
   };
 
   for (const el of fields) {
