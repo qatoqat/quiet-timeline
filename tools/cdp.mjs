@@ -63,6 +63,22 @@ async function evaluate(c, expression, contextId) {
   return r.result.value;
 }
 
+// The extension's content-script world in this tab (live one, not a leftover
+// from before an extension reload).
+async function extContext(c) {
+  await c.send('Runtime.enable');
+  await sleep(200);
+  const { frameTree } = await c.send('Page.getFrameTree');
+  const cands = c.events
+    .filter((e) => e.method === 'Runtime.executionContextCreated' && e.params.context.name.startsWith('Quiet Timeline') && e.params.context.auxData?.frameId === frameTree.frame.id)
+    .reverse();
+  for (const e of cands) {
+    const ok = await evaluate(c, 'typeof XS === "object" && !!XS._debug && !!chrome.runtime?.id', e.params.context.id).catch(() => false);
+    if (ok) return e.params.context.id;
+  }
+  throw new Error('Quiet Timeline content script not found in tab');
+}
+
 const out = (v) => console.log(typeof v === 'string' ? v : JSON.stringify(v, null, 1));
 const [cmd, a1, a2] = process.argv.slice(2);
 setTimeout(() => { console.error('timed out'); process.exit(2); }, 40000).unref();
@@ -76,22 +92,7 @@ try {
     c.close();
   } else if (cmd === 'evalx') {
     const c = await xTab();
-    await c.send('Runtime.enable');
-    await sleep(200);
-    const { frameTree } = await c.send('Page.getFrameTree');
-    const cands = c.events
-      .filter((e) => e.method === 'Runtime.executionContextCreated' && e.params.context.name.startsWith('Quiet Timeline') && e.params.context.auxData?.frameId === frameTree.frame.id)
-      .reverse();
-    let ctx = null;
-    for (const e of cands) {
-      const ok = await evaluate(c, 'typeof XS === "object" && !!XS._debug', e.params.context.id).catch(() => false);
-      if (ok) {
-        ctx = e;
-        break;
-      }
-    }
-    if (!ctx) throw new Error('Quiet Timeline content script not found in tab');
-    out(await evaluate(c, a1, ctx.params.context.id));
+    out(await evaluate(c, a1, await extContext(c)));
     c.close();
   } else if (cmd === 'click') {
     // real mouse click at viewport x,y:  click 900,32
@@ -131,8 +132,8 @@ try {
   } else if (cmd === 'reload') {
     // background.js reloads the extension on this message (unpacked installs only).
     const x = await xTab();
-    await evaluate(x, `window.postMessage({ __quiettlDev: 'reload' }, location.origin)`);
-    await sleep(1000);
+    await evaluate(x, `(chrome.runtime.sendMessage({ type: 'quiettl-dev-reload' }), 1)`, await extContext(x));
+    await sleep(1500);
     await x.send('Page.reload');
     out('extension + X tab reloaded');
     x.close();

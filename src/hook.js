@@ -105,7 +105,7 @@
         for (let i = 0; i < v.length; i++) stack.push(v[i]);
         continue;
       }
-      if (v.promoted_metadata && v.tweet_results) {
+      if ((v.promoted_metadata || v.promotedMetadata) && v.tweet_results) {
         const r = v.tweet_results.result || {};
         const adId = r.rest_id || (r.tweet && r.tweet.rest_id);
         if (adId) ads.push(String(adId));

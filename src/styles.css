@@ -464,3 +464,51 @@ div:hover > .qt-reblur,
 .qt-reblur:hover {
   background: rgba(15, 17, 20, 0.8);
 }
+
+/* ================= X's old web app (responsive-web, data-testid markup) ================= */
+
+/* Photos are a background-image div plus an img: blur the whole photo box. */
+article[data-xs-media='blur'] :is([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid^='card.layout'][data-testid$='.media']) {
+  filter: var(--qt-media-blur) !important; /* X sets its own filter here */
+  transform: scale(1.08);
+}
+article[data-xs-media='blur'] :is([data-testid='tweetPhoto'], [data-testid='videoPlayer']) {
+  cursor: pointer;
+}
+article[data-xs-media='hide'] :is([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid^='card.layout'][data-testid$='.media']) {
+  display: none !important;
+}
+/* avatars of accounts you don't follow */
+article[data-xs-pfp] [data-testid='Tweet-User-Avatar'] [data-testid^='UserAvatar-Container'] :is(img, div[style*='background-image']) {
+  filter: var(--qt-pfp-blur) !important;
+  transform: scale(1.6);
+}
+article[data-xs-pfp]:hover [data-testid='Tweet-User-Avatar'] [data-testid^='UserAvatar-Container'] :is(img, div[style*='background-image']) {
+  filter: none !important;
+  transform: none !important;
+}
+/* Grok and chat buttons */
+html[data-xs-no-grok] [data-testid='GrokDrawer'],
+html[data-xs-no-grok] div:has(> button[aria-label='Grok actions']),
+html[data-xs-no-grok] button[aria-label='Grok actions'] {
+  display: none !important;
+}
+html[data-xs-no-chat-button] [data-testid='chat-drawer-root'] {
+  display: none !important;
+}
+/* logo, trends, who to follow, premium */
+html[data-xs-logo] header[role='banner'] h1:has(a[aria-label='X']) {
+  display: none !important;
+}
+html[data-xs-sidebar] [data-testid='sidebarColumn'] :is(section, div[aria-label]):has([data-testid='trend'], [data-testid='UserCell']) {
+  display: none !important;
+}
+html[data-xs-upsells] [data-testid='sidebarColumn'] :is(aside, section, div):has(> * a[href^='/i/premium']),
+html[data-xs-upsells] a[href^='/i/premium_sign_up'],
+html[data-xs-upsells] [data-testid='verified_profile_upsell'] {
+  display: none !important;
+}
+
+article[data-testid='tweet'] .xs-toggle {
+  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}

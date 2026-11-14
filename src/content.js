@@ -6,9 +6,16 @@
     'home', 'explore', 'notifications', 'messages', 'search', 'settings', 'i', 'compose', 'bookmarks',
     'lists', 'communities', 'jobs', 'premium', 'login', 'logout', 'tos', 'privacy',
   ]);
-  // A post is a role=link box whose data-href is its permalink; a quoted post is
-  // the same kind of box nested inside it.
-  const POST = '[role="link"][data-href*="/status/"]';
+  // X serves two web apps. New ("x-web"): a post is a role=link box whose
+  // data-href is its permalink; a quoted post is the same kind of box nested
+  // inside it. Old ("responsive-web"): a post is article[data-testid=tweet]; a
+  // quoted post is a plain role=link div inside it.
+  const NEW_POST = '[role="link"][data-href*="/status/"]';
+  const OLD_POST = 'article[data-testid="tweet"]';
+  const POST = `${NEW_POST}, ${OLD_POST}`;
+  const isOld = (root) => root.tagName === 'ARTICLE';
+  const CELL = 'li[data-index], [data-testid="cellInnerDiv"]'; // a post's row in the (virtual) list
+  const OLD_QUOTE = 'div[role="link"]:has([data-testid="User-Name"])';
   const MEDIA = 'video, img[src*="pbs.twimg.com/media/"], img[src*="video_thumb"], img[src*="/card_img/"]';
 
   let S = XS.merge(XS.DEFAULTS, null);
@@ -56,7 +63,7 @@
         rules.unshift(`${hidden.join(',\n')} { height: 1px !important; overflow: hidden !important; }`);
         rules.unshift(`${hidden.map((h) => h + ' > *').join(',\n')} { display: none !important; }`);
       }
-      rules.unshift(collapseCss('[data-xs-state="collapsed"]'));
+      rules.unshift(collapseCss('[role="link"][data-xs-state="collapsed"]'), OLD_COLLAPSE);
       sizeCss.textContent = S.enabled ? rules.join('\n') : '';
       if (!sizeCss.isConnected) document.documentElement.appendChild(sizeCss);
     });
@@ -198,7 +205,6 @@
 
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data) return;
-    if (e.data.__quiettlDev === 'reload') chrome.runtime.sendMessage({ type: 'quiettl-dev-reload' });
     if (e.data.__quiettl !== 1) return;
     for (const u of e.data.users || []) {
       if (!u.id) continue;
@@ -228,12 +234,46 @@
 
   // ---------- reading X's DOM ----------
 
+  const PERMALINK = /^\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/;
+  function readOldPost(root) {
+    const quotes = [...root.querySelectorAll(OLD_QUOTE)];
+    const outside = (el) => !quotes.some((q) => q.contains(el));
+    // permalink: the timestamp link; else the views link in the action bar
+    let m = null;
+    for (const a of root.querySelectorAll('a[href*="/status/"]')) {
+      if (!outside(a)) continue;
+      const r = PERMALINK.exec(a.getAttribute('href') || '');
+      if (!r) continue;
+      if (a.querySelector('time')) {
+        m = r;
+        break;
+      }
+      if (!m && a.closest('[role="group"]')) m = r;
+    }
+    const un = [...root.querySelectorAll('[data-testid="User-Name"]')].find(outside);
+    if (!m || !un) return null;
+    const texts = [...root.querySelectorAll('[data-testid="tweetText"]')];
+    const main = texts.find(outside);
+    return {
+      id: m[2],
+      handle: m[1],
+      nameEl: un.firstElementChild,
+      texts,
+      text: main ? main.textContent : '',
+      media: [...root.querySelectorAll(MEDIA)].filter(outside),
+      paidIcon: !!un.querySelector('svg[data-testid="icon-verified"]'),
+      noTime: ![...root.querySelectorAll('time')].some(outside),
+      old: true,
+    };
+  }
+
   function readPost(root) {
-    const m = /^\/([A-Za-z0-9_]{1,15})\/status\/(\d+)/.exec(root.getAttribute('data-href') || '');
+    if (isOld(root)) return readOldPost(root);
+    const m = PERMALINK.exec(root.getAttribute('data-href') || '');
     if (!m) return null;
     const handle = m[1];
     const id = m[2];
-    const quotes = [...root.querySelectorAll(POST)];
+    const quotes = [...root.querySelectorAll(NEW_POST)];
     const outside = (el) => !quotes.some((q) => q.contains(el));
 
     // Display-name link: links to the profile, has text, isn't the avatar.
@@ -363,7 +403,7 @@
     delete root.dataset.xsNoplay;
     delete root.dataset.xsPfp;
     delete root.dataset.xsLabel;
-    const cell = root.closest('li[data-index]');
+    const cell = root.closest(CELL);
     if (cell) delete cell.dataset.xsHidden;
     const n = info.nameEl;
     if (n) {
@@ -389,9 +429,13 @@
     if (root.dataset.xsMedia === 'unload') stripMedia(root);
 
     // Ads: X marks them in its data; "Ad from …" label as a fallback.
-    const isAd = adIds.has(id) || [...root.querySelectorAll('a[target="_blank"] div')].some((d) => /^(Ad from |Promoted\b)/.test(d.textContent));
+    const isAd =
+      adIds.has(id) ||
+      (info.old
+        ? info.noTime && !!root.closest('[data-testid="placementTracking"]') // promoted posts have no timestamp
+        : [...root.querySelectorAll('a[target="_blank"] div')].some((d) => /^(Ad from |Promoted\b)/.test(d.textContent)));
     if (S.declutter.ads && isAd) {
-      const cell = root.closest('li[data-index]');
+      const cell = root.closest(CELL);
       if (cell && !cell.dataset.xsHidden) {
         cell.dataset.xsHidden = '1';
         stats.ads.add(id);
@@ -403,7 +447,7 @@
     }
 
     const rp = reposterInfo(u);
-    const key = `${id}|${t ? 1 : 0}|${u ? 1 : 0}|${rp ? rp.tag : 0}|${ver}|${revealed.has(id) ? 1 : 0}|${mediaRevealed.has(id) ? 1 : 0}|${playAllowed.has(id) ? 1 : 0}`;
+    const key = `${id}|${t ? 1 : 0}|${u ? 1 : 0}|${rp ? rp.tag : 0}|${ver}|${revealed.has(id) ? 1 : 0}|${mediaRevealed.has(id) ? 1 : 0}|${playAllowed.has(id) ? 1 : 0}|${info.media.length}`; // media can arrive after the post
     if (root.dataset.xsKey === key) return;
     root.dataset.xsKey = key;
     reset(root, info);
@@ -458,6 +502,8 @@
     const flaggedMedia = (rp && !(rp.themed && !S.repost.themedMedia)) || nonOrig;
     let mediaMode = flaggedMedia ? S.repost.media : 'none';
     if (mediaMode === 'none' && isReply && !focal && !owner) mediaMode = S.replies.media;
+    // Old app draws photos as background images, which can't be kept from loading.
+    if (info.old && mediaMode === 'unload') mediaMode = 'blur';
     const wantMedia = mediaMode !== 'none';
     const coverable = wantMedia && !trusted && (info.media.length || wasUnloaded);
     if (coverable && !mediaRevealed.has(id)) {
@@ -489,7 +535,7 @@
     }
 
     // Under-avatar extras: timeline posts only — replies and thread pages keep X's layout.
-    const timelinePost = !isReply && !page.statusId;
+    const timelinePost = !isReply && !page.statusId && !info.old; // under-avatar extras: new app only
     if (S.declutter.sideActions && timelinePost) root.dataset.xsWantSide = '1';
     else {
       delete root.dataset.xsWantSide;
@@ -535,14 +581,14 @@
     }
 
     for (const s of [stats.hidden, stats.collapsed, stats.dimmed]) s.delete(id);
-    const wouldCollapse = verdict && (verdict.action === 'collapse' || (verdict.action === 'hide' && (focal || !root.closest('li[data-index]'))));
+    const wouldCollapse = verdict && (verdict.action === 'collapse' || (verdict.action === 'hide' && (focal || !root.closest(CELL))));
     setToggle(root, verdict && revealed.has(id) && wouldCollapse ? 'hide' : verdict && wouldCollapse ? 'show' : null, verdict);
     if (!verdict || revealed.has(id)) return;
 
     let action = verdict.action;
     if (focal && action === 'hide') action = 'collapse'; // never hide the post you opened
     if (action === 'hide') {
-      const cell = root.closest('li[data-index]');
+      const cell = root.closest(CELL);
       if (cell) {
         cell.dataset.xsHidden = '1';
         stats.hidden.add(id);
@@ -568,10 +614,12 @@
   // Button over revealed media (top right, on hover) that blurs / unloads it again.
   const EYE_OFF = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.3 2.4-2.6 3.7M6.6 6.6C4.4 8 2.9 10.1 2 12c1 2.5 5 7 10 7 1.9 0 3.6-.6 5-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
   function setReblur(root, mode) {
-    const box = mode && [...root.querySelectorAll(':scope > article div.rounded-md.overflow-hidden')].find(
-      (b) => b.querySelector(MEDIA) && b.closest(POST) === root,
-    );
-    let btn = root.querySelector(':scope > article .qt-reblur');
+    const box =
+      mode &&
+      (isOld(root)
+        ? [...root.querySelectorAll('[data-testid="tweetPhoto"], [data-testid="videoPlayer"]')].find((b) => !b.closest(OLD_QUOTE))
+        : [...root.querySelectorAll(':scope > article div.rounded-md.overflow-hidden')].find((b) => b.querySelector(MEDIA) && b.closest(POST) === root));
+    let btn = root.querySelector('.qt-reblur');
     if (!box) {
       if (btn) btn.remove();
       return;
@@ -594,9 +642,24 @@
   // before the ⋯ menu. Collapsed posts keep only that header row.
   const HEADER = "[class*='@container/post-actions']";
   function setToggle(root, mode, verdict) {
-    const header = root.querySelector(`:scope > article ${HEADER}`);
-    const slot = header && header.lastElementChild;
-    let link = root.querySelector(':scope > article .xs-toggle');
+    let slot = null;
+    let before = null;
+    if (isOld(root)) {
+      // old app: the row holding [Grok button, ⋯ menu]; the link goes before ⋯
+      const caret = [...root.querySelectorAll('[data-testid="caret"]')].find((c) => !c.closest(OLD_QUOTE));
+      for (let e = caret; e && e !== root; e = e.parentElement) {
+        if (e.parentElement && e.parentElement.children.length > 1) {
+          slot = e.parentElement;
+          before = e;
+          break;
+        }
+      }
+    } else {
+      const header = root.querySelector(`:scope > article ${HEADER}`);
+      slot = header && header.lastElementChild;
+      before = slot && slot.firstChild;
+    }
+    let link = root.querySelector('.xs-toggle');
     if (!mode || !slot) {
       if (link) link.remove();
       return;
@@ -606,7 +669,7 @@
       link = document.createElement('button');
       link.type = 'button';
       link.className = 'xs-toggle';
-      slot.prepend(link);
+      slot.insertBefore(link, before);
     }
     const text = mode === 'show' && verdict.label ? `${verdict.label} · show` : mode;
     if (link.textContent !== text) link.textContent = text;
@@ -627,6 +690,15 @@
       `${not}::before { content: '⊘  ' ${note} '  ·  click to show'; display: block; padding: 10px 16px; font: 13px/1.4 system-ui, sans-serif; color: var(--x-fg-secondary, #8b8f97); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }`,
     ].join('\n');
   }
+
+  // Old app: collapsed post keeps its header row (name, handle, date, ⋯); the
+  // avatar column keeps its width. The content column is the element whose
+  // first child holds the name and a later child the action bar.
+  const OLD_COLLAPSE = [
+    `${OLD_POST}[data-xs-state="collapsed"] [data-testid="Tweet-User-Avatar"] { display: none !important; }`,
+    `${OLD_POST}[data-xs-state="collapsed"] div:has(> :first-child [data-testid="User-Name"]):has(> :not(:first-child) [role="group"]) > :not(:first-child) { display: none !important; }`,
+    `${OLD_POST}[data-xs-state="collapsed"] { opacity: 0.6; transition: opacity 0.15s; } ${OLD_POST}[data-xs-state="collapsed"]:hover { opacity: 1; }`,
+  ].join('\n');
 
   // Move the bookmark/share box (with "Not interested") under the avatar — only
   // when the post is tall enough for it; short posts keep it in the action bar.
@@ -913,7 +985,7 @@
       const st = m && sizeState.get(m[1]);
       if (!st || revealed.has(m[1])) continue;
       if (st.hidden) {
-        const cell = root.closest('li[data-index]');
+        const cell = root.closest(CELL);
         if (cell) cell.dataset.xsHidden = '1';
       } else if (st.why) {
         root.dataset.xsState = 'collapsed';
@@ -1067,7 +1139,8 @@
       // links in a collapsed post's header (name, handle, date) work as usual
       const collapsed = !e.target.closest('a, button') && e.target.closest('[data-xs-state="collapsed"]');
       const blurred = !collapsed && e.target.closest('[data-xs-media="blur"], [data-xs-media="unload"]');
-      const onMedia = blurred && e.target.closest('article [data-press-control], article video, article img, article div.rounded-md');
+      const onMedia =
+        blurred && e.target.closest('article [data-press-control], article video, article img, article div.rounded-md, [data-testid="tweetPhoto"], [data-testid="videoPlayer"]');
       const root = collapsed || (onMedia && blurred);
       if (!root) return;
       e.preventDefault();
