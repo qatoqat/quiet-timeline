@@ -154,7 +154,8 @@
     actionBox: (root) => [...root.querySelectorAll('[role="group"]')].find((g) => !g.closest(OLD_QUOTE) && g.querySelector(BOOKMARK)),
     sideAnchor: (article) => article.querySelector(`[role="group"] ${BOOKMARK}`),
     blocks: (article) => [...article.querySelectorAll(`.r-1867qdf, ${OLD_QUOTE}`)].filter((el) => !el.closest('[role="group"]') && !el.parentElement.closest(OLD_QUOTE)),
-    mediaBox: (root) => [...root.querySelectorAll('[data-testid="tweetPhoto"], [data-testid="videoPlayer"]')].find((b) => !b.closest(OLD_QUOTE)),
+    // (the blur is on the photo box itself, so the button goes on its parent)
+    mediaBox: (root) => [...root.querySelectorAll('[data-testid="tweetPhoto"], [data-testid="videoPlayer"]')].find((b) => !b.closest(OLD_QUOTE))?.parentElement,
     // the row holding [Grok button, ⋯ menu]: the link goes before ⋯
     toggleSlot(root) {
       const caret = [...root.querySelectorAll('[data-testid="caret"]')].find((c) => !c.closest(OLD_QUOTE));

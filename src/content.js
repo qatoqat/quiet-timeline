@@ -440,8 +440,8 @@
       stats.media.add(id);
       if (mediaMode === 'unload') stripMedia(root);
     }
-    // Revealed media gets a small button to cover it again.
-    setReblur(root, coverable && mediaRevealed.has(id) && mediaMode !== 'hide' ? mediaMode : null);
+    // Covered media shows an eye (click to show); revealed media a crossed eye (cover again).
+    setReblur(root, coverable && mediaMode !== 'hide' ? mediaMode : null, !mediaRevealed.has(id));
     if (wasUnloaded && root.dataset.xsMedia !== 'unload') restoreMedia(root);
     const quiet = (S.repost.noAutoplay && flaggedMedia) || root.dataset.xsMedia;
     if (quiet && !trusted && !playAllowed.has(id) && (t ? t.hasMedia : info.media.length)) {
@@ -524,9 +524,12 @@
     }
   }
 
-  // Button over revealed media (top right, on hover) that blurs / unloads it again.
+  // Button over the media (top right): an eye on covered media (always shown, so
+  // it's clear the media is hidden; click to show), a crossed eye on revealed
+  // media (on hover; click to cover again).
+  const EYE = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12c1-2.5 5-7 10-7s9 4.5 10 7c-1 2.5-5 7-10 7S3 14.5 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   const EYE_OFF = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.3 2.4-2.6 3.7M6.6 6.6C4.4 8 2.9 10.1 2 12c1 2.5 5 7 10 7 1.9 0 3.6-.6 5-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
-  function setReblur(root, mode) {
+  function setReblur(root, mode, covered) {
     const box = mode && appOf(root).mediaBox(root);
     let btn = root.querySelector('.qt-reblur');
     if (!box) {
@@ -538,11 +541,15 @@
       btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'qt-reblur';
-      btn.innerHTML = EYE_OFF;
       if (getComputedStyle(box).position === 'static') box.style.position = 'relative';
       box.appendChild(btn);
     }
-    const label = mode === 'unload' ? 'Unload media again' : 'Blur media again';
+    const act = covered ? 'show' : 'cover';
+    if (btn.dataset.act !== act) {
+      btn.dataset.act = act;
+      btn.innerHTML = covered ? EYE : EYE_OFF;
+    }
+    const label = covered ? 'Show media' : mode === 'unload' ? 'Unload media again' : 'Blur media again';
     btn.dataset.xsTip = label;
     btn.setAttribute('aria-label', label);
   }
@@ -1048,10 +1055,15 @@
         const root = reblur.closest(POST);
         const info = root && readPost(root);
         if (!info) return;
-        mediaRevealed.delete(info.id);
-        playAllowed.delete(info.id);
-        for (const v of root.querySelectorAll('video')) if (!v.paused) v.pause();
-        reblur.remove();
+        if (reblur.dataset.act === 'show') {
+          mediaRevealed.add(info.id);
+          delete root.dataset.xsMedia;
+          restoreMedia(root);
+        } else {
+          mediaRevealed.delete(info.id);
+          playAllowed.delete(info.id);
+          for (const v of root.querySelectorAll('video')) if (!v.paused) v.pause();
+        }
         hideTip();
         schedule();
         return;

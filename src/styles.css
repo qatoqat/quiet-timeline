@@ -479,6 +479,9 @@ div:hover > .qt-reblur,
 .qt-reblur:focus-visible {
   opacity: 1;
 }
+.qt-reblur[data-act='show'] {
+  opacity: 1; /* covered media: always show the eye */
+}
 .qt-reblur:hover {
   background: rgba(15, 17, 20, 0.8);
 }
