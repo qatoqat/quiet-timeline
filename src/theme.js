@@ -293,7 +293,15 @@
   // X Chat renders inside a shadow root with its own copy of the variables.
   const shadowStyles = new WeakMap(); // shadowRoot → <style>
   function themeShadows() {
-    const hosts = [...document.querySelectorAll('main div, [data-slot="xds-dock-window"] div')].filter((e) => e.shadowRoot);
+    // Only X Chat uses a shadow root: the chat page or the docked chat window.
+    // (Scanning every div of a long feed on each change froze tabs.)
+    const dock = document.querySelector('[data-slot="xds-dock-window"]');
+    const onChat = location.pathname.startsWith('/i/chat');
+    if (!dock && !onChat) return;
+    const hosts = [];
+    for (const scope of [dock, onChat && document.querySelector('main')]) {
+      if (scope) for (const e of scope.querySelectorAll('div')) if (e.shadowRoot) hosts.push(e);
+    }
     for (const host of hosts) {
       const sr = host.shadowRoot;
       const rootEl = sr.querySelector('[data-xchat-root], [data-theme]');
@@ -348,6 +356,16 @@
     if (count !== ruleCount) processRules(false);
   }
 
+  let tickQueued = false;
+  function tickSoon() {
+    if (tickQueued) return;
+    tickQueued = true;
+    setTimeout(() => {
+      tickQueued = false;
+      tick();
+    }, 250);
+  }
+
   function start() {
     if (observer) return;
     observer = new MutationObserver((muts) => {
@@ -355,7 +373,7 @@
         if (m.type === 'attributes') processEl(m.target);
         else for (const n of m.addedNodes) processTree(n);
       }
-      tick();
+      tickSoon(); // X changes the page constantly: at most a few checks per second
     });
     observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'data-theme'] });
     timer = setInterval(tick, 700);

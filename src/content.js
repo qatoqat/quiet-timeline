@@ -379,7 +379,7 @@
 
     // Detect before masking, then mask on every pass (React may restore the text).
     const lang = langFor(id, (t && t.text) || info.text);
-    if (maskText(info)) stats.masked.add(id);
+    if ((lang.slur || lang.prof || lang.custom) && maskText(info)) stats.masked.add(id);
 
     if (root.dataset.xsMedia === 'unload') stripMedia(root);
 
@@ -714,8 +714,15 @@
 
   // ---------- scheduling ----------
 
+  // schedule() re-checks every post (new data, settings); schedule(root) only
+  // that post. X changes its page many times a second, so mutations only mark
+  // the posts they touched.
   let pending = false;
-  function schedule() {
+  let full = true;
+  const dirty = new Set();
+  function schedule(root) {
+    if (root) dirty.add(root);
+    else full = true;
     if (pending) return;
     pending = true;
     // Animation frames stop when the tab or window isn't being drawn (background
@@ -725,20 +732,32 @@
     setTimeout(run, 120);
   }
 
+  let lastGlobal = 0;
   function scan() {
     pending = false;
+    const roots = full ? [...document.querySelectorAll(POST)] : [...dirty];
+    full = false;
+    dirty.clear();
     if (!S.enabled) return;
     myHandle = myHandle || ownHandle();
     const page = pageCtx();
-    for (const root of document.querySelectorAll(POST)) {
-      if (root.parentElement && root.parentElement.closest(POST)) continue; // quoted post
+    for (const root of roots) {
+      if (!root.isConnected || (root.parentElement && root.parentElement.closest(POST))) continue; // gone / quoted post
       try {
+        const before = root.dataset.xsKey;
         processPost(root, page);
-        layoutSide(root);
+        if (root.dataset.xsKey !== before) layoutSide(root); // later size changes: ResizeObserver
       } catch (err) {
         console.debug('[quiettl]', err);
       }
     }
+    if (performance.now() - lastGlobal > 300) globalTasks();
+  }
+  setInterval(() => S.enabled && globalTasks(), 1000);
+
+  // Page-wide touches (popups, menu tooltips, checkmarks): a few times a second at most.
+  function globalTasks() {
+    lastGlobal = performance.now();
     if (S.declutter.popups) closeNags();
     if (S.declutter.upsells) hideUpsellCallouts();
     navTooltips();
@@ -885,23 +904,35 @@
 
   new MutationObserver((muts) => {
     if (S.enabled && sizeState.size) for (const m of muts) for (const n of m.addedNodes) applyKnownSize(n);
-    if (S.repost.media === 'unload') {
-      for (const m of muts) {
-        for (const n of m.addedNodes) {
-          if (n.nodeType === 1 && (n.matches(MEDIA_IMG) || n.querySelector(MEDIA_IMG))) {
-            scan(); // now, not next frame: before the image starts downloading
-            return;
-          }
-        }
-      }
-    }
+    let other = false;
+    let newMedia = false;
     for (const m of muts) {
-      if (m.type === 'childList' || m.target.parentElement?.closest('article div[dir="auto"]')) {
-        schedule();
-        return;
+      if (m.type === 'characterData') {
+        // text edited inside a post's text (React restoring masked words)
+        const t = m.target.parentElement && m.target.parentElement.closest('article div[dir="auto"]');
+        if (t) markPost(t);
+        continue;
+      }
+      if (!markPost(m.target)) other = true;
+      for (const n of m.addedNodes) {
+        if (n.nodeType !== 1) continue;
+        if (!newMedia && (n.matches(MEDIA_IMG) || n.querySelector(MEDIA_IMG))) newMedia = true;
+        if (n.matches(POST)) markPost(n);
+        else for (const p of n.querySelectorAll(POST)) markPost(p);
       }
     }
+    if (other && performance.now() - lastGlobal > 300) schedule(document.documentElement);
+    // "Don't load" media: strip images now, not next frame, before they download
+    if (newMedia && S.enabled && (S.repost.media === 'unload' || S.replies.media === 'unload')) scan();
   }).observe(document.documentElement, { subtree: true, childList: true, characterData: true });
+  // Mark the top-level post containing el as needing a re-check → false if none.
+  function markPost(el) {
+    let root = el.closest && el.closest(POST);
+    if (!root) return false;
+    for (let up = root.parentElement && root.parentElement.closest(POST); up; up = up.parentElement && up.parentElement.closest(POST)) root = up;
+    schedule(root);
+    return true;
+  }
 
   // No autoplay for flagged posts: pause any play that you didn't start.
   document.addEventListener(
