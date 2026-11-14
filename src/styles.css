@@ -291,12 +291,22 @@ html[data-xs-logo] div:has(> svg[aria-label='X'][viewBox='0 0 480 490']) {
 html[data-xs-upsells] section:has(a[href^='/i/premium']),
 html[data-xs-upsells] a[href^='/i/premium'],
 html[data-xs-upsells] a[href^='/i/verified'],
-html[data-xs-upsells] a[href='/i/grok'],
-html[data-xs-upsells] a[href^='/i/grok?'],
-html[data-xs-upsells] a[href^='/i/jobs'],
-html[data-xs-upsells] [data-slot='xds-dock-window']:has([data-icon='icon-logo-grok']),
-html[data-xs-upsells] button[aria-label='Explain this post'],
-html[data-xs-upsells] button:has(> span > svg[data-icon='icon-logo-grok']) {
+html[data-xs-upsells] a[href^='/i/jobs'] {
+  display: none !important;
+}
+
+/* Grok: floating button (bottom right), "Explain this post" in post headers,
+   Grok links in posts. The left-menu item has its own switch. */
+html[data-xs-no-grok] main a[href='/i/grok'],
+html[data-xs-no-grok] main a[href^='/i/grok?'],
+html[data-xs-no-grok] [data-slot='xds-dock-window']:has([data-icon='icon-logo-grok']),
+html[data-xs-no-grok] span:has(> button[aria-label='Explain this post']),
+html[data-xs-no-grok] button[aria-label='Explain this post'],
+html[data-xs-no-grok] main button:has(> span > svg[data-icon='icon-logo-grok']) {
+  display: none !important;
+}
+/* Floating chat button (bottom right); an open chat window stays */
+html[data-xs-no-chat-button] [data-slot='xds-dock-window'][data-closed]:has([data-slot='xds-dock-launcher'] [data-icon='icon-chat']) {
   display: none !important;
 }
 

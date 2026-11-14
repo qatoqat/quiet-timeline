@@ -79,6 +79,8 @@
       bannerRadius: 8, // profile banner, px
       menuRadius: 12, // popup menus and search suggestions, px
       solidBars: true, // sticky top bars (feed tabs, profile header) solid instead of see-through blur
+      grokButtons: true, // hide Grok's floating button and the 'Explain this post' button on posts
+      chatButton: true, // hide the floating chat button (bottom right)
     },
     // Left menu items: true = shown
     nav: {

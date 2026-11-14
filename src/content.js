@@ -1118,6 +1118,8 @@
     flag('data-xs-noborders', S.declutter.borders);
     flag('data-xs-rounded', S.declutter.rounded);
     flag('data-xs-solid-bars', S.declutter.solidBars);
+    flag('data-xs-no-grok', S.declutter.grokButtons);
+    flag('data-xs-no-chat-button', S.declutter.chatButton);
     flag('data-xs-views-inline', S.declutter.viewsInline);
     flag('data-xs-paid-check', true, S.paid.check);
     flag('data-xs-blur', true, S.blurStyle);
