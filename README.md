@@ -41,6 +41,8 @@ Listing text, privacy answers and screenshots: `store/`. Privacy policy: `PRIVAC
 
     tools/vivaldi.sh                 # separate Vivaldi profile with DevTools on :9333
     node tools/cdp.mjs reload        # reload extension + X tab after edits
+    tools/vivaldi-guest.sh           # logged-out profile on :9334 — X serves its NEW app to
+                                     # logged-out visitors; test it with CDP_PORT=9334 node tools/cdp.mjs …
     node tools/cdp.mjs evalx '<js>'  # run JS in Quiet Timeline's content-script world (XS._debug …)
     node tools/cdp.mjs eval '<js>'   # run JS in the page
     node tools/cdp.mjs net <regex> <dir>   # save matching API responses after a reload
