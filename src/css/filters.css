@@ -64,6 +64,11 @@ html[data-xs-blur='contour'] {
   overflow: hidden;
   cursor: pointer;
 }
+/* Show on hover: the whole media box, while the pointer is on it */
+html[data-xs-media-hover] [data-xs-media='blur'] article div.rounded-md:hover :is(video, img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[src*='/card_img/']) {
+  filter: none;
+  transform: none;
+}
 [data-xs-media='hide'] article :is([data-press-control], video, img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[src*='/card_img/']) {
   display: none !important;
 }

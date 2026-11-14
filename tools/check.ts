@@ -53,13 +53,47 @@ if (!ctx) {
 }
 
 type Result = [name: string, status: string, detail: string];
+// Show on hover: :hover can't be made by a page script, and a hidden tab drops pointer events, so
+// DevTools forces :hover on the media and its ancestors (as a pointer over it would)
+async function hoverCheck(S: any): Promise<Result[]> {
+  if (!S.enabled) return [];
+  const sel = '[data-xs-media="blur"] :is(img[src*="pbs.twimg.com/media/"], video, [data-testid="tweetPhoto"], [data-testid="videoPlayer"])';
+  const found = await ev(`(async () => {
+    const find = () => [...document.querySelectorAll(${JSON.stringify(sel)})].find((e) => e.getBoundingClientRect().width > 60);
+    let m = find();
+    for (let i = 0; i < 15 && !m; i++) {
+      scrollBy(0, 900); // the feed only keeps posts near the screen: look further down
+      await new Promise((r) => setTimeout(r, 700));
+      m = find();
+    }
+    if (!m) return false;
+    m.setAttribute('data-qt-probe', '');
+    for (let e = m; e && e !== document.body; e = e.parentElement) e.setAttribute('data-qt-hover', '');
+    return true;
+  })()`);
+  const name = S.mediaHover ? 'blurred media shows on hover' : 'blurred media stays blurred on hover';
+  if (!found) return [[name, 'skip', 'no blurred media on the page']];
+  const filter = () => ev(`getComputedStyle(document.querySelector('[data-qt-probe]')).filter`);
+  await c.send('DOM.enable');
+  await c.send('CSS.enable');
+  const { root } = await c.send('DOM.getDocument', { depth: 0 });
+  const { nodeIds } = await c.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-qt-hover]' });
+  const force = (on: boolean) => Promise.all(nodeIds.map((nodeId: number) => c.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: on ? ['hover'] : [] })));
+  await force(true);
+  const over = await filter();
+  await force(false);
+  const away = await filter();
+  await ev(`(document.querySelectorAll('[data-qt-hover], [data-qt-probe]').forEach((e) => e.removeAttribute('data-qt-hover') || e.removeAttribute('data-qt-probe')), scrollTo(0, 0), 1)`);
+  const ok = (S.mediaHover ? over === 'none' : over !== 'none') && away !== 'none';
+  return [[name, ok ? 'pass' : 'fail', `over: ${over.slice(0, 32)} · away: ${away.slice(0, 32)}`]];
+}
 const run = async (S: any, deep: boolean): Promise<Result[]> =>
-  ev(`(async () => {
+  [...(await ev(`(async () => {
     const K = (${kit})(${JSON.stringify(S)}, ${JSON.stringify(NAV_ITEMS)}, ${JSON.stringify(S.theme.preset === 'off' ? null : S.theme.preset === 'custom' ? S.theme.custom : PRESETS[S.theme.preset])});
     if (!K.S.enabled) (${offChecks})(K);
     else { await (${postChecks})(K); await (${pageChecks})(K, ${deep}); }
     return [['app', 'info', (K.OLD ? 'old' : 'new') + ' app at ' + location.pathname], ...K.out];
-  })()`);
+  })()`)), ...(await hoverCheck(S))];
 const print = (rs: Result[], quiet = false) => {
   for (const [name, status, detail] of rs) {
     if (quiet && status !== 'fail') continue;

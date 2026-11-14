@@ -112,6 +112,7 @@ export const DEFAULTS = {
   nav: Object.fromEntries(NAV_ITEMS.map(([k]) => [k, true])) as Record<string, boolean>,
   blurStyle: 'smooth', // 'smooth' | 'contour'
   blurMono: true,
+  mediaHover: false, // blurred media shows while the pointer is on it
   allow: '',
 };
 

@@ -6,6 +6,11 @@ article[data-xs-media='blur'] :is([data-testid='tweetPhoto'], [data-testid='vide
 article[data-xs-media='blur'] :is([data-testid='tweetPhoto'], [data-testid='videoPlayer']) {
   cursor: pointer;
 }
+/* Show on hover: each photo / video (the old app's media frames vary) */
+html[data-xs-media-hover] article[data-xs-media='blur'] :is([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid^='card.layout'][data-testid$='.media']):hover {
+  filter: none !important;
+  transform: none;
+}
 article[data-xs-media='hide'] :is([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid^='card.layout'][data-testid$='.media']) {
   display: none !important;
 }

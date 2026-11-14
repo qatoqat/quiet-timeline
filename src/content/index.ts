@@ -72,6 +72,7 @@ function applySettings(raw: unknown) {
   flag('data-xs-paid-check', true, S.paid.check);
   flag('data-xs-blur', true, S.blurStyle);
   flag('data-xs-blur-mono', S.blurMono);
+  flag('data-xs-media-hover', S.mediaHover);
   if (on && S.blurStyle === 'contour') ensureContourFilters();
   for (const k of ['card', 'search', 'media', 'banner', 'menu'] as const) root.style.setProperty(`--xs-${k}-radius`, `${S.declutter[`${k}Radius`]}px`);
   applyTheme(S.theme, on);
