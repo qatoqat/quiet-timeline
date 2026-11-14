@@ -25,12 +25,7 @@
 
   const lum = (r, g, b) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   const lerp = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
-  function hex(h) {
-    h = String(h).replace('#', '');
-    if (h.length === 3) h = h.replace(/./g, '$&$&');
-    const n = parseInt(h, 16) || 0;
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-  }
+  const hex = (h) => (parseColor(h) || { rgb: [0, 0, 0] }).rgb; // '#rrggbb' → [r, g, b]
   function hue(r, g, b) {
     const mx = Math.max(r, g, b);
     const d = mx - Math.min(r, g, b);
@@ -165,11 +160,6 @@
       .join('\n  ');
   }
 
-  function varCss(pal, calm) {
-    const decl = overrides(readVars(), pal, calm);
-    return decl && `html[data-xs-theme], html[data-xs-theme] body, html[data-xs-theme] [data-theme] {\n  ${decl}\n}`;
-  }
-
   // shadcn-style HSL tokens ("0 0% 0%") used inside X Chat
   const HSL = /^(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%$/;
   function hslToRgb(h, s, l) {
@@ -181,6 +171,7 @@
     return [f(0), f(8), f(4)];
   }
   function rgbToHsl(r, g, b) {
+    const h = hue(r, g, b);
     r /= 255;
     g /= 255;
     b /= 255;
@@ -189,7 +180,6 @@
     const l = (mx + mn) / 2;
     const d = mx - mn;
     const s = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
-    const h = d ? hue(r * 255, g * 255, b * 255) : 0;
     return `${Math.round(h)} ${Math.round(s * 1000) / 10}% ${Math.round(l * 1000) / 10}%`;
   }
   function remapHsl(v, map) {
@@ -290,18 +280,22 @@
   let varsFor = null; // "<data-theme>|<palette json>" the current var CSS was built for
   let ramp = null; // X's own [bg, surface, border, muted, text] from the vars
   const CACHE = 'quiettl-var-css';
+  // everything the generated colors depend on (besides X's light/dark mode)
+  const sig = () => JSON.stringify(palette) + calm + soft + accent + xDisplayColor();
 
   function refreshVars() {
-    const key = `${document.documentElement.getAttribute('data-theme')}|${JSON.stringify(palette)}|${calm}|${soft}|${accent}|${xDisplayColor()}`;
+    const key = document.documentElement.getAttribute('data-theme') + sig();
     if (key === varsFor) return false;
-    const css = varCss(palette, calm);
-    if (!css) return false;
+    const vars = readVars();
+    const decl = overrides(vars, palette, calm);
+    if (!decl) return false;
+    const css = `html[data-xs-theme], html[data-xs-theme] body, html[data-xs-theme] [data-theme] {\n  ${decl}\n}`;
     varsFor = key;
-    ramp = varRamp(readVars());
+    ramp = varRamp(vars);
     varStyle.textContent = css;
     if (!varStyle.isConnected) document.documentElement.appendChild(varStyle);
     try {
-      localStorage.setItem(CACHE, JSON.stringify({ p: JSON.stringify(palette) + calm + soft + accent + xDisplayColor(), css }));
+      localStorage.setItem(CACHE, JSON.stringify({ p: sig(), css }));
     } catch (_) {}
     return true;
   }
@@ -326,7 +320,7 @@
         if (st) st.textContent = '';
         continue;
       }
-      const key = JSON.stringify(palette) + calm + soft + accent + xDisplayColor() + rootEl.getAttribute('data-theme');
+      const key = sig() + rootEl.getAttribute('data-theme');
       if (st && st.dataset.key === key && st.isConnected) continue;
       if (!st) {
         st = document.createElement('style');
@@ -446,7 +440,7 @@
     calm = !!t.calm;
     soft = !!t.softText;
     accent = palette ? (t.accentMode === 'theme' ? palette.accent : t.accentMode === 'custom' ? t.accentColor : null) : null;
-    calmBrand(on && palette && calm);
+    calmBrand(palette && calm);
     mode = detectMode();
     varsFor = null;
     if (palette) {
@@ -457,7 +451,7 @@
       // Use the last generated variable CSS right away to avoid a flash of X's colors.
       try {
         const c = JSON.parse(localStorage.getItem(CACHE) || 'null');
-        if (c && c.p === JSON.stringify(palette) + calm + soft + accent + xDisplayColor()) {
+        if (c && c.p === sig()) {
           varStyle.textContent = c.css;
           if (!varStyle.isConnected) root.appendChild(varStyle);
         }

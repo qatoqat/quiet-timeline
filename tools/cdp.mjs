@@ -1,11 +1,7 @@
 #!/usr/bin/env node
-// Tiny DevTools-protocol helper for the dev Vivaldi started by vivaldi.sh.
-//   node tools/cdp.mjs tabs
-//   node tools/cdp.mjs eval  '<js>'     page world (DOM, X's own JS)
-//   node tools/cdp.mjs evalx '<js>'     Quiet Timeline content-script world (globalThis.XS …)
-//   node tools/cdp.mjs shot out.jpg [css-selector]
-//   node tools/cdp.mjs reload           reload the extension, then the X tab
-//   node tools/cdp.mjs nav <url>
+// Tiny DevTools-protocol helper for the dev Vivaldi started by vivaldi.sh
+// (commands: see the usage line at the bottom). eval runs in X's page world,
+// evalx in the extension's content-script world (globalThis.XS).
 const BASE = `http://127.0.0.1:${process.env.CDP_PORT || 9333}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -94,17 +90,6 @@ try {
     const c = await xTab();
     out(await evaluate(c, a1, await extContext(c)));
     c.close();
-  } else if (cmd === 'oldapp') {
-    // X decides per page load which web app to serve; /i/topics still gets the
-    // old one, and the old app keeps itself for in-app navigation. → old app at
-    // the given path (default /home).
-    const c = await xTab();
-    await c.send('Page.navigate', { url: 'https://x.com/i/topics' });
-    await sleep(7000);
-    const path = a1 || '/home';
-    out(await evaluate(c, `(() => { if (![...document.scripts].some((s) => /responsive-web/.test(s.src))) return 'X served the new app'; history.pushState({}, '', ${JSON.stringify(path)}); dispatchEvent(new PopStateEvent('popstate')); return 'old app at ' + location.pathname; })()`));
-    await sleep(5000);
-    c.close();
   } else if (cmd === 'click') {
     // real mouse click at viewport x,y:  click 900,32
     const c = await xTab();
@@ -184,7 +169,7 @@ try {
     out('ok');
     c.close();
   } else {
-    out('usage: tabs | eval <js> | evalx <js> | shot <file> [selector] | reload | nav <url>');
+    out('usage: tabs | eval <js> | evalx <js> | shot <file> [selector] | storeshot <file.png> [js|click:x,y] | click x,y | reload | net [regex] [dir] | nav <url>   (old app: node tools/check.mjs --old --url <path>)');
   }
 } catch (e) {
   console.error(e.message);

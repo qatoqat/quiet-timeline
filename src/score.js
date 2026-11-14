@@ -124,8 +124,7 @@
     const now = ctx.now || Date.now();
 
     if (u) {
-      const created = u.createdMs ?? Date.parse(u.created);
-      const age = Number.isFinite(created) ? Math.max((now - created) / DAY, 1) : u.oldId ? 4000 : null;
+      const age = Number.isFinite(u.createdMs) ? Math.max((now - u.createdMs) / DAY, 1) : u.oldId ? 4000 : null;
       if (age !== null) {
         if (age < 30) add(30, 'account <30 days');
         else if (age < 90) add(20, 'account <3 months');

@@ -15,15 +15,12 @@
   const MEDIA = 'video, img[src*="pbs.twimg.com/media/"], img[src*="video_thumb"], img[src*="/card_img/"]';
   const SAD_FACE =
     '<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 16.2c1.9-1.8 5.1-1.8 7 0"/></g><circle cx="9" cy="10" r=".8" fill="currentColor"/><circle cx="15" cy="10" r=".8" fill="currentColor"/>';
-  const NI_LABEL = 'Not interested in this post';
 
   // ---------- new app ----------
 
   const NEW_POST = '[role="link"][data-href*="/status/"]';
   const NEW_HEADER = "[class*='@container/post-actions']";
   const NEW = {
-    name: 'new',
-    POST: NEW_POST,
     canUnload: true, // photos are <img>, so they can be kept from loading
     buttonsRelative: false,
 
@@ -54,7 +51,6 @@
     viewsLink: (root) => root.querySelector('a[aria-label="View count"]'),
 
     article: (root) => root.querySelector(':scope > article'),
-    rootOf: (article) => article.parentElement,
     avatar: (article) => article.querySelector('[data-post-avatar]'),
     // the bookmark/share box: "Not interested" joins it, and it moves under the avatar
     actionBox: (root) => root.querySelector(':scope > article [role="group"] > div:has([data-engagement-action="bookmark"])'),
@@ -114,8 +110,6 @@
   const OLD_QUOTE = 'div[role="link"]:has([data-testid="User-Name"])';
   const BOOKMARK = ':is([data-testid="bookmark"], [data-testid="removeBookmark"])';
   const OLD = {
-    name: 'old',
-    POST: OLD_POST,
     canUnload: false, // photos are background images: blur instead of "don't load"
     buttonsRelative: true, // nearly every element is position:relative
 
@@ -155,7 +149,6 @@
     viewsLink: (root, id) => root.querySelector(`[role="group"] a[href$="/status/${id}/analytics"]`),
 
     article: (root) => root,
-    rootOf: (article) => article,
     avatar: (article) => article.querySelector('[data-testid="Tweet-User-Avatar"]'),
     // the action bar is flat: "Not interested" gets its own cell in it
     actionBox: (root) => [...root.querySelectorAll('[role="group"]')].find((g) => !g.closest(OLD_QUOTE) && g.querySelector(BOOKMARK)),
@@ -205,7 +198,7 @@
     A.makeNI = (box) => {
       const b = make(box);
       b.dataset.xsTip = 'Not interested';
-      b.setAttribute('aria-label', NI_LABEL);
+      b.setAttribute('aria-label', 'Not interested in this post');
       return b;
     };
   }
@@ -215,7 +208,6 @@
     OLD,
     POST: `${NEW_POST}, ${OLD_POST}`, // any post root (a selector *list*: don't concatenate it)
     CELL: 'li[data-index], [data-testid="cellInnerDiv"]', // a post's row in the (virtual) list
-    MEDIA,
     of: (root) => (root.tagName === 'ARTICLE' ? OLD : NEW),
     // top-level post (not a quoted one)
     isRoot: (el) => (el.tagName === 'ARTICLE' ? el.matches(OLD_POST) : el.matches(NEW_POST) && !el.parentElement.closest(NEW_POST)),

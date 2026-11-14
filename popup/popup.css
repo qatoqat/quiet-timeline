@@ -23,7 +23,6 @@
   box-sizing: border-box;
 }
 body {
-  width: 340px;
   margin: 0;
   padding: 12px 14px 14px;
   background: var(--bg);
@@ -199,12 +198,7 @@ input[type='color'] {
   color: var(--text);
   background: var(--border);
 }
-section[hidden] {
-  display: none;
-}
-
 .close {
-  display: none;
   width: 24px;
   height: 24px;
   margin-left: 2px;
@@ -218,12 +212,6 @@ section[hidden] {
 .close:hover {
   color: var(--text);
   background: var(--border);
-}
-.in-panel .close {
-  display: block;
-}
-.in-panel body {
-  width: auto;
 }
 
 .grid2 {

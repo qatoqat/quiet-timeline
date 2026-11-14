@@ -152,13 +152,13 @@
   // Buffer everything until the content script says it's listening, then replay.
   let ready = false;
   const buffer = [];
-  const dbg = (window.__quiettlHook = { scripts: 0, scriptTweets: 0, api: 0, apiTweets: 0, apiErr: null, sent: 0, buffered: 0 });
+  const dbg = (window.__quiettlHook = { scripts: 0, sent: 0 }); // read by tools/mem.mjs
   const send = (out) => {
     dbg.sent += out.tweets.length;
     if (!out.users.length && !out.tweets.length && !out.ads.length) return;
     const msg = { __quiettl: 1, users: out.users, tweets: out.tweets, ads: out.ads };
     if (ready) window.postMessage(msg, location.origin);
-    else if (buffer.length < 200) buffer.push(msg), dbg.buffered++;
+    else if (buffer.length < 200) buffer.push(msg);
   };
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data || e.data.__quiettlReady !== 1) return;
@@ -174,12 +174,9 @@
     try {
       const url = input instanceof Request ? input.url : String(input); // string, URL or Request
       if (url && API.test(url)) {
-        dbg.api++;
-        p.then((res) => res.clone().json().then((j) => {
-          const out = extract(j);
-          dbg.apiTweets += out.tweets.length;
-          send(out);
-        })).catch((err) => (dbg.apiErr = String(err)));
+        p.then((res) => res.clone().json())
+          .then((j) => send(extract(j)))
+          .catch(() => {}); // not JSON (e.g. empty responses)
       }
     } catch (_) {}
     return p;
@@ -214,9 +211,7 @@
     if ((scannedLen.get(s) || 0) >= text.length) return;
     scannedLen.set(s, text.length);
     dbg.scripts++;
-    const out = extractFromScript(text);
-    dbg.scriptTweets += out.tweets.length;
-    send(out);
+    send(extractFromScript(text));
   };
   for (const s of document.getElementsByTagName('script')) scanScript(s);
   const mo = new MutationObserver((muts) => {

@@ -122,5 +122,4 @@
     return { find, mask };
   };
 
-  XS._words = { normToken, compile, SLURS, PROFANITY };
 })((globalThis.XS = globalThis.XS || {}));

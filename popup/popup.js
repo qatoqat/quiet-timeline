@@ -36,7 +36,7 @@
   const fields = /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('[data-path]'));
   const custom = document.getElementById('custom');
   const accentRow = document.getElementById('accent-custom');
-  // quick picks: X's display colors and the theme's accent; the rainbow chip
+  // quick picks: X's display colors and the theme's accent; the pen chip
   // (first, so its picker opens inside the panel) picks anything
   const PRESET_ACCENTS = ['#1d9bf0', '#ffd400', '#f91880', '#7856ff', '#ff7a00', '#00ba7c', '#4c8bf5'];
   const accentInput = /** @type {HTMLInputElement} */ (accentRow.querySelector('input'));
@@ -56,12 +56,13 @@
   const markChip = () => {
     // the picker chip shows the current custom color, with a pen icon in a readable color
     const pick = accentRow.querySelector('.pick');
-    const c = /^#[0-9a-f]{6}$/i.test(S.theme.accentColor || '') ? S.theme.accentColor : '#4c8bf5';
+    const cur = S.theme.accentColor.toLowerCase();
+    const c = /^#[0-9a-f]{6}$/.test(cur) ? cur : '#4c8bf5';
     const [r, g, b] = [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
     pick.style.setProperty('--pick', c);
     pick.style.setProperty('--pick-fg', 0.2126 * r + 0.7152 * g + 0.0722 * b > 150 ? '#15171b' : '#fff');
-    for (const b of chips) b.setAttribute('aria-pressed', String(b.title === (S.theme.accentColor || '').toLowerCase()));
-    accentRow.querySelector('.pick').style.outline = PRESET_ACCENTS.includes((S.theme.accentColor || '').toLowerCase()) ? '' : '2px solid var(--text, #e4e6ea)';
+    for (const b of chips) b.setAttribute('aria-pressed', String(b.title === cur));
+    pick.style.outline = PRESET_ACCENTS.includes(cur) ? '' : '2px solid var(--text, #e4e6ea)';
   };
   const sync = () => {
     custom.hidden = S.theme.preset !== 'custom';
@@ -75,8 +76,9 @@
     else el.value = v;
     el.addEventListener(el.type === 'color' ? 'input' : 'change', () => {
       const val =
-        el.type === 'checkbox' ? el.checked : el.type === 'number' ? Math.max(+el.min || 0, Math.min(+el.max || 100, Number(el.value) || 0)) : el.value;
+        el.type === 'checkbox' ? el.checked : el.type === 'number' ? Math.max(+el.min || 0, Math.min(+el.max, Number(el.value) || 0)) : el.value;
       set(S, el.dataset.path, val);
+      if (el.type === 'number') el.value = String(val); // show the clamped value
       sync();
       save();
     });
@@ -104,16 +106,14 @@
     clearTimeout(timer);
     timer = setTimeout(() => chrome.storage.sync.set({ settings: S }), 250);
   }
+  addEventListener('pagehide', () => timer && chrome.storage.sync.set({ settings: S })); // closed right after an edit
 
-  // Inside the in-page panel: report height, offer a close button.
-  if (window.top !== window) {
-    document.documentElement.classList.add('in-panel');
-    const report = () => parent.postMessage({ quiettlPanelHeight: document.documentElement.scrollHeight }, '*');
-    new ResizeObserver(report).observe(document.body);
-    report();
-    document.getElementById('close').addEventListener('click', () => parent.postMessage({ quiettlPanel: 'close' }, '*'));
-    window.addEventListener('keydown', (e) => e.key === 'Escape' && parent.postMessage({ quiettlPanel: 'close' }, '*'));
-  }
+  // Shown in the in-page panel (iframe): report height, close on × / Esc.
+  const report = () => parent.postMessage({ quiettlPanelHeight: document.documentElement.scrollHeight }, '*');
+  new ResizeObserver(report).observe(document.body);
+  report();
+  document.getElementById('close').addEventListener('click', () => parent.postMessage({ quiettlPanel: 'close' }, '*'));
+  window.addEventListener('keydown', (e) => e.key === 'Escape' && parent.postMessage({ quiettlPanel: 'close' }, '*'));
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

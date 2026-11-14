@@ -60,9 +60,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "popup/*",
-        "icons/*",
-        "src/defaults.js"
+        "popup/popup.html"
       ],
       "matches": [
         "https://x.com/*",

@@ -18,7 +18,7 @@
   opacity: 1;
 }
 
-/* Collapsed posts: header-only rules are generated in content.js (collapseCss) */
+/* Collapsed posts: header-only rules are generated in apps.js (collapseCss) */
 [data-xs-state='collapsed'] {
   cursor: pointer;
 }
@@ -515,7 +515,8 @@ html[data-xs-no-chat-button] [data-testid='chat-drawer-root'] {
   display: none !important;
 }
 /* logo, trends, who to follow, premium */
-html[data-xs-logo] header[role='banner'] h1:has(a[aria-label='X']) {
+html[data-xs-logo] header[role='banner'] h1:has(a[aria-label='X']),
+html[data-xs-profile-top] header[role='banner'] h1:has(a[aria-label='X']) {
   display: none !important;
 }
 html[data-xs-sidebar] [data-testid='sidebarColumn'] :is(section, div[aria-label]):has([data-testid='trend'], [data-testid='UserCell']) {
@@ -525,10 +526,6 @@ html[data-xs-upsells] [data-testid='sidebarColumn'] :is(aside, .r-1867qdf):has(a
 html[data-xs-upsells] a[href^='/i/premium_sign_up'],
 html[data-xs-upsells] [data-testid='verified_profile_upsell'] {
   display: none !important;
-}
-
-article[data-testid='tweet'] .xs-toggle {
-  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* ---------- old app: layout ---------- */
@@ -546,13 +543,13 @@ html[data-xs-noborders] [data-testid='primaryColumn'] :is(div, section):not(arti
 /* one-sided lines inside posts too (e.g. around the stats and "Relevant /
    View quotes" on a post page): X's border-top / border-bottom utility classes;
    quoted posts use an all-sides border and keep it */
-/* …and 1px divider divs (e.g. under the composer) */
-html[data-xs-noborders] [data-testid='primaryColumn'] div.r-109y4c4.r-gu4em3 {
-  background-color: transparent !important;
-}
 html[data-xs-noborders] [data-testid='primaryColumn'] :is(.r-qklmqi, .r-5kkj8d) {
   border-top-color: transparent !important;
   border-bottom-color: transparent !important;
+}
+/* …and 1px divider divs (e.g. under the composer) */
+html[data-xs-noborders] [data-testid='primaryColumn'] div.r-109y4c4.r-gu4em3 {
+  background-color: transparent !important;
 }
 /* rounded hover */
 html[data-xs-rounded] [data-testid='cellInnerDiv'] article[data-testid='tweet'] {
@@ -647,9 +644,6 @@ html[data-xs-profile-top] header[role='banner'] div:has(> div > [data-testid='Si
 html[data-xs-profile-top] header[role='banner'] div:has(> div > div > [data-testid='SideNav_AccountSwitcher_Button']) {
   justify-content: flex-start !important;
 }
-html[data-xs-profile-top] header[role='banner'] h1:has(a[aria-label='X']) {
-  display: none !important;
-}
 /* views next to the date */
 html[data-xs-views-inline] article [role='group'] > div:has(a[href$='/analytics']) {
   display: none !important;
@@ -680,10 +674,6 @@ article[data-xs-side] [role='group'] > div:has(svg path[d^='M12 2.59l5.7']) {
 article[data-xs-side][data-xs-ni] {
   --qt-ni-slot: 36px;
 }
-.qt-ni-cell {
-  display: flex;
-  align-items: center;
-}
 /* calm: no bright white buttons */
 html[data-xs-calm] :is([data-testid='SideNav_NewTweet_Button'], [data-testid$='-follow'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']) {
   background-color: var(--xs-surface, #1d2026) !important;
@@ -703,14 +693,13 @@ article[data-testid='tweet'] [data-xs-views]::after {
 
 article[data-testid='tweet'] .xs-toggle {
   margin-left: auto; /* next to the ⋯ menu, not centered in the header row */
+  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* old app, calm: muted menu and composer icons (active page stays bright), no
    faded disabled Post button; soft text: semi-bold names */
-html[data-xs-calm] header[role='banner'] nav a:not([data-xs-active]) svg,
-html[data-xs-calm] header[role='banner'] nav button svg,
-html[data-xs-calm] [data-testid='toolBar'] [role='button'] svg,
-html[data-xs-calm] [data-testid='toolBar'] button svg {
+html[data-xs-calm] header[role='banner'] nav :is(a:not([data-xs-active]), button) svg,
+html[data-xs-calm] [data-testid='toolBar'] :is([role='button'], button) svg {
   color: var(--xs-muted, #8b919c) !important;
 }
 html[data-xs-calm] header[role='banner'] nav :is(a, button):hover svg,

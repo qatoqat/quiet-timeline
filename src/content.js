@@ -7,7 +7,7 @@
     'lists', 'communities', 'jobs', 'premium', 'login', 'logout', 'tos', 'privacy',
   ]);
   // Markup differences between X's two web apps live in apps.js.
-  const { POST, CELL, MEDIA } = XS.apps;
+  const { POST, CELL } = XS.apps;
   const appOf = XS.apps.of;
 
   let S = XS.merge(XS.DEFAULTS, null);
@@ -22,7 +22,7 @@
   const tweets = new Map(); // id → tweet
   const dup = new Map(); // cleaned text → Map(userId → Set(tweetId))
   const langCache = new Map(); // tweetId → {slur, prof, custom}
-  const tally = new Map(); // userId → [original, nonOriginal] (persisted)
+  const tally = new Map(); // userId → { o, n, m, r, w, wt, wv, ids } (persisted; see tallyRow)
   const revealed = new Set();
   const mediaRevealed = new Set();
   const playAllowed = new Set(); // posts whose video you started yourself
@@ -46,7 +46,7 @@
       const rules = [];
       const ids = [...sizeState.keys()].slice(-600);
       for (const id of ids) {
-        if (!/^\d+$/.test(id) || revealed.has(id)) continue;
+        if (revealed.has(id)) continue;
         const st = sizeState.get(id);
         if (st.hidden) hidden.push(`li[data-index]:has(${top(id)})`);
         else if (st.why) rules.push(XS.apps.NEW.collapseCss(top(id), st.why));
@@ -91,11 +91,10 @@
     return { dupSameUser: byUser.get(t.userId)?.size || 0, dupUsers: byUser.size };
   }
 
-  // Per-account counts, kept across sessions: { o: originals, n: non-original,
-  // m: with media, ids: recently counted post ids (so reloads don't recount) }.
+  // Per-account counts, kept across sessions: o originals, n non-original, m with
+  // media, r replies, w/wt/wv topic words, ids recently counted post ids (so
+  // reloads don't recount; small, so 3000 accounts stay far below the 10 MB quota).
   let tallyDirty = false;
-  // Recent post ids per account, only to avoid recounting the same posts after a
-  // reload. Small, so 3000 accounts stay far below the 10 MB storage quota.
   const IDS_KEPT = 60;
   function tallyRow(userId) {
     let row = tally.get(userId);
@@ -157,7 +156,7 @@
         m: saved.m + cur.m,
         r: (saved.r || 0) + (cur.r || 0),
         wt: (saved.wv === WORDS_VERSION ? saved.wt || 0 : 0) + (cur.wt || 0),
-        w: saved.wv === WORDS_VERSION ? mergeCounts(saved.w, cur.w) : cur.w,
+        w: mergeCounts(saved.wv === WORDS_VERSION && saved.w, cur.w),
         wv: WORDS_VERSION,
         ids: [...saved.ids, ...cur.ids.filter((x) => !ids.has(x))].slice(-IDS_KEPT),
       });
@@ -331,18 +330,17 @@
   // ---------- per-post decision ----------
 
   function reset(root, info) {
-    if (info && info.id && sizeState.delete(info.id)) updateSizeCss();
+    if (sizeState.delete(info.id)) updateSizeCss();
     delete root.dataset.xsState;
     delete root.dataset.xsWhy;
     delete root.dataset.xsMedia;
     delete root.dataset.xsNoplay;
     delete root.dataset.xsPfp;
-    delete root.dataset.xsLabel;
     const cell = root.closest(CELL);
     if (cell) delete cell.dataset.xsHidden;
     const n = info.nameEl;
     if (n) {
-      for (const k of ['xsBadge', 'xsLvl', 'xsPaid', 'xsTag']) delete n.dataset[k];
+      for (const k of ['xsBadge', 'xsLvl', 'xsPaid']) delete n.dataset[k];
       if (n.hasAttribute('data-xs-title')) {
         n.removeAttribute('title');
         n.removeAttribute('data-xs-title');
@@ -445,7 +443,7 @@
     // Revealed media gets a small button to cover it again.
     setReblur(root, coverable && mediaRevealed.has(id) && mediaMode !== 'hide' ? mediaMode : null);
     if (wasUnloaded && root.dataset.xsMedia !== 'unload') restoreMedia(root);
-    const quiet = (S.repost.noAutoplay && flaggedMedia) || (root.dataset.xsMedia && root.dataset.xsMedia !== 'none');
+    const quiet = (S.repost.noAutoplay && flaggedMedia) || root.dataset.xsMedia;
     if (quiet && !trusted && !playAllowed.has(id) && (t ? t.hasMedia : info.media.length)) {
       root.dataset.xsNoplay = '1';
       for (const v of root.querySelectorAll('video')) if (!v.paused) v.pause();
@@ -517,7 +515,6 @@
     if (action === 'collapse') {
       root.dataset.xsState = 'collapsed';
       root.dataset.xsWhy = verdict.why.length > 140 ? verdict.why.slice(0, 139) + '…' : verdict.why;
-      if (verdict.label) root.dataset.xsLabel = verdict.label;
       sizeState.set(id, { why: root.dataset.xsWhy });
       updateSizeCss();
       stats.collapsed.add(id);
@@ -581,7 +578,7 @@
         watched.delete(e.target);
         continue;
       }
-      const root = e.target.tagName === 'ARTICLE' && XS.apps.isRoot(e.target) ? e.target : e.target.parentElement;
+      const root = XS.apps.isRoot(e.target) ? e.target : e.target.parentElement;
       if (root) layoutSide(root);
     }
   });
@@ -652,7 +649,13 @@
     for (const root of document.querySelectorAll('[data-xs-key]')) {
       const info = readPost(root);
       if (info) reset(root, info);
-      delete root.dataset.xsKey;
+      // undo what processPost added beyond attributes
+      restoreMedia(root);
+      setToggle(root, null);
+      setReblur(root, null);
+      const ni = root.querySelector('.xs-ni');
+      if (ni) appOf(root).niHost(ni).remove();
+      for (const k of ['xsKey', 'xsSide', 'xsWantSide', 'xsNi']) delete root.dataset[k];
     }
   }
 
@@ -1008,31 +1011,29 @@
       // Keep the menu invisible while we use it (it still opens and loads normally).
       const html = document.documentElement;
       html.setAttribute('data-xs-menu-busy', '');
-      const done = () => setTimeout(() => html.removeAttribute('data-xs-menu-busy'), 400);
       more.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
       more.click();
       // the first menu after a page load can take a while (X loads its code then)
-      for (let i = 0; i < 80; i++) {
+      let item = null;
+      for (let i = 0; i < 80 && !item; i++) {
         await new Promise((r) => setTimeout(r, 50));
-        const item = [...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find(A.isNIItem);
-        if (item) {
-          // X's menu needs a real press/release sequence, not just a click event.
-          const o = { bubbles: true, cancelable: true, pointerType: 'mouse', button: 0, buttons: 1, isPrimary: true };
-          item.dispatchEvent(new PointerEvent('pointerdown', o));
-          item.dispatchEvent(new MouseEvent('mousedown', o));
-          item.dispatchEvent(new PointerEvent('pointerup', { ...o, buttons: 0 }));
-          item.dispatchEvent(new MouseEvent('mouseup', { ...o, buttons: 0 }));
-          item.dispatchEvent(new MouseEvent('click', { ...o, buttons: 0 }));
-          done();
-          setTimeout(() => document.activeElement && document.activeElement.blur(), 50); // no lingering focus ring
-          return;
-        }
+        item = [...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find(A.isNIItem);
       }
-      // not offered: close the menu again
-      const menu = document.querySelector('[role="menu"]');
-      if (menu) menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      done();
-      setTimeout(() => document.activeElement && document.activeElement.blur(), 50);
+      if (item) {
+        // X's menu needs a real press/release sequence, not just a click event.
+        const o = { bubbles: true, cancelable: true, pointerType: 'mouse', button: 0, buttons: 1, isPrimary: true };
+        item.dispatchEvent(new PointerEvent('pointerdown', o));
+        item.dispatchEvent(new MouseEvent('mousedown', o));
+        item.dispatchEvent(new PointerEvent('pointerup', { ...o, buttons: 0 }));
+        item.dispatchEvent(new MouseEvent('mouseup', { ...o, buttons: 0 }));
+        item.dispatchEvent(new MouseEvent('click', { ...o, buttons: 0 }));
+      } else {
+        // not offered: close the menu again
+        const menu = document.querySelector('[role="menu"]');
+        if (menu) menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      }
+      setTimeout(() => html.removeAttribute('data-xs-menu-busy'), 400);
+      setTimeout(() => document.activeElement && document.activeElement.blur(), 50); // no lingering focus ring
   }
 
   // Click a collapsed post to reveal it; click blurred media to show it.
@@ -1062,9 +1063,10 @@
         const root = toggle.closest(POST);
         const info = root && readPost(root);
         if (!info) return;
-        if (revealed.has(info.id)) revealed.delete(info.id);
-        else revealed.add(info.id);
-        if (revealed.has(info.id)) delete root.dataset.xsState;
+        if (!revealed.delete(info.id)) {
+          revealed.add(info.id);
+          delete root.dataset.xsState;
+        }
         hideTip();
         updateSizeCss();
         schedule();

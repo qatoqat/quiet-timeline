@@ -25,7 +25,7 @@ After editing the code, press the reload icon on the extension card, then reload
 
 Works with both of X's web apps: the new one ("x-web", Tailwind markup) and the older
 "responsive-web" one (`data-testid` markup), which X still serves to some accounts.
-`src/content.js` reads posts from either (see `readPost` / `readOldPost`).
+`src/apps.js` holds the per-app markup adapters (`NEW` / `OLD`); `src/content.js` picks one per post.
 
 ## Package for the Chrome Web Store
 
