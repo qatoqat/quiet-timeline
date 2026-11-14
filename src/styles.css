@@ -41,10 +41,9 @@
 
 /* ---------- profile pictures of accounts you don't follow ---------- */
 
-/* Three blur styles (html[data-xs-blur]):
+/* Two blur styles (html[data-xs-blur]):
    smooth  — CSS blur, image enlarged in its clipped frame so edges stay solid
-   contour — blur + posterize (SVG filter): flat bands with hard contours
-   mosaic  — a tiny canvas drawn once, enlarged with hard pixel edges; no filter */
+   contour — blur, then lightness in flat soft-edged bands (SVG filter) */
 :root {
   --qt-gray: grayscale(0);
   --qt-pfp-blur: blur(6px) var(--qt-gray);
@@ -57,11 +56,11 @@ html[data-xs-blur='contour'] {
   --qt-pfp-blur: url(#quiettl-contour-sm) var(--qt-gray);
   --qt-media-blur: url(#quiettl-contour-lg) var(--qt-gray);
 }
-html:not([data-xs-blur='mosaic']) [data-xs-pfp] > article > div > div > [data-post-avatar] .x-avatar img {
+[data-xs-pfp] > article > div > div > [data-post-avatar] .x-avatar img {
   filter: var(--qt-pfp-blur);
   transform: scale(1.6);
 }
-html:not([data-xs-blur='mosaic']) [data-xs-media='blur'] article :is(img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[src*='/card_img/']),
+[data-xs-media='blur'] article :is(img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[src*='/card_img/']),
 [data-xs-media='blur'] article video {
   filter: var(--qt-media-blur);
   transform: scale(1.08); /* hide the blurred edge */
@@ -69,20 +68,6 @@ html:not([data-xs-blur='mosaic']) [data-xs-media='blur'] article :is(img[src*='p
 [data-xs-pfp]:hover > article > div > div > [data-post-avatar] .x-avatar img {
   filter: none !important;
   transform: none !important;
-}
-canvas.qt-mosaic {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  image-rendering: pixelated;
-  pointer-events: none;
-  z-index: 1;
-  display: none;
-}
-html[data-xs-blur='mosaic'] [data-xs-media='blur'] article canvas.qt-mosaic.qt-media,
-html[data-xs-blur='mosaic'] [data-xs-pfp]:not(:hover) > article > div > div > [data-post-avatar] canvas.qt-mosaic {
-  display: block;
 }
 [data-xs-media='blur'] article [data-press-control] {
   overflow: hidden;

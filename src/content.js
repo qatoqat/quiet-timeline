@@ -323,52 +323,6 @@
     }
   }
 
-  // ---------- mosaic blur style ----------
-
-  // Draw the image once into a tiny canvas laid over it; the browser enlarges
-  // it with hard pixel edges. Nothing is re-filtered while scrolling. (A
-  // cross-origin image "taints" the canvas, but we only display it.)
-  function mosaic(img, cells, cls) {
-    const box = img.parentElement;
-    if (!box || !img.getAttribute('src')) return;
-    let cv = box.querySelector(':scope > canvas.qt-mosaic');
-    const key = `${img.currentSrc}|${S.blurMono}`;
-    if (cv && cv.dataset.key === key) return;
-    const draw = () => {
-      const w = img.clientWidth || box.clientWidth;
-      const h = img.clientHeight || box.clientHeight;
-      if (!w || !h || !img.naturalWidth) return;
-      if (!cv) {
-        cv = document.createElement('canvas');
-        cv.className = `qt-mosaic ${cls}`;
-        if (getComputedStyle(box).position === 'static') box.style.position = 'relative';
-        img.after(cv);
-      }
-      cv.width = Math.max(2, Math.round(w >= h ? cells : (cells * w) / h));
-      cv.height = Math.max(2, Math.round(w >= h ? (cells * h) / w : cells));
-      // crop like object-fit: cover
-      const r = Math.max(cv.width / img.naturalWidth, cv.height / img.naturalHeight);
-      const sw = cv.width / r;
-      const sh = cv.height / r;
-      const ctx = cv.getContext('2d');
-      ctx.filter = S.blurMono ? 'grayscale(1)' : 'none';
-      ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
-      cv.dataset.key = key;
-    };
-    if (img.complete) draw();
-    else img.addEventListener('load', draw, { once: true });
-  }
-  function applyMosaic(root) {
-    if (S.blurStyle !== 'mosaic') return;
-    if (root.dataset.xsPfp) {
-      const img = root.querySelector(':scope > article > div > div > [data-post-avatar] .x-avatar img');
-      if (img) mosaic(img, 6, 'qt-pfp');
-    }
-    if (root.dataset.xsMedia === 'blur') {
-      for (const img of root.querySelectorAll(MEDIA_IMG)) if (!img.closest('[data-post-avatar]')) mosaic(img, 14, 'qt-media');
-    }
-  }
-
   // SVG filters for the "contour" style: blur, then band only the lightness
   // into flat steps (soft-edged) while keeping the blur's own colours — banding
   // red/green/blue separately gives false rainbow colours.
@@ -751,7 +705,6 @@
       try {
         processPost(root, page);
         layoutSide(root);
-        applyMosaic(root);
       } catch (err) {
         console.debug('[quiettl]', err);
       }
