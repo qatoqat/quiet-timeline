@@ -42,9 +42,9 @@ Not affiliated with X Corp.
 **Data usage:** Collects none of the listed categories. (Website content is processed locally only and never leaves the device, so it is not "collected" under the Chrome Web Store definition.)
 Certify: does not sell or transfer data to third parties, does not use or transfer it for purposes unrelated to the single purpose, and does not use or transfer it to determine creditworthiness or for lending.
 
-**Privacy policy URL:** host PRIVACY.md somewhere public (e.g. a GitHub Pages or gist URL) and paste it here.
+**Privacy policy URL:** https://qatoqat.com/quiet-timeline/PRIVACY.html
 
 ## Assets still needed
-- Icon 128×128 (from the chosen logo)
-- At least one screenshot at 1280×800 (or 640×400)
+- Icon: icons/128.png
+- Screenshots: store/screenshots/1-feed.png … 4-settings.png (1280×800)
 - Optional small promo tile 440×280
