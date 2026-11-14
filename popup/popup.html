@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Quiet Timeline</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <img src="../icons/48.png" alt="" width="22" height="22" />
+    <h1>Quiet Timeline</h1>
+    <label class="switch" title="Enable on X">
+      <input type="checkbox" data-path="enabled" />
+      <span></span>
+    </label>
+    <button id="close" class="close" title="Close (Esc)" aria-label="Close">×</button>
+  </header>
+
+  <p id="stats" class="stats">Open an X tab to see stats.</p>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="accounts">Accounts</button>
+    <button role="tab" data-tab="content">Content</button>
+    <button role="tab" data-tab="look">Theme</button>
+    <button role="tab" data-tab="layout">Layout</button>
+  </nav>
+
+  <section data-tab="accounts">
+    <h2>Bots &amp; engagement farmers</h2>
+    <div class="row">
+      <label>Apply to</label>
+      <select data-path="bot.scope">
+        <option value="replies">Replies only</option>
+        <option value="all">All tweets (not followed)</option>
+      </select>
+    </div>
+    <div class="row">
+      <label>Score ≥ <input type="number" min="1" max="100" data-path="bot.high" /></label>
+      <select data-path="bot.highAction" class="action"></select>
+    </div>
+    <div class="row">
+      <label>Score ≥ <input type="number" min="1" max="100" data-path="bot.mid" /></label>
+      <select data-path="bot.midAction" class="action"></select>
+    </div>
+    <label class="check"><input type="checkbox" data-path="bot.badges" /> Show score badge next to names (hover it for reasons)</label>
+  </section>
+
+  <section data-tab="accounts">
+    <h2>Paid checkmarks</h2>
+    <div class="row">
+      <label>Replies from paid checks</label>
+      <select data-path="paid.replyAction" class="action"></select>
+    </div>
+    <div class="row">
+      <label>Adds to bot score</label>
+      <input type="number" min="0" max="50" data-path="paid.weight" />
+    </div>
+    <div class="row">
+      <label>Checkmark icon</label>
+      <select data-path="paid.check">
+        <option value="keep">Keep</option>
+        <option value="grey">Grey out</option>
+        <option value="hide">Hide</option>
+      </select>
+    </div>
+    <p class="hint">Gold (business), grey (government) and organization-affiliated checks are not counted as paid.</p>
+  </section>
+
+  <section data-tab="content">
+    <h2>Reposters &amp; non-original content</h2>
+    <label class="check"><input type="checkbox" data-path="repost.mark" /> Tag accounts that mostly repost / post others' media (♻)</label>
+    <div class="row">
+      <label>Their media</label>
+      <select data-path="repost.media">
+        <option value="none">Show</option>
+        <option value="blur">Blur (click to show)</option>
+        <option value="unload">Don't load (click to load)</option>
+        <option value="hide">Hide completely</option>
+      </select>
+    </div>
+    <label class="check"><input type="checkbox" data-path="repost.noAutoplay" /> Don't autoplay their videos (click to play)</label>
+    <div class="row">
+      <label>Reposter if ≥ <input type="number" min="10" max="100" data-path="repost.ratio" /> %</label>
+      <label>of ≥ <input type="number" min="1" max="50" data-path="repost.minPosts" /> posts</label>
+    </div>
+    <label class="check"><input type="checkbox" data-path="repost.aggregators" /> Count aggregators as reposters</label>
+    <div class="row">
+      <label>Aggregator: ≥ <input type="number" min="5" max="500" data-path="repost.aggPerDay" /> posts/day, mostly media</label>
+    </div>
+    <label class="check"><input type="checkbox" data-path="repost.themed" /> Tag single-topic media accounts (◎ capybara, ◎ fox…)</label>
+    <label class="check"><input type="checkbox" data-path="repost.themedMedia" /> Treat their media like reposters'</label>
+    <textarea data-path="repost.list" rows="2" placeholder="Always treat as reposter: @handle, one per line"></textarea>
+    <p class="hint">Learns as you browse; visiting a profile judges it fastest. Copied media (“From @…”) is caught on the first post.</p>
+  </section>
+
+  <section data-tab="content">
+    <h2>Replies</h2>
+    <div class="row">
+      <label>Media in replies (accounts you don't follow)</label>
+      <select data-path="replies.media">
+        <option value="none">Show</option>
+        <option value="blur">Blur (click to show)</option>
+        <option value="unload">Don't load (click to load)</option>
+        <option value="hide">Hide completely</option>
+      </select>
+    </div>
+  </section>
+
+  <section data-tab="content">
+    <h2>Language</h2>
+    <div class="row">
+      <label>Slurs</label>
+      <select data-path="lang.slurAction" class="action mask"></select>
+    </div>
+    <div class="row">
+      <label>Profanity</label>
+      <select data-path="lang.profanityAction" class="action mask"></select>
+    </div>
+    <div class="row">
+      <label>Your muted words</label>
+      <select data-path="lang.customAction" class="action mask"></select>
+    </div>
+    <textarea data-path="lang.custom" rows="3" placeholder="one per line · word* matches any ending"></textarea>
+    <p class="hint">Unmasking after a change needs a tab reload.</p>
+  </section>
+
+  <section data-tab="look">
+    <h2>Theme</h2>
+    <div class="row">
+      <label>Theme</label>
+      <select data-path="theme.preset">
+        <option value="off">X default</option>
+        <option value="xsieve">Quiet</option>
+        <option value="graphite">Graphite</option>
+        <option value="oled">OLED black</option>
+        <option value="nord">Nord</option>
+        <option value="gruvbox">Gruvbox</option>
+        <option value="mocha">Mocha</option>
+        <option value="paper">Paper (light)</option>
+        <option value="custom">Custom…</option>
+      </select>
+    </div>
+    <div id="custom" class="swatches">
+      <label><input type="color" data-path="theme.custom.bg" />Background</label>
+      <label><input type="color" data-path="theme.custom.surface" />Surface</label>
+      <label><input type="color" data-path="theme.custom.border" />Borders</label>
+      <label><input type="color" data-path="theme.custom.muted" />Muted text</label>
+      <label><input type="color" data-path="theme.custom.text" />Text</label>
+      <label><input type="color" data-path="theme.custom.accent" />Accent</label>
+    </div>
+    <div class="row">
+      <label>Font</label>
+      <select data-path="theme.font">
+        <option value="default">X default</option>
+        <option value="system">System font</option>
+      </select>
+    </div>
+    <label class="check"><input type="checkbox" data-path="theme.calm" /> Calm contrast (quiet buttons, no colored banners)</label>
+    <label class="check"><input type="checkbox" data-path="theme.softText" /> Softer text (dimmer, semi-bold, airier posts)</label>
+  </section>
+
+  <section data-tab="layout">
+    <h2>Layout &amp; clutter</h2>
+    <label class="check"><input type="checkbox" data-path="declutter.ads" /> Hide ads (promoted posts)</label>
+    <label class="check"><input type="checkbox" data-path="declutter.upsells" /> Hide Premium / Grok / verification upsells</label>
+    <label class="check"><input type="checkbox" data-path="declutter.sidebar" /> Hide trends &amp; “Who to follow”</label>
+    <label class="check"><input type="checkbox" data-path="declutter.logo" /> Hide X logo</label>
+    <label class="check"><input type="checkbox" data-path="declutter.borders" /> Remove center column borders</label>
+    <label class="check"><input type="checkbox" data-path="declutter.rounded" /> Rounded post hover</label>
+    <label class="check"><input type="checkbox" data-path="declutter.narrowTabs" /> Short tab underline (For you / Following)</label>
+    <label class="check"><input type="checkbox" data-path="declutter.outlineChecks" /> Outlined checkmarks</label>
+    <label class="check"><input type="checkbox" data-path="declutter.viewsInline" /> View count next to the date</label>
+    <label class="check"><input type="checkbox" data-path="declutter.sideActions" /> Bookmark &amp; share under the avatar</label>
+    <label class="check"><input type="checkbox" data-path="declutter.notInterested" /> “Not interested” button under the avatar (accounts you don't follow)</label>
+    <div class="row">
+      <label>Share icon</label>
+      <select data-path="declutter.shareIcon">
+        <option value="forward">Forward arrow ↪</option>
+        <option value="nodes">Connected dots</option>
+        <option value="x">X default</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label>Sidebar card corners</label>
+      <span><input type="number" min="0" max="40" data-path="declutter.cardRadius" /> px</span>
+    </div>
+    <div class="row">
+      <label>Post media corners</label>
+      <span><input type="number" min="0" max="40" data-path="declutter.mediaRadius" /> px</span>
+    </div>
+    <div class="row">
+      <label>Profile banner corners</label>
+      <span><input type="number" min="0" max="40" data-path="declutter.bannerRadius" /> px</span>
+    </div>
+    <div class="row">
+      <label>Search box corners</label>
+      <span><input type="number" min="0" max="999" data-path="declutter.searchRadius" /> px</span>
+    </div>
+    <label class="check"><input type="checkbox" data-path="declutter.popups" /> Auto-close nag popups (Premium, 2FA, app, notifications…)</label>
+  </section>
+
+  <section data-tab="layout">
+    <h2>Left menu</h2>
+    <label class="check"><input type="checkbox" data-path="declutter.navIcons" /> Icons only (names show on hover)</label>
+    <label class="check"><input type="checkbox" data-path="declutter.profileTop" /> Profile button at the top (instead of the logo)</label>
+    <div id="nav-items" class="grid2"></div>
+  </section>
+
+  <section data-tab="accounts">
+    <h2>Profile pictures</h2>
+    <label class="check"><input type="checkbox" data-path="pfp.others" /> Blur avatars of accounts you don't follow</label>
+    <label class="check"><input type="checkbox" data-path="pfp.paid" /> Blur avatars of paid checkmarks you don't follow</label>
+    <p class="hint">Hover a post to see its avatar. Applies to the feed and replies.</p>
+  </section>
+
+  <section data-tab="accounts">
+    <h2>Never filter</h2>
+    <textarea data-path="allow" rows="2" placeholder="@handle, one per line (people you follow are always exempt)"></textarea>
+  </section>
+
+  <script src="../src/defaults.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,394 @@
+/* ---------- filter states (set on the post's role=link box) ---------- */
+
+/* Hide the list item's content but keep the item 1px tall: X's virtual list
+   ignores 0px measurements and would keep the post's old height as a gap. */
+[data-xs-hidden] {
+  height: 1px !important;
+  overflow: hidden !important;
+}
+[data-xs-hidden] > * {
+  display: none !important;
+}
+
+[data-xs-state='dim'] {
+  opacity: 0.3;
+  transition: opacity 0.15s;
+}
+[data-xs-state='dim']:hover {
+  opacity: 1;
+}
+
+/* Collapsed posts: header-only rules are generated in content.js (collapseCss) */
+[data-xs-state='collapsed'] {
+  cursor: pointer;
+}
+.xs-toggle {
+  margin-inline-end: 6px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+  color: var(--x-fg-secondary, #8b8f97);
+  cursor: pointer;
+}
+.xs-toggle:hover {
+  color: var(--x-fg-primary, #e7e9ea);
+  text-decoration: underline;
+}
+
+/* ---------- profile pictures of accounts you don't follow ---------- */
+
+[data-xs-pfp] > article > div > div > [data-post-avatar] img {
+  filter: blur(7px) grayscale(0.5);
+  transform: scale(1.15);
+}
+[data-xs-pfp]:hover > article > div > div > [data-post-avatar] img {
+  filter: none;
+  transform: none;
+}
+
+/* ---------- media of non-original posts ---------- */
+
+[data-xs-media='blur'] article :is(video, img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[src*='/card_img/']) {
+  filter: blur(26px) grayscale(1);
+  transform: scale(1.08); /* hide the blurred edge */
+}
+[data-xs-media='blur'] article [data-press-control] {
+  overflow: hidden;
+  cursor: pointer;
+}
+[data-xs-media='hide'] article :is([data-press-control], video, img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[src*='/card_img/']) {
+  display: none !important;
+}
+
+/* "Don't load": placeholder box instead of the media, click to load */
+[data-xs-media='unload'] article div.rounded-md:has(img[data-xs-src], video) {
+  min-height: 120px;
+  background: var(--x-bg-secondary, #16181c);
+  cursor: pointer;
+}
+[data-xs-media='unload'] article div.rounded-md:has(img[data-xs-src], video) > * {
+  visibility: hidden;
+}
+[data-xs-media='unload'] article div.rounded-md:has(img[data-xs-src], video)::before {
+  content: '▶  Media not loaded · click to load';
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 13px/1.4 system-ui, sans-serif;
+  color: var(--x-fg-secondary, #8b8f97);
+}
+
+/* ---------- badge after the display name ---------- */
+
+[data-xs-badge]::after {
+  content: attr(data-xs-badge);
+  align-self: center;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font: 600 11px/16px system-ui, sans-serif;
+  white-space: nowrap;
+  background: rgba(140, 140, 150, 0.16);
+  color: #9a9ea6;
+}
+[data-xs-badge][data-xs-lvl='repost']::after {
+  background: rgba(240, 140, 50, 0.16);
+  color: #ec8f3e;
+}
+[data-xs-badge][data-xs-lvl='themed']::after {
+  background: rgba(80, 180, 160, 0.16);
+  color: #5fb8a6;
+}
+[data-xs-badge][data-xs-lvl='mid']::after {
+  background: rgba(230, 170, 50, 0.16);
+  color: #d9a441;
+}
+[data-xs-badge][data-xs-lvl='high']::after {
+  background: rgba(235, 80, 80, 0.16);
+  color: #e86a6a;
+}
+
+/* ---------- paid checkmark ---------- */
+
+html[data-xs-paid-check='grey'] [data-xs-paid] svg[aria-label='Verified account'] {
+  filter: grayscale(1);
+  opacity: 0.4;
+}
+html[data-xs-paid-check='hide'] [data-xs-paid] svg[aria-label='Verified account'] {
+  display: none !important;
+}
+
+/* ---------- theme ---------- */
+
+html[data-xs-theme],
+html[data-xs-theme] body {
+  background-color: var(--xs-bg) !important;
+}
+html[data-xs-theme] ::selection {
+  background: color-mix(in srgb, var(--xs-accent) 40%, transparent);
+}
+html[data-xs-theme] {
+  scrollbar-color: var(--xs-border) var(--xs-bg);
+}
+
+/* Softer text: semi-bold instead of bold, a little more line spacing in posts */
+html[data-xs-soft] .font-bold {
+  font-weight: 600 !important;
+}
+html[data-xs-soft] main div[dir='auto'] {
+  line-height: 1.45 !important;
+}
+html[data-xs-soft] :is(h1, h2, h3) {
+  font-weight: 650 !important;
+}
+
+html[data-xs-font='system'] body,
+html[data-xs-font='system'] body * {
+  font-family: system-ui, -apple-system, 'Segoe UI', 'Noto Sans', sans-serif !important;
+}
+
+/* ---------- layout ---------- */
+
+/* Icon-only left nav: X's own compact mode is driven by this variable. */
+html[data-xs-navicons] div[class*='--x-sidebar-wide'] {
+  --x-sidebar-wide: 0 !important;
+}
+
+/* Center column: no side borders, no separators between posts / header / composer. */
+html[data-xs-noborders] main {
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
+}
+html[data-xs-noborders] main :is(div, button):is(.border-b, [class*='border-b-[']) {
+  border-bottom-color: transparent !important;
+}
+
+/* Icon-only menu: shrink the page so the post column sits next to the icons
+   (X keeps it 1280px wide and centers the posts in the leftover space). */
+@media (min-width: 1024px) {
+  html[data-xs-navicons] div[class*='--x-sidebar-wide'][class*='max-w-[1280px]'] {
+    max-width: calc(72px + 602px + 32px + 380px) !important;
+  }
+}
+
+/* Right sidebar cards: no gradient, adjustable radius. Search box radius. */
+section[class*='bg-linear-to-br'] {
+  background-image: none !important;
+}
+section.rounded-2xl {
+  border-radius: var(--xs-card-radius, 16px) !important;
+}
+form[role='search'] [data-slot='xds-combobox-input-group'],
+form[role='search'] [data-slot='xds-combobox-input-group'] *,
+div.rounded-full:has(> form[role='search']) {
+  border-radius: var(--xs-search-radius, 9999px) !important;
+}
+
+/* Media and profile banner corners */
+article div.rounded-md.overflow-hidden:has(img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[data-xs-src], video) {
+  border-radius: var(--xs-media-radius, 16px) !important;
+}
+main div[class*='aspect-[3/1]'] {
+  border-radius: var(--xs-banner-radius, 0px) !important;
+}
+
+/* Calm contrast: primary (white) buttons become quiet surface buttons. */
+html[data-xs-calm] .bg-btn-primary {
+  color: var(--x-fg-primary, var(--xs-text)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--xs-text) 8%, transparent);
+}
+html[data-xs-calm] a[aria-label^='Subscribe to'] {
+  border-color: var(--xs-border) !important;
+}
+html[data-xs-calm] .text-plum-500 {
+  color: var(--xs-muted) !important;
+}
+/* Calm: composer toolbar icons and inactive left-menu items in the muted grey
+   (like the composer's lock icon); the current page and hover stay bright. */
+html[data-xs-calm] main div.text-tertiary.grid button.x-button,
+html[data-xs-calm] div.sticky nav :is(a:not([data-status='active']), button) {
+  color: var(--x-fg-secondary) !important;
+}
+html[data-xs-calm] main div.text-tertiary.grid button.x-button:hover,
+html[data-xs-calm] div.sticky nav :is(a, button):hover {
+  color: var(--x-fg-primary) !important;
+}
+/* Calm: the composer's Post button keeps full color while disabled (matches the
+   left menu's post button instead of fading to 70%) */
+html[data-xs-calm] main button.bg-btn-primary:disabled {
+  opacity: 1 !important;
+}
+html[data-xs-calm] [data-slot='xds-callout'] {
+  border: 1px solid var(--xs-border);
+}
+
+[data-xs-gone] {
+  display: none !important;
+}
+
+/* For you / Following: short fixed-width underline centered under the active tab */
+html[data-xs-narrow-tabs] span[class*='w-(--active-tab-width)'] {
+  width: 48px !important;
+  left: calc(var(--active-tab-left) + (var(--active-tab-width) - 48px) / 2) !important;
+}
+
+/* Profile button at the top of the left column, in the logo's place */
+html[data-xs-profile-top] div.sticky > div.mt-auto:has(> button[aria-label='Account menu']) {
+  order: -1;
+  margin-top: 0 !important;
+  padding: 8px !important;
+}
+/* (the logo's slot is a <div> on some pages and an <h1> on others) */
+html[data-xs-profile-top] div.sticky > :has(a[aria-label='X'][href='/home']),
+html[data-xs-logo] div.sticky > .shrink-0:has(a[aria-label='X'][href='/home']) {
+  display: none !important;
+}
+
+/* Media viewer (photo/video detail): side panel edge and separators */
+html[data-xs-noborders] [role='dialog']:has(img[src*='pbs.twimg.com/media/'], video) div:is(.border-s, .border-b, .border-t, [class*='border-b-[']) {
+  border-color: transparent !important;
+}
+
+/* Rounded hover shape for posts */
+html[data-xs-rounded] main [role='link'][data-href*='/status/']:not([role='link'] [role='link']) {
+  border-radius: 16px;
+  margin-inline: 6px;
+}
+/* …and the same for the "Show N posts" bar */
+html[data-xs-rounded] main button[class*='--media-overhang-start'] {
+  border-radius: 16px;
+  margin-inline: 6px;
+  width: calc(100% - 12px);
+}
+
+/* ---------- declutter ---------- */
+
+html[data-xs-logo] a[aria-label='X'][href='/home'],
+html[data-xs-logo] div:has(> svg[aria-label='X'][viewBox='0 0 480 490']) {
+  display: none !important;
+}
+
+html[data-xs-upsells] section:has(a[href^='/i/premium']),
+html[data-xs-upsells] a[href^='/i/premium'],
+html[data-xs-upsells] a[href^='/i/verified'],
+html[data-xs-upsells] a[href='/i/grok'],
+html[data-xs-upsells] a[href^='/i/grok?'],
+html[data-xs-upsells] a[href^='/i/jobs'],
+html[data-xs-upsells] [data-slot='xds-dock-window']:has([data-icon='icon-logo-grok']),
+html[data-xs-upsells] button[aria-label='Explain this post'],
+html[data-xs-upsells] button:has(> span > svg[data-icon='icon-logo-grok']) {
+  display: none !important;
+}
+
+html[data-xs-sidebar] section:has(a[href^='/i/trending/']),
+html[data-xs-sidebar] section:has(> a[href='/explore']),
+html[data-xs-sidebar] section:has([data-who-to-follow]) {
+  display: none !important;
+}
+
+/* ---------- in-page settings panel ---------- */
+
+#xsieve-panel {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 2147483647;
+  width: 340px;
+  height: 480px;
+  max-height: calc(100vh - 24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  background: #15171b;
+  color-scheme: normal;
+}
+
+/* ---------- tooltip (uses X's tooltip classes for colors/size) ---------- */
+
+#xsieve-tip {
+  position: fixed;
+  z-index: 2147483646;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+#xsieve-tip.xs-show {
+  opacity: 1;
+}
+#xsieve-tip.xs-below {
+  transform: translateX(-50%);
+}
+
+/* ---------- post layout ---------- */
+
+/* View count after the date, action-bar copy hidden */
+html[data-xs-views-inline] [data-xs-views]::after {
+  content: ' · ' attr(data-xs-views);
+  white-space: pre;
+  color: var(--x-fg-secondary);
+}
+html[data-xs-views-inline] main [role='group'] > div:has(> a[aria-label='View count']) {
+  display: none !important;
+}
+
+/* Under the avatar (timeline posts with room for it; content.js decides and sets
+   the position): [data-xs-side] = the bookmark/share box, incl. "Not interested" */
+[data-xs-side] > article {
+  position: relative;
+}
+[role='group'] > div:has(> .xs-ni) {
+  display: flex;
+  align-items: center;
+}
+[data-xs-side] > article [role='group'] > div:has([data-engagement-action='bookmark']) {
+  position: absolute;
+  left: var(--xs-side-left, 2px);
+  top: var(--xs-stack-top, 68px);
+  flex-direction: column;
+  gap: 0;
+}
+[data-xs-side] > article [role='group'] > div:has([data-engagement-action='bookmark']) > * {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+}
+.xs-ni {
+  order: -1; /* before bookmark */
+}
+/* While "Not interested" drives the ⋯ menu, keep the menu invisible */
+html[data-xs-menu-busy] [role='menu'],
+html[data-xs-menu-busy] [data-base-ui-portal]:has([role='menu']) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* fallback look if bookmark's classes couldn't be copied */
+.xs-ni:not(.x-engagement-button) {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: none;
+  color: var(--x-fg-secondary, #8b8f97);
+  cursor: pointer;
+}
+.xs-ni:not(.x-engagement-button) svg {
+  width: 18px;
+  height: 18px;
+}
