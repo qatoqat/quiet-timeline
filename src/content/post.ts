@@ -88,8 +88,9 @@ export function reset(root: HTMLElement, info: PostInfo): void {
   unset(root, 'xsState', 'xsWhy', 'xsMedia', 'xsNoplay', 'xsPfp');
   const cell = root.closest<HTMLElement>(CELL);
   if (cell) delete cell.dataset.xsHidden;
-  const n = info.nameEl;
-  if (n) {
+  // anywhere in the post, not just the current name element: an earlier pass may have taken another
+  // element for the name (before the display name rendered) and left its marks behind
+  for (const n of root.querySelectorAll<HTMLElement>('[data-xs-badge], [data-xs-paid], [data-xs-title]')) {
     unset(n, 'xsBadge', 'xsLvl', 'xsPaid');
     if (n.hasAttribute('data-xs-title')) {
       n.removeAttribute('title');
