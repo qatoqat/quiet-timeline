@@ -46,8 +46,11 @@ Certify: does not sell or transfer data to third parties, does not use or transf
 
 **Privacy policy URL:** https://qatoqat.com/quiet-timeline/PRIVACY.html
 
-## Assets still needed
-- Upload: dist/quiet-timeline-1.0.0.zip (build with tools/pack.sh)
+## Assets
+- Upload: dist/quiet-timeline-1.0.0.zip (`bun run pack`)
 - Icon: icons/128.png
-- Screenshots: store/screenshots/1-feed.png … 4-settings.png (1280×800)
+- Screenshots (1280×800, in this order): store/screenshots/1-profile.png, 2-posts.png, 3-replies.png,
+  4-settings.png, 5-themes.png. 1–3 are diagonal splits (Quiet Timeline top-left, X bottom-right) on
+  SpaceX / Elon Musk posts; other accounts' names, handles and avatars are blurred. 3 has paid-check
+  replies set to Collapse; 4 shows a custom theme and accent; 5 is the presets.
 - Optional small promo tile 440×280
