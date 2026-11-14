@@ -93,6 +93,22 @@ try {
     if (!ctx) throw new Error('XSieve content script not found in tab');
     out(await evaluate(c, a1, ctx.params.context.id));
     c.close();
+  } else if (cmd === 'storeshot') {
+    // 1280×800 PNG for the Chrome Web Store; optional JS to run once laid out
+    const c = await xTab();
+    await c.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+    await sleep(2500);
+    const click = a2 && /^click:(\d+),(\d+)$/.exec(a2); // real mouse click (reaches iframes)
+    if (click) {
+      const [x, y] = [+click[1], +click[2]];
+      for (const type of ['mousePressed', 'mouseReleased']) await c.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
+    } else if (a2) await evaluate(c, a2);
+    await sleep(1500);
+    const { data } = await c.send('Page.captureScreenshot', { format: 'png' });
+    (await import('node:fs')).writeFileSync(a1, Buffer.from(data, 'base64'));
+    await c.send('Emulation.clearDeviceMetricsOverride');
+    out(`saved ${a1}`);
+    c.close();
   } else if (cmd === 'shot') {
     const c = await xTab();
     let clip;
