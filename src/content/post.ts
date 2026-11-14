@@ -50,12 +50,12 @@ export function ownHandle(): string | null {
   return (av && av.getAttribute('data-testid')!.replace('UserAvatar-Container-', '').toLowerCase()) || null;
 }
 
-function langFor(id: string, text: string): LangHits {
-  let r = langCache.get(id);
+function langFor(key: string, text: string): LangHits {
+  let r = langCache.get(key);
   if (!r) {
     r = { slur: false, prof: false, custom: false };
     for (const h of st.filter.find(text)) r[h.kind] = true;
-    langCache.set(id, r);
+    langCache.set(key, r);
     cap(langCache, 30000);
   }
   return r;
@@ -107,9 +107,11 @@ export function processPost(root: HTMLElement, page: Page): void {
   const t = tweets.get(id) || null;
   const u = (t && t.userId && users.get(t.userId)) || byHandle.get(info.handle.toLowerCase()) || null;
 
-  // Detect before masking, then mask on every pass (React may restore the text); unmask what a filter
-  // no longer masks.
-  const lang = langFor(id, (t && t.text) || info.text);
+  // Words: found in X's own text and in what's shown (an auto-translation can differ), cached by the
+  // shown text's length (masking keeps it, a translation swapped in changes it); masked on every pass
+  // (React may restore the text), unmasked when a filter stops masking.
+  const shown = info.text;
+  const lang = langFor(`${id}|${shown.length}`, t && t.text && t.text !== shown ? `${t.text}\n${shown}` : shown);
   const kinds = {
     slur: lang.slur && S.lang.slurAction === 'mask',
     prof: lang.prof && S.lang.profanityAction === 'mask',
