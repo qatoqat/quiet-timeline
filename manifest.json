@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Quiet Timeline for X (Twitter)",
   "short_name": "Quiet Timeline",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A calmer X (Twitter): quiets bots, engagement farmers, paid-check reply spam, slurs and nags, with a soft low-contrast theme.",
   "permissions": [
     "storage"

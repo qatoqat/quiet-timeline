@@ -34,7 +34,7 @@ creditworthiness / lending use.
 **Privacy policy URL:** https://qatoqat.com/quiet-timeline/PRIVACY.html
 
 ## Assets
-- Upload: dist/quiet-timeline-1.0.0.zip (`bun run pack`)
+- Upload: dist/quiet-timeline-1.0.1.zip (`bun run pack`)
 - Icon: icons/128.png
 - Screenshots (1280×800, in this order): store/screenshots/1-profile.png, 2-posts.png, 3-replies.png,
   4-settings.png, 5-themes.png. 1–3 are diagonal splits (Quiet Timeline top-left, X bottom-right) on
