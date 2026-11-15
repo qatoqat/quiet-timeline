@@ -43,7 +43,7 @@ export async function pageChecks(K: Kit, deep: boolean) {
   const home = all('nav a[href]:not([aria-label="X"])').find(visible); // the first menu item (Home, unless hidden)
   const wide = innerWidth >= 1300; // narrower windows: X itself shows icons only
   if (home) add(D.navIcons ? 'icon-only menu' : 'menu with names', D.navIcons ? box(home).width < 90 : wide ? box(home).width >= 90 : null, `${Math.round(box(home).width)}px`);
-  const acct = document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"], button[aria-label="Account menu"]');
+  const acct = document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"], button[aria-haspopup="menu"]:has(img[alt^="@"])');
   if (acct && home) {
     add(D.profileTop ? 'profile button on top' : 'profile button at the bottom', (box(acct).top < box(home).top) === !!D.profileTop);
     if (D.profileTop && D.logo) {
@@ -52,7 +52,7 @@ export async function pageChecks(K: Kit, deep: boolean) {
     }
   }
   if (D.navIcons && home) {
-    const pic = document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"] [data-testid^="UserAvatar-Container"], button[aria-label="Account menu"] img');
+    const pic = document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"] [data-testid^="UserAvatar-Container"], button[aria-haspopup="menu"] img[alt^="@"]');
     const post = document.querySelector('[data-testid="SideNav_NewTweet_Button"], a.bg-btn-primary[href^="/compose/post"]');
     const xs = [home.querySelector('svg'), pic, post].filter(visible).map((e) => Math.round(mid(e)));
     add('left menu aligned', xs.length > 1 ? Math.max(...xs) - Math.min(...xs) <= 4 : null, xs.join(', '));
@@ -67,14 +67,15 @@ export async function pageChecks(K: Kit, deep: boolean) {
   const bars = all('.sticky, [data-testid="primaryColumn"] .r-5zmot').filter((e) => cs(e).backdropFilter !== 'none' && box(e).top < 5 && box(e).width > 300);
   if (D.solidBars) add('solid top bars', !bars.length, bars.map((b) => cs(b).backdropFilter).join(','));
   const line = all(OLD ? '[role="tablist"] [role="tab"][aria-selected="true"] div[style*="background-color"]' : "span[class*='w-(--active-tab-width)']").find(visible);
-  // (the old app's line is short already)
-  if (line && (D.narrowTabs || !OLD)) add(D.narrowTabs ? 'short tab line' : 'full tab line', (box(line).width <= 60) === !!D.narrowTabs, `${Math.round(box(line).width)}px`);
+  const tab = document.querySelector('[role="tab"][aria-selected="true"]');
+  // short: well inside its tab, not a fixed width (the old app's line is as wide as the tab's label already)
+  if (line && tab && (D.narrowTabs || !OLD)) add(D.narrowTabs ? 'short tab line' : 'full tab line', (box(line).width < box(tab).width * 0.6) === !!D.narrowTabs, `${Math.round(box(line).width)}px of ${Math.round(box(tab).width)}px`);
   const trends = OLD
     ? "[data-testid='sidebarColumn'] :is(section, div[aria-label]):has([data-testid='trend'], [data-testid='UserCell'])"
     : "section:has(a[href^='/i/trending/']), section:has([data-who-to-follow])";
   add(D.sidebar ? 'trends hidden' : 'trends shown', D.sidebar ? !anyVisible(trends) : shown(trends));
   if (D.upsells) add('upsells hidden', !anyVisible("[data-testid='sidebarColumn'] a[href^='/i/premium'], main a[href^='/i/premium_sign_up'], [data-testid='verified_profile_upsell']"));
-  const grok = "button[aria-label='Explain this post'], button[aria-label='Grok actions'], [data-testid='GrokDrawer'], [data-slot='xds-dock-window']:has([data-icon='icon-logo-grok'])";
+  const grok = "article[data-testid='tweet'] button:has(svg path[d^='M12.745 20.54l10.97-8.19']), main :is(article, [data-href*='/status/']) button:has(> span > svg[data-icon='icon-logo-grok']), [data-testid='GrokDrawer'], [data-slot='xds-dock-window']:has([data-icon='icon-logo-grok'])";
   add(D.grokButtons ? 'Grok buttons hidden' : 'Grok buttons shown', D.grokButtons ? !anyVisible(grok) : shown(grok));
   const chat = "[data-testid='chat-drawer-root'], [data-slot='xds-dock-window'][data-closed]:has([data-icon='icon-chat'])";
   add(D.chatButton ? 'chat button hidden' : 'chat button shown', D.chatButton ? !anyVisible(chat) : shown(chat));
@@ -119,7 +120,7 @@ export async function pageChecks(K: Kit, deep: boolean) {
   }
   for (const [key, label, sel] of [
     ['accentPost', 'Post button in accent', "a.bg-btn-primary[href^='/compose/post'], [data-testid='SideNav_NewTweet_Button']"],
-    ['accentFollow', 'Follow buttons in accent', "button[aria-label^='Follow @'], [data-testid$='-follow']"],
+    ['accentFollow', 'Follow buttons in accent', "button.bg-btn-primary[aria-label*='@'], [data-testid$='-follow']"],
     ['accentTabs', 'tab underline in accent', "span[class*='w-(--active-tab-width)'], [role='tablist'] [role='tab'][aria-selected='true'] div[style*='background-color']"],
   ]) {
     const el = all(sel).find(visible);
@@ -149,7 +150,7 @@ export async function pageChecks(K: Kit, deep: boolean) {
     const dis = document.querySelector("[data-testid='tweetButtonInline'][aria-disabled='true'], main button.bg-btn-primary:disabled");
     if (dis) add('disabled Post button not faded', cs(dis).opacity === '1', cs(dis).opacity);
     const post = "a.bg-btn-primary[href^='/compose/post'], [data-testid='SideNav_NewTweet_Button'], main button.bg-btn-primary:not([aria-label]), [data-testid^='tweetButton']";
-    const follow = "button[aria-label^='Follow @'], [data-testid$='-follow']";
+    const follow = "button.bg-btn-primary[aria-label*='@'], [data-testid$='-follow']";
     const mine = (b: Element) => (T.accentPost && b.matches(post)) || (T.accentFollow && b.matches(follow));
     const btns = all("[data-testid='SideNav_NewTweet_Button'], [data-testid$='-follow'], .bg-btn-primary").filter((b) => visible(b) && !mine(b));
     const bright = btns.filter((b) => { const m = cs(b).backgroundColor.match(/\d+/g); return m && +m[0] > 200 && +m[1] > 200 && +m[2] > 200; });

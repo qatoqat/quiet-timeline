@@ -11,8 +11,9 @@ export const NAV_ITEMS: [key: string, label: string, selector: string][] = [
   ['history', 'History', 'a[href^="/i/history"]'],
   ['creators', 'Creator Studio', 'a[href^="/i/jf/creators"]'],
   ['premium', 'Premium', 'a[href^="/i/premium"]'],
-  ['profile', 'Profile', 'a[aria-label="Profile"]'],
-  ['more', 'More', 'button[aria-label="More menu items"]'],
+  // by test id (old app) or icon (new app): their labels are in X's display language
+  ['profile', 'Profile', ':is(a[data-testid="AppTabBar_Profile_Link"], a:has(svg[data-icon="icon-person"]))'],
+  ['more', 'More', ':is([data-testid="AppTabBar_More_Menu"], button[aria-haspopup="menu"]:has(svg[data-icon="icon-more-dots-hor-circle"]))'],
 ];
 
 // The panel's choices for what to do with a post, and with media

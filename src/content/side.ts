@@ -63,10 +63,11 @@ export function layoutSide(root: HTMLElement): void {
     sizeWatch.observe(article);
   }
   let room = 0;
-  if (bm && av) {
-    // relative to the article's box (offsetTop would count from whichever ancestor is positioned)
+  const avr = av && av.getBoundingClientRect();
+  if (bm && avr && avr.height) {
+    // (a collapsed post hides its avatar.) Relative to the article's box: offsetTop would count from
+    // whichever ancestor is positioned
     const ar = article.getBoundingClientRect();
-    const avr = av.getBoundingClientRect();
     const avBottom = Math.round(avr.bottom - ar.top);
     const firstBlock = A.blocks(article, root).map((el) => Math.round(el.getBoundingClientRect().top - ar.top)).sort((x, y) => x - y)[0];
     // Line the stack up with media / a quoted post when it starts right below the avatar.
@@ -108,13 +109,19 @@ async function notInterested(btn: HTMLElement): Promise<void> {
   // Keep the menu invisible while we use it (it still opens and loads normally).
   const html = document.documentElement;
   html.setAttribute('data-xs-menu-busy', '');
+  const before = new Set(document.querySelectorAll('[role="menu"]')); // one left open elsewhere isn't ours
   more.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
   more.click();
-  // the first menu after a page load can take a while (X loads its code then)
+  // The first menu after a page load can take a while (X loads its code then); once ours is there
+  // without the item (X didn't offer it), give up soon.
+  let menu: Element | undefined;
   let item: Element | undefined;
-  for (let i = 0; i < 80 && !item; i++) {
+  for (let i = 0, filled = -1; i < 80 && !item && (filled < 0 || i - filled < 6); i++) {
     await new Promise((r) => setTimeout(r, 50));
-    item = [...document.querySelectorAll('[role="menu"] [role="menuitem"]')].find(A.isNIItem);
+    menu = [...document.querySelectorAll('[role="menu"]')].find((m) => !before.has(m));
+    const items = menu ? [...menu.querySelectorAll('[role="menuitem"]')] : [];
+    if (items.length && filled < 0) filled = i;
+    item = items.find(A.isNIItem);
   }
   if (item) {
     // X's menu needs a real press/release sequence, not just a click event.
@@ -124,10 +131,7 @@ async function notInterested(btn: HTMLElement): Promise<void> {
     item.dispatchEvent(new PointerEvent('pointerup', { ...o, buttons: 0 }));
     item.dispatchEvent(new MouseEvent('mouseup', { ...o, buttons: 0 }));
     item.dispatchEvent(new MouseEvent('click', { ...o, buttons: 0 }));
-  } else {
-    const menu = document.querySelector('[role="menu"]');
-    if (menu) menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-  }
+  } else if (menu) A.closeMenu(menu);
   setTimeout(() => html.removeAttribute('data-xs-menu-busy'), 400);
   setTimeout(() => document.activeElement && (document.activeElement as HTMLElement).blur(), 50); // no lingering focus ring
 }

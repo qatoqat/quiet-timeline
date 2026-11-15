@@ -62,6 +62,12 @@ function globalTasks() {
   const bg = getComputedStyle(document.body).backgroundColor;
   const rs = document.documentElement.style;
   if (!/^transparent$|,\s*0\)$/.test(bg) && rs.getPropertyValue('--qt-page-bg') !== bg) rs.setProperty('--qt-page-bg', bg);
+  // old app: the date's look, for the view count drawn after it (X's fonts follow its display language)
+  const time = document.querySelector('article[data-testid="tweet"] a[href*="/status/"] time');
+  if (time) {
+    const cs = getComputedStyle(time);
+    for (const [k, v] of [['--qt-date-font', cs.fontFamily], ['--qt-date-color', cs.color]]) if (rs.getPropertyValue(k) !== v) rs.setProperty(k, v);
+  }
   navTooltips();
   outlineChecks();
   // X's share button has no tooltip; give it its own (translated) label

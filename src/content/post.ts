@@ -43,7 +43,7 @@ export function pageCtx(): Page {
 }
 
 export function ownHandle(): string | null {
-  const img = document.querySelector('button[aria-label="Account menu"] img[alt^="@"]');
+  const img = document.querySelector('button[aria-haspopup="menu"] img[alt^="@"]'); // the account menu (labelled in X's language)
   if (img) return img.getAttribute('alt')!.slice(1).toLowerCase();
   // old app: the account button's avatar is named after the handle
   const av = document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"] [data-testid^="UserAvatar-Container-"]');
@@ -129,14 +129,19 @@ export function processPost(root: HTMLElement, page: Page): void {
   const handle = info.handle.toLowerCase();
   const focal = page.statusId === id;
   const owner = (page.profile && page.profile === handle) || page.author === handle; // the profile / thread you opened
-  // X marks ads in its data; the "Ad from …" label is a fallback. The post / profile you opened stays.
+  // X marks ads in its data; a post without a timestamp is the fallback. The post / profile you opened stays.
   const isAd = adIds.has(id) || A.isAd(root, info);
   if (S.declutter.ads && isAd && !focal && !owner) {
+    if (root.dataset.xsKey !== 'ad') reset(root, info); // marks from a pass before X's data showed it's an ad
     const cell = root.closest<HTMLElement>(CELL);
     if (cell && !cell.dataset.xsHidden) hideCell(cell, id, stats.ads);
     root.dataset.xsKey = 'ad';
     return;
   }
+
+  // the view count by the date (Views by date, and on a collapsed post), kept up as X updates it
+  const date = A.dateLink(root, id);
+  if (date) setData(date.parentElement!, 'xsViews', A.views(root, id));
 
   const rp = reposterInfo(u);
   // media and the bookmark button can arrive after the post (the old app fills its action bar in
@@ -224,14 +229,6 @@ export function processPost(root: HTMLElement, page: Page): void {
   if (paid && info.nameEl) info.nameEl.dataset.xsPaid = '1';
   if (u && !trusted && !owner && (paid ? S.pfp.paid : S.pfp.others)) root.dataset.xsPfp = '1';
   if (paid && !exempt && isReply) consider(S.paid.replyAction, `@${info.handle} · paid checkmark reply`);
-
-  const date = A.dateLink(root, id);
-  const views = A.viewsLink(root, id);
-  if (date) {
-    const holder = date.parentElement!;
-    const vt = views ? (views.textContent || '').trim() : '';
-    setData(holder, 'xsViews', vt); // shown by the date with Views by date, and on a collapsed post
-  }
 
   // Under the avatar (timeline posts only): bookmark & share, with "Not interested" on top of them;
   // side.ts places them on posts tall enough.

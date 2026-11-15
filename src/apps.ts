@@ -12,7 +12,7 @@ export interface App {
   read(root: HTMLElement): PostInfo | null;
   isAd(root: HTMLElement, info: PostInfo): boolean;
   dateLink(root: HTMLElement, id: string): HTMLElement | undefined;
-  viewsLink(root: HTMLElement, id: string): HTMLElement | null;
+  views(root: HTMLElement, id: string): string; // the view count as the action bar shows it, '' if none
   article(root: HTMLElement): HTMLElement | null;
   avatar(article: HTMLElement): HTMLElement | null;
   // the action bar's child holding bookmark (new app: the bookmark/share box)
@@ -23,6 +23,7 @@ export interface App {
   niButton(bookmarkCell: HTMLElement): HTMLElement;
   moreButton(article: HTMLElement): HTMLElement | undefined;
   isNIItem(item: Element): boolean;
+  closeMenu(menu: Element): void;
   collapseCss(sel?: string): string;
 }
 
@@ -54,14 +55,20 @@ export const NEW: App = {
     const nameEl = nameLink ? nameLink.parentElement : null;
     const texts = all(root, 'article div[dir="auto"]');
     const main = texts.find(outside);
-    const paidIcon = [...root.querySelectorAll('svg[aria-label="Verified account"] use')].some(
-      (u) => outside(u) && /premium/.test(u.getAttribute('href') || ''),
+    // the checkmark's icon (outlined: the original is kept in data-xs-orig)
+    const paidIcon = all(root, 'use[href^="#icon-verified-"], use[data-xs-orig^="#icon-verified-"]').some(
+      (u) => outside(u) && /premium/.test(u.dataset.xsOrig || u.getAttribute('href') || ''),
     );
     return { id, handle, nameEl, texts, text: main ? main.textContent || '' : '', paidIcon };
   },
-  isAd: (root) => all(root, 'a[target="_blank"] div').some((d) => /^(Ad from |Promoted\b)/.test(d.textContent || '')),
+  // promoted posts have no timestamp (their label is in X's language)
+  isAd: (root, info) => !!root.querySelector(`:scope > article ${NEW_HEADER}`) && !NEW.dateLink(root, info.id),
   dateLink: (root, id) => all(root, `a[href$="/status/${id}"][data-base-ui-tooltip-trigger]`).find((a) => !a.closest('[role="group"]')),
-  viewsLink: (root) => root.querySelector<HTMLElement>('a[aria-label="View count"]'),
+  // while a changed count rolls, its digits show both numbers and a screen-reader copy holds the new one
+  views(root, id) {
+    const a = root.querySelector(`[role="group"] a[href$="/status/${id}/analytics"]`);
+    return (a ? (a.querySelector('.sr-only') || a).textContent || '' : '').trim();
+  },
 
   article: (root) => root.querySelector<HTMLElement>(':scope > article'),
   avatar: (article) => article.querySelector<HTMLElement>('[data-post-avatar]'),
@@ -93,6 +100,10 @@ export const NEW: App = {
       (b) => !b.closest('[role="group"]') && b.closest(NEW_POST) === article.parentElement,
     ),
   isNIItem: (item) => !!item.querySelector('svg[data-icon="icon-emoji-sad"]'),
+  closeMenu(menu) {
+    const at = menu.contains(document.activeElement) ? document.activeElement! : menu;
+    at.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+  },
 
   // Collapsed post: header row only, no avatar/text/media/actions; posts without that header fall back
   // to a one-line note. `sel` selects the post box (for one id, or by state).
@@ -148,7 +159,12 @@ export const OLD: App = {
   // promoted posts have no timestamp
   isAd: (root, info) => !!info.noTime && !!root.closest('[data-testid="placementTracking"]'),
   dateLink: (root, id) => all(root, `a[href$="/status/${id}"]`).find((a) => a.querySelector('time') && !a.closest(OLD_QUOTE)),
-  viewsLink: (root, id) => root.querySelector<HTMLElement>(`[role="group"] a[href$="/status/${id}/analytics"]`),
+  // A changed count slides in while the old number slides out beside it, and X drops the old one when
+  // the slide ends: never, in a hidden bar (views by the date)
+  views(root, id) {
+    const a = root.querySelector(`[role="group"] a[href$="/status/${id}/analytics"]`);
+    return (a ? (a.querySelector('[data-testid="app-text-transition-container"]') || a).textContent || '' : '').trim();
+  },
 
   article: (root) => root,
   avatar: (article) => article.querySelector<HTMLElement>('[data-testid="Tweet-User-Avatar"]'),
@@ -176,7 +192,9 @@ export const OLD: App = {
     return b;
   },
   moreButton: (article) => all(article, '[data-testid="caret"]').find((b) => !b.closest(OLD_QUOTE)),
-  isNIItem: (item) => /not interested/i.test(item.textContent || ''),
+  isNIItem: (item) => !!item.querySelector('svg path[d^="M12 13.6c1.64-.013 3.278.76 4.284 2.02"]'), // its sad face
+  // Escape doesn't close this menu; a click on the backdrop it puts over the page (its first sibling) does
+  closeMenu: (menu) => (menu.parentElement?.firstElementChild as HTMLElement | null)?.click(),
 
   // Collapsed post keeps its header row; the avatar column keeps its width. The content column is the
   // element whose first child holds the name and a later child the action bar.

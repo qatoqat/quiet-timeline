@@ -6,7 +6,7 @@ html[data-xs-views-inline] [data-xs-views]::after,
   white-space: pre;
   color: var(--x-fg-secondary, var(--xs-muted, rgb(113, 118, 123)));
 }
-html[data-xs-views-inline] [data-href]:has([data-xs-views]) > article [role='group'] > div:has(> a[aria-label='View count']) {
+html[data-xs-views-inline] [data-href]:has([data-xs-views]) > article [role='group'] > div:has(> a[href$='/analytics']) {
   display: none !important;
 }
 

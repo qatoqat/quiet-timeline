@@ -4,6 +4,7 @@ import { st, stats } from './state';
 import { SVG_NS, svgDefs } from './media';
 
 // Only dialogs whose text matches one of these get closed — never compose, menus, image viewers etc.
+// Nags have no stable markup: X's own wording, in English and Japanese (its display language).
 const NAG = new RegExp(
   [
     'one subscription', 'get plus', 'get premium', 'claim offer', 'subscribe to premium', 'upgrade to premium',
@@ -12,10 +13,17 @@ const NAG = new RegExp(
     'turn on notifications', 'allow notifications', 'download the (?:x )?app', 'get the app',
     'add a phone number', 'verify your (?:email|phone)', 'try grok', 'meet grok', 'ask grok',
     "what's new on x", "don't miss what's happening",
+    'プラスに加入', 'プレミアム(?:プラス)?を入手', 'プレミアム(?:ビジネス|プラス)?に(?:サブスクライブ(?!している)|アップグレード)',
+    'プレミアムを(?:今すぐ)?(?:無料で)?試す', '認証を受ける', '二段階認証', '2要素認証', '通知をオンに', '通知を許可',
+    'アプリをダウンロード', 'アプリを入手', '電話番号を追加', '電話番号を認証',
+    'Grok.{0,16}?(?:お試し|を試す|のご紹介|に質問|に聞いて)', 'いま起きていることを見逃さないで',
   ].join('|'),
   'i',
 );
-const DISMISS = /^(?:close|not now|maybe later|skip(?: for now)?|dismiss|no,? thanks|no thanks)$/i;
+const DISMISS = /^(?:close|not now|maybe later|skip(?: for now)?|dismiss|no,? thanks|閉じる|今はしない|後で試す|スキップ|非表示にする|いいえ)$/i;
+const SUBSCRIBE_LINK = 'a[href*="/i/premium"], a[href*="/i/verified"]'; // any language
+// X's ✕ (by test id or icon), any language
+const CLOSE = '[data-testid="app-bar-close"], :is(button, [role="button"]):has(svg[data-icon^="icon-close"], svg path[d^="M10.59 12L4.54 5.96l1.42-1.42L12 10.59"])';
 const closed = new WeakSet<Element>();
 
 export function closeNags(): void {
@@ -24,9 +32,9 @@ export function closeNags(): void {
     // never a reply / compose window or the photo viewer, whatever its text says
     if (d.querySelector('[contenteditable], textarea, article, video, img[src*="pbs.twimg.com/media/"]')) continue;
     const text = d.innerText || '';
-    if (!NAG.test(text.slice(0, 600))) continue;
+    if (!NAG.test(text.slice(0, 600)) && !d.querySelector(SUBSCRIBE_LINK)) continue;
     const btns = [...d.querySelectorAll<HTMLElement>('button, [role="button"]')];
-    const btn = btns.find((b) => DISMISS.test((b.getAttribute('aria-label') || b.innerText || '').trim()));
+    const btn = btns.find((b) => DISMISS.test((b.getAttribute('aria-label') || b.innerText || '').trim())) || d.querySelector<HTMLElement>(CLOSE);
     if (!btn) continue;
     closed.add(d);
     stats.popups.add(text.slice(0, 40));
@@ -188,13 +196,15 @@ export function applyNavVisibility(): void {
   putStyle(navStyle, hidden.length ? `${hidden.join(',\n')} { display: none !important; }` : '');
 }
 
-// In-page upsell boxes ("you aren't verified yet", …): no stable markup, match text.
-const UPSELL = /aren.t verified yet|get verified|subscribe to premium|upgrade to premium|premium\+? (?:is|gives)/i;
+// In-page upsell boxes ("you aren't verified yet", …): one linking to X's subscription pages, else by
+// X's wording (English, Japanese).
+const UPSELL = /aren.t verified yet|get verified|subscribe to premium|upgrade to premium|premium\+? (?:is|gives)|まだ認証されていません|認証を受ける|プレミアム(?:ビジネス|プラス)?に(?:サブスクライブ(?!している)|アップグレード)/i;
 
 export function hideUpsellCallouts(): void {
   for (const c of document.querySelectorAll('[data-slot="xds-callout"]:not([data-xs-checked])')) {
     c.setAttribute('data-xs-checked', '');
-    if (UPSELL.test((c.textContent ?? '').slice(0, 300))) (c.parentElement || c).setAttribute('data-xs-gone', '');
+    const upsell = c.querySelector(SUBSCRIBE_LINK) || UPSELL.test((c.textContent ?? '').slice(0, 300));
+    if (upsell) (c.parentElement || c).setAttribute('data-xs-gone', '');
   }
 }
 

@@ -18,9 +18,10 @@ article[data-xs-pfp]:not(:hover) [data-testid='Tweet-User-Avatar'] [data-testid^
   filter: var(--qt-pfp-blur) !important;
   transform: scale(1.6);
 }
+/* the Grok button in post headers, by its logo (its label is in X's language) */
 html[data-xs-no-grok] [data-testid='GrokDrawer'],
-html[data-xs-no-grok] div:has(> button[aria-label='Grok actions']),
-html[data-xs-no-grok] button[aria-label='Grok actions'] {
+html[data-xs-no-grok] article[data-testid='tweet'] div:has(> button svg path[d^='M12.745 20.54l10.97-8.19']),
+html[data-xs-no-grok] article[data-testid='tweet'] button:has(svg path[d^='M12.745 20.54l10.97-8.19']) {
   display: none !important;
 }
 html[data-xs-no-chat-button] [data-testid='chat-drawer-root'] {
@@ -52,8 +53,8 @@ html[data-xs-noborders] [data-testid='primaryColumn'] :is(.r-qklmqi, .r-5kkj8d) 
   border-top-color: transparent !important;
   border-bottom-color: transparent !important;
 }
-/* …and 1px divider divs (e.g. under the composer) */
-html[data-xs-noborders] [data-testid='primaryColumn'] div.r-109y4c4.r-gu4em3 {
+/* …and 1px divider divs (e.g. under the composer), whatever color class X gives them */
+html[data-xs-noborders] [data-testid='primaryColumn'] div.r-109y4c4:empty {
   background-color: transparent !important;
 }
 html[data-xs-rounded][data-xs-noborders] [data-testid='cellInnerDiv'] article[data-testid='tweet'] {
@@ -178,11 +179,13 @@ html[data-xs-calm] [data-testid='SideNav_NewTweet_Button']::before {
   background: var(--xs-text, #e3e5e9);
 }
 
+/* the view count after the date, in the date's own look */
 article[data-testid='tweet'] [data-xs-views]::after {
   font-size: 15px;
+  color: var(--qt-date-color, var(--xs-muted, rgb(113, 118, 123)));
 }
 html:not([data-xs-font='system']) article[data-testid='tweet'] [data-xs-views]::after {
-  font-family: TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--qt-date-font, TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
 }
 
 article[data-testid='tweet'] .xs-toggle {

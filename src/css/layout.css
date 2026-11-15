@@ -55,7 +55,7 @@ html[data-xs-calm] .bg-btn-primary {
   color: var(--x-fg-primary, var(--xs-text)) !important;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--xs-text) 8%, transparent);
 }
-html[data-xs-calm] a[aria-label^='Subscribe to'] {
+html[data-xs-calm] .border-plum-500 {
   border-color: var(--xs-border) !important;
 }
 html[data-xs-calm] .text-plum-500 {
@@ -64,7 +64,7 @@ html[data-xs-calm] .text-plum-500 {
 /* Calm: composer toolbar icons and inactive left-menu items in the muted grey
    (like the composer's lock icon); the current page and hover stay bright. */
 html[data-xs-calm] main div.text-tertiary.grid button.x-button,
-html[data-xs-calm] div.sticky nav :is(a:not([data-status='active']), button) {
+html[data-xs-calm] div.sticky nav :is(a:not([aria-current='page']), button) {
   color: var(--x-fg-secondary) !important;
 }
 html[data-xs-calm] main div.text-tertiary.grid button.x-button:hover,
@@ -91,7 +91,7 @@ html[data-xs-narrow-tabs] span[class*='w-(--active-tab-width)'] {
 }
 
 /* Profile button at the top of the left column, in the logo's place */
-html[data-xs-profile-top] div.sticky > div.mt-auto:has(> button[aria-label='Account menu']) {
+html[data-xs-profile-top] div.sticky > div.mt-auto:has(> button[aria-haspopup='menu'] img[alt^='@']) {
   order: -1;
   margin-top: 0 !important;
   padding: 8px !important;
@@ -135,8 +135,7 @@ html[data-xs-upsells] a[href^='/i/verified']:not(nav a) {
 html[data-xs-no-grok] main :is(article, [data-href*='/status/']) a[href='/i/grok'],
 html[data-xs-no-grok] main :is(article, [data-href*='/status/']) a[href^='/i/grok?'],
 html[data-xs-no-grok] [data-slot='xds-dock-window'][data-closed]:has([data-icon='icon-logo-grok']),
-html[data-xs-no-grok] span:has(> button[aria-label='Explain this post']),
-html[data-xs-no-grok] button[aria-label='Explain this post'],
+html[data-xs-no-grok] main :is(article, [data-href*='/status/']) span:has(> button > span > svg[data-icon='icon-logo-grok']),
 html[data-xs-no-grok] main :is(article, [data-href*='/status/']) button:has(> span > svg[data-icon='icon-logo-grok']) {
   display: none !important;
 }

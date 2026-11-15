@@ -1,8 +1,8 @@
 import type { Kit } from './kit';
 
 // Runs in the page: what each post-related setting promises, on and off.
-export async function postChecks(K: Kit) {
-  const { S, D, add, all, anyVisible, box, cs, visible, mid, roots, article, avatar, bookmark, share, OLD, POST, onHome, page } = K;
+export async function postChecks(K: Kit, deep = false) {
+  const { S, D, add, all, anyVisible, box, cs, visible, mid, roots, article, avatar, bookmark, share, OLD, POST, onHome, page, html } = K;
   const keyed = roots.filter((r) => r.dataset.xsKey).length;
   add('posts processed', roots.length ? keyed >= roots.length - 1 : null, `${keyed}/${roots.length}`);
 
@@ -17,7 +17,7 @@ export async function postChecks(K: Kit) {
   const tall = (r: HTMLElement, slots: number) => {
     const a = avatar(r);
     const art = article(r);
-    return !!a && !!art && box(art).bottom - box(a).bottom - 42 >= slots * 36;
+    return visible(a) && !!art && box(art).bottom - box(a).bottom - 42 >= slots * 36;
   };
   const nis = all('.xs-ni').filter(visible);
   const stray = nis.filter((n) => !under(n, n.closest<HTMLElement>(POST)!));
@@ -26,6 +26,29 @@ export async function postChecks(K: Kit) {
     const missed = roots.filter((r) => r.querySelector('.qt-ni-cell') && !r.dataset.xsSideNi && tall(r, 3));
     add('"Not interested" on tall posts', nis.length || missed.length ? !missed.length : null, `${nis.length} shown, ${missed.length} missed`);
   } else add('"Not interested" not shown', !nis.length, nis.length ? `${nis.length} shown` : '');
+  // its post's ⋯ menu has X's item, found as the button finds it (by icon: the label is in X's language);
+  // the menu opens unseen and is closed again without picking anything
+  const niPost = deep && nis.length ? nis[0].closest<HTMLElement>(POST) : null;
+  const more = niPost && (OLD
+    ? all('[data-testid="caret"]', niPost).find((b) => !b.closest('div[role="link"]'))
+    : all('button[aria-haspopup="menu"]:not([data-engagement-action])', niPost).find((b) => !b.closest('[role="group"]') && b.closest(POST) === niPost));
+  if (more) {
+    const before = new Set(document.querySelectorAll('[role="menu"]'));
+    html.setAttribute('data-xs-menu-busy', '');
+    more.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    more.click();
+    let menu: Element | undefined;
+    for (let i = 0; i < 60 && !menu; i++) {
+      await new Promise((res) => setTimeout(res, 50));
+      menu = [...document.querySelectorAll('[role="menu"]')].find((m) => !before.has(m) && m.querySelector('[role="menuitem"]'));
+    }
+    const item = OLD ? '[role="menuitem"] svg path[d^="M12 13.6c1.64-.013 3.278.76 4.284 2.02"]' : '[role="menuitem"] svg[data-icon="icon-emoji-sad"]';
+    add('"Not interested" finds X\'s menu item', menu ? !!menu.querySelector(item) : null, menu ? `${menu.querySelectorAll('[role="menuitem"]').length} items` : 'no menu opened');
+    if (menu && OLD) (menu.parentElement?.firstElementChild as HTMLElement | null)?.click(); // its backdrop
+    else if (menu) (menu.contains(document.activeElement) ? document.activeElement! : menu).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+    await new Promise((res) => setTimeout(res, 400));
+    html.removeAttribute('data-xs-menu-busy');
+  }
 
   if (D.sideActions && !/\/status\//.test(page)) {
     const placed = roots.filter((r) => r.dataset.xsSideBm);
@@ -44,22 +67,38 @@ export async function postChecks(K: Kit) {
   }
 
   // views by the date
-  const viewsSel = OLD ? 'article [role="group"] a[href$="/analytics"]' : 'main [role="group"] a[aria-label="View count"]';
+  const viewsSel = OLD ? 'article [role="group"] a[href$="/analytics"]' : 'main [role="group"] a[href$="/analytics"]';
   // per post: a count by the date hides the bar's copy (posts without a date, like ads, keep theirs)
   const dated = roots.filter((r) => all('[data-xs-views]', r).some((h) => getComputedStyle(h, '::after').content !== 'none') && !r.closest('[data-xs-state="collapsed"]') && r.dataset.xsState !== 'collapsed');
   const twice = dated.filter((r) => all(viewsSel, r).some(visible));
   if (D.viewsInline) add('views next to the date', roots.length ? dated.length > 0 && !twice.length : null, `${dated.length} by the date, ${twice.length} also in the bar`);
   else add('views stay in the action bar', roots.length ? !dated.length && (anyVisible(viewsSel) || !all(viewsSel).length) : null, `${dated.length} by the date`);
+  // the bar's current count (a changed count's old number lingers beside it in a hidden bar, old app,
+  // or rolls with it, new app)
+  const count = (r: HTMLElement) => {
+    const a = r.querySelector(viewsSel);
+    return a ? ((a.querySelector('[data-testid="app-text-transition-container"], .sr-only') || a).textContent || '').trim() : '';
+  };
+  const off = dated.filter((r) => all('[data-xs-views]', r).some((h) => h.dataset.xsViews !== count(r)));
+  if (D.viewsInline) add('views by the date = the bar\'s current count', dated.length ? !off.length : null, off.map((r) => `${r.querySelector<HTMLElement>('[data-xs-views]')!.dataset.xsViews} vs ${count(r)}`).join(', '));
+  // …in the date's own look
+  const holder = dated.length ? dated[0].querySelector<HTMLElement>('[data-xs-views]') : null;
+  const date = holder && (holder.querySelector('time') || holder.querySelector('a'));
+  if (D.viewsInline && holder && date) {
+    const [d, v] = [cs(date), getComputedStyle(holder, '::after')];
+    const diff = ['font-family', 'font-size', 'color'].filter((k) => d.getPropertyValue(k) !== v.getPropertyValue(k));
+    add('views by the date look like the date', !diff.length, diff.map((k) => `${k}: ${v.getPropertyValue(k)} vs ${d.getPropertyValue(k)}`).join('; '));
+  }
 
   // icons
-  const checksAll = all(OLD ? 'svg[data-testid="icon-verified"]' : 'svg[aria-label="Verified account"] use');
+  const checksAll = all(OLD ? 'svg[data-testid="icon-verified"]' : 'use:is([href^="#icon-verified-"], [data-xs-orig^="#icon-verified-"])');
   const checksDone = all(OLD ? 'svg[data-testid="icon-verified"] use.qt-icon' : 'use[href^="#xs-check-"]');
   add(D.outlineChecks ? 'outlined checkmarks' : "checkmarks as X draws them", checksAll.length ? checksDone.length === (D.outlineChecks ? checksAll.length : 0) : null, `${checksDone.length}/${checksAll.length}`);
   const shares = all(OLD ? 'article [role="group"] svg path[d^="M12 2.59l5.7"]' : 'use[href="#icon-share-ios"], use[data-xs-share]');
   const sharesDone = all(OLD ? 'article [role="group"] use.qt-icon[href^="#xs-share-"]' : 'use[href^="#xs-share-"]');
   add(D.shareIcon !== 'x' ? 'share icon replaced' : "X's share icon", shares.length ? sharesDone.length === (D.shareIcon !== 'x' ? shares.length : 0) : null, `${sharesDone.length}/${shares.length}`);
   // paid checkmark: keep / grey / hide
-  const paidIcons = all('[data-xs-paid] svg[aria-label="Verified account"], [data-xs-paid] svg[data-testid="icon-verified"]').filter((i) => visible(i.closest(POST)));
+  const paidIcons = all('[data-xs-paid] svg:has(> use:is([href^="#icon-verified-"], [data-xs-orig^="#icon-verified-"])), [data-xs-paid] svg[data-testid="icon-verified"]').filter((i) => visible(i.closest(POST)));
   const pc = S.paid.check;
   const paidOk = (i: HTMLElement) => (pc === 'hide' ? !visible(i) : visible(i) && /grayscale/.test(cs(i).filter) === (pc === 'grey'));
   add(`paid checkmarks: ${pc}`, paidIcons.length ? paidIcons.every(paidOk) : null, `${paidIcons.filter(paidOk).length}/${paidIcons.length}`);

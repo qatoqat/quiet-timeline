@@ -91,7 +91,7 @@ const run = async (S: any, deep: boolean): Promise<Result[]> =>
   [...(await ev(`(async () => {
     const K = (${kit})(${JSON.stringify(S)}, ${JSON.stringify(NAV_ITEMS)}, ${JSON.stringify(S.theme.preset === 'off' ? null : S.theme.preset === 'custom' ? S.theme.custom : PRESETS[S.theme.preset])});
     if (!K.S.enabled) (${offChecks})(K);
-    else { await (${postChecks})(K); await (${pageChecks})(K, ${deep}); }
+    else { await (${postChecks})(K, ${deep}); await (${pageChecks})(K, ${deep}); }
     return [['app', 'info', (K.OLD ? 'old' : 'new') + ' app at ' + location.pathname], ...K.out];
   })()`)), ...(await hoverCheck(S))];
 const print = (rs: Result[], quiet = false) => {
