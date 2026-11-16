@@ -5,6 +5,7 @@
 // Selectors are kept whole; never build one by joining selector lists (a list joined with a
 // descendant combinator matches far more than intended).
 import type { PostInfo } from './shared/types';
+import { cloneThemed } from './theme';
 
 export interface App {
   canUnload: boolean;
@@ -185,7 +186,7 @@ export const OLD: App = {
   },
 
   niButton(cell) {
-    const b = cell.querySelector(BOOKMARK)!.cloneNode(true) as HTMLElement;
+    const b = cloneThemed(cell.querySelector<HTMLElement>(BOOKMARK)!);
     b.removeAttribute('data-testid');
     const svg = b.querySelector('svg');
     if (svg) svg.innerHTML = SAD_FACE;
@@ -197,12 +198,13 @@ export const OLD: App = {
   closeMenu: (menu) => (menu.parentElement?.firstElementChild as HTMLElement | null)?.click(),
 
   // Collapsed post keeps its header row; the avatar column keeps its width. The content column is the
-  // element whose first child holds the name and a later child the action bar.
-  collapseCss: () =>
+  // element whose first child holds the name and a later child the action bar. `sel` selects the post
+  // (by state, or by id).
+  collapseCss: (sel = `${OLD_POST}[data-xs-state="collapsed"]`) =>
     [
-      `${OLD_POST}[data-xs-state="collapsed"] [data-testid="Tweet-User-Avatar"] { display: none !important; }`,
-      `${OLD_POST}[data-xs-state="collapsed"] div:has(> :first-child [data-testid="User-Name"]):has(> :not(:first-child) [role="group"]) > :not(:first-child) { display: none !important; }`,
-      `${OLD_POST}[data-xs-state="collapsed"] { opacity: 0.6; transition: opacity 0.15s; } ${OLD_POST}[data-xs-state="collapsed"]:hover { opacity: 1; }`,
+      `${sel} [data-testid="Tweet-User-Avatar"] { display: none !important; }`,
+      `${sel} div:has(> :first-child [data-testid="User-Name"]):has(> :not(:first-child) [role="group"]) > :not(:first-child) { display: none !important; }`,
+      `${sel} { opacity: 0.6; transition: opacity 0.15s; } ${sel}:hover { opacity: 1; }`,
     ].join('\n'),
 };
 
@@ -226,12 +228,13 @@ export function addNI(A: App, bookmarkCell: HTMLElement): void {
   cell.appendChild(b);
   bookmarkCell.before(cell);
 }
-// top-level post (not a quoted one)
+// top-level post, not a quoted one (new app: the post you opened isn't a post box, so a box inside an
+// <article> is a quoted post too)
 export const isRoot = (el: Element): boolean =>
-  el.tagName === 'ARTICLE' ? el.matches(OLD_POST) : el.matches(NEW_POST) && !el.parentElement!.closest(NEW_POST);
+  el.tagName === 'ARTICLE' ? el.matches(OLD_POST) : el.matches(NEW_POST) && !el.parentElement?.closest(`${NEW_POST}, article`);
 // the top-level post holding el (new app: a quoted post is a post box inside another)
 export function topPost(el: Element): HTMLElement | null {
   let root = el.closest<HTMLElement>(POST);
   for (let up = root?.parentElement?.closest<HTMLElement>(POST); up; up = up.parentElement?.closest<HTMLElement>(POST)) root = up;
-  return root;
+  return root && isRoot(root) ? root : null;
 }

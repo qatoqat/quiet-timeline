@@ -1,5 +1,5 @@
 import { ACTIONS, DEFAULTS, MASK, MEDIA, merge, NAV_ITEMS } from '../shared/defaults';
-import { hex, KEYS, lum, PRESETS } from '../theme/color';
+import { hex, KEYS, lum, onAccent, PRESETS } from '../theme/color';
 
 type Obj = Record<string, unknown>;
 
@@ -54,9 +54,8 @@ type Obj = Record<string, unknown>;
     const pick = accentRow.querySelector<HTMLElement>('.pick')!;
     const cur = S.theme.accentColor.toLowerCase();
     const c = /^#[0-9a-f]{6}$/.test(cur) ? cur : '#4c8bf5';
-    const [r, g, b] = [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
     pick.style.setProperty('--pick', c);
-    pick.style.setProperty('--pick-fg', 0.2126 * r + 0.7152 * g + 0.0722 * b > 150 ? '#15171b' : '#fff');
+    pick.style.setProperty('--pick-fg', onAccent(c)); // as on the page's accent buttons
     for (const b of chips) b.setAttribute('aria-pressed', String(b.title === cur));
     pick.style.outline = PRESET_ACCENTS.includes(cur) ? '' : '2px solid var(--text, #e4e6ea)';
   };

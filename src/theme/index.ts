@@ -1,8 +1,9 @@
 import type { Settings } from '../shared/defaults';
-import { KEYS, PRESETS, lum, makeMapper, parseColor, remapDecls, type Mapper } from './color';
-import { CACHE, calmBrand, pageAccent, putStyle, refreshVars, setButtonAccent, sig, softened, themeShadows, ts, varStyle } from './vars';
+import { KEYS, PRESETS, lum, makeMapper, onMedia, parseColor, remapDecls, type Mapper } from './color';
+import { CACHE, calmBrand, pageAccent, putStyle, refreshVars, setButtonAccent, sig, softened, styleEl, themeShadows, ts, varStyle } from './vars';
 
 let mapper: Mapper | null = null;
+let mediaMap: Mapper | null = null; // on photos and videos, when it differs (color.ts onMedia)
 let mode: string | null = null;
 let ruleCount = -1;
 const origRule = new WeakMap<CSSStyleRule, string>();
@@ -35,6 +36,7 @@ function eachRule(list: CSSRuleList, fn: (rule: CSSStyleRule) => void): void {
 
 function ruleLists(): CSSRuleList[] {
   return [...document.styleSheets, ...(document.adoptedStyleSheets || [])].flatMap((sh) => {
+    if ((sh.ownerNode as Element | null)?.id?.startsWith('quiettl-')) return []; // ours: theme colors already
     try {
       return [sh.cssRules];
     } catch (_) {
@@ -43,8 +45,24 @@ function ruleLists(): CSSRuleList[] {
   });
 }
 
+// Old app: X's classes are shared with the rest of the page, so the ones with whites and blacks get copies
+// that apply on media only: photos and videos, a link card's image, the Explore hero (and its ⋯ button
+// beside it), the arrows over a carousel.
+const ON_MEDIA =
+  "[data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid='card.layoutLarge.media'], [data-testid='eventHero'], [data-testid='eventHero'] + div, [data-testid^='ScrollSnap-'][data-testid$='ButtonWrapper']";
+const mediaStyle = styleEl('quiettl-media');
+const mediaRules = new Map<CSSStyleRule, string>();
+
+function mediaCopy(rule: CSSStyleRule, orig: string, page: string): void {
+  if (rule.parentRule || !/^\.r-[\w-]+$/.test(rule.selectorText)) return; // X's atomic classes only
+  const ours = page.split(';');
+  const decls = remapDecls(orig, mediaMap!).split(';').filter((d, i) => d !== ours[i]);
+  if (decls.length) mediaRules.set(rule, `:is(${ON_MEDIA}) ${rule.selectorText} {${decls.join(';')}; }`);
+}
+
 function processRules(all: boolean): void {
   let count = 0;
+  const copies = mediaRules.size;
   for (const rules of ruleLists()) {
     count += rules.length;
     eachRule(rules, (rule) => {
@@ -58,9 +76,24 @@ function processRules(all: boolean): void {
       }
       const next = mapper ? remapDecls(orig, mapper) : orig;
       if (rule.style.cssText !== next) rule.style.cssText = next;
+      if (mediaMap) mediaCopy(rule, orig, next);
     });
   }
   ruleCount = count;
+  if (mediaRules.size !== copies) putStyle(mediaStyle, [...mediaRules.values()].join('\n'));
+}
+
+// A copy of one of X's elements (e.g. our button made from X's bookmark button): its inline colors are
+// already ours, so hand over X's originals too, or the copy is recolored a second time.
+export function cloneThemed<T extends Element>(src: T): T {
+  const copy = src.cloneNode(true) as T;
+  const from = [src, ...src.querySelectorAll('*')];
+  const to = [copy, ...copy.querySelectorAll('*')];
+  from.forEach((el, i) => {
+    const rec = origEl.get(el);
+    if (rec) origEl.set(to[i], [rec[0], rec[1]]);
+  });
+  return copy;
 }
 
 function processEl(el: Element): void {
@@ -73,10 +106,20 @@ function processEl(el: Element): void {
     rec = [cur, cur];
   }
   // per declaration, never our own variables (--xs-*, --qt-* on <html>), which are theme colors already
-  const next = mapper ? remapDecls(rec[0], mapper, /^--(xs|qt)-/) : rec[0];
+  const map = mediaMap && el.closest(ON_MEDIA) ? mediaMap : mapper;
+  let next = map ? remapDecls(rec[0], map, /^--(xs|qt)-/) : rec[0];
+  if (map && rec[0].includes('--article-tone')) next = articleText(el, next);
   rec[1] = next;
   origEl.set(el, rec);
   if (cur !== next) el.setAttribute('style', next);
+}
+
+// X's Article cards: X picks white or black text for its own cover tone, and the tone is themed here, so it
+// can turn light or dark; the text is picked again (--x-white / --x-black are our light / dark ends)
+function articleText(el: Element, css: string): string {
+  const dark = !!el.closest('[data-theme="dark"]'); // (X's dark: variant)
+  const tone = parseColor(new RegExp(`--article-tone${dark ? '-dark' : ''}:\\s*([^;]+)`).exec(css)?.[1]);
+  return tone ? `${css.replace(/;?\s*$/, '')}; color: var(--x-${lum(...tone.rgb) > 0.5 ? 'black' : 'white'});` : css;
 }
 
 function processTree(root: Node): void {
@@ -87,7 +130,11 @@ function processTree(root: Node): void {
 }
 
 function repaint(): void {
-  mapper = ts.palette ? makeMapper(softened(ts.palette), ts.ramp || mode!, ts.accent) : null;
+  const pal = ts.palette && softened(ts.palette);
+  mapper = pal ? makeMapper(pal, ts.ramp || mode!, ts.accent, ts.calm) : null;
+  mediaMap = pal && mapper ? onMedia(mapper, pal, ts.ramp || mode!) : null;
+  mediaRules.clear();
+  mediaStyle.remove();
   processRules(true);
   processTree(document.documentElement);
 }

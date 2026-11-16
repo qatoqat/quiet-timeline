@@ -1,7 +1,7 @@
 import type { Palette } from '../shared/types';
 
 export type Rgb = [number, number, number];
-export type Mapper = (r: number, g: number, b: number) => Rgb | null;
+export type Mapper = (r: number, g: number, b: number, border?: boolean, alpha?: number) => Rgb | null;
 
 // X's class names are hashed and change between deploys, but its colors are a small fixed palette: every grey is
 // placed on X's own bg→text ramp and moved to the same spot on ours; X's accent blue becomes our accent.
@@ -37,17 +37,20 @@ export function hue(r: number, g: number, b: number): number {
 
 // mode: a SOURCES key, or an explicit [bg, surface, border, muted, text] ramp. accent: replaces X's blue
 // (none: X's own accent stays).
-export function makeMapper(palette: Palette, mode: string | Rgb[], accent?: string | null): Mapper {
+export function makeMapper(palette: Palette, mode: string | Rgb[], accent?: string | null, calm = false): Mapper {
   const src = Array.isArray(mode) ? mode : SOURCES[mode] || SOURCES.lightsout;
   const dir = lum(...src[4]) > lum(...src[0]) ? 1 : -1;
   const A = src.map((c) => lum(...c) * dir);
   const dst = KEYS.map((k) => hex(palette[k]));
   const acc = accent ? hex(accent) : null;
-  return function (r, g, b) {
+  return function (r, g, b, border = false) {
     const chroma = Math.max(r, g, b) - Math.min(r, g, b);
     if (chroma >= 90) {
       const h = hue(r, g, b);
-      return acc && h >= 195 && h <= 215 ? acc : null;
+      if (acc && h >= 195 && h <= 215) return acc;
+      // calm: X's plum (subscriptions: badges, Subscribe buttons) muted, its outlines plain borders,
+      // like the new app's (layout.css)
+      return calm && h >= 285 && h <= 315 ? dst[border ? 2 : 3] : null;
     }
     if (chroma > 30) return null;
     const L = lum(r, g, b) * dir;
@@ -56,6 +59,37 @@ export function makeMapper(palette: Palette, mode: string | Rgb[], accent?: stri
       if (L <= A[i + 1]) return lerp(dst[i], dst[i + 1], (L - A[i]) / (A[i + 1] - A[i] || 1));
     }
     return dst[4];
+  };
+}
+
+// Text on an accent fill: white unless it would fall under about 3:1 there (as X pairs black with its yellow,
+// orange and green, and white with its blue, pink and purple).
+export function onAccent(c: string): string {
+  const lin = (v: number) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = hex(c);
+  return 1.05 / (0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b) + 0.05) >= 2.8 ? '#ffffff' : '#15171b';
+}
+
+// our palette's dark and light end (bg and text, whichever way round)
+export const ends = (p: Palette): [Rgb, Rgb] => [hex(p.bg), hex(p.text)].sort((a, b) => lum(...a) - lum(...b)) as [Rgb, Rgb];
+
+// On photos and videos X's whites and blacks are fixed colors (a video's time and buttons on their scrims, a
+// hero's title): strong ones become the light / dark end of our palette whatever X's own mode is; faint ones
+// (under 15%) tint hovers and follow the page. Null when X's mode and ours go the same way round: the ramp
+// keeps them then.
+export function onMedia(map: Mapper, palette: Palette, mode: string | Rgb[]): Mapper | null {
+  const src = Array.isArray(mode) ? mode : SOURCES[mode] || SOURCES.lightsout;
+  if (lum(...src[4]) > lum(...src[0]) === lum(...hex(palette.text)) > lum(...hex(palette.bg))) return null;
+  const [dark, light] = ends(palette);
+  return (r, g, b, border, alpha = 1) => {
+    if (alpha < 0.15) return map(r, g, b, border, alpha);
+    if (Math.min(r, g, b) >= 250) return light;
+    if (Math.max(r, g, b) <= 25) return dark;
+    // X's see-through dark greys there (its buttons' hover / pressed fills, 10% / 20% lighter; a photo's
+    // darkened color): as far above our dark end as they are above black
+    const L = lum(r, g, b);
+    if (alpha < 1 && !border && L < 0.45 && Math.max(r, g, b) - Math.min(r, g, b) <= 30) return lerp(dark, light, L);
+    return map(r, g, b, border, alpha);
   };
 }
 
@@ -70,10 +104,11 @@ export function parseColor(s: unknown): { rgb: Rgb; a?: string } | null {
   const n = (i: number) => parseInt(h.slice(i, i + 2), 16);
   return { rgb: [n(0), n(2), n(4)], a: h.length === 8 ? String(+(n(6) / 255).toFixed(3)) : undefined };
 }
-export function remap(css: string, map: Mapper): string {
+const alphaOf = (a?: string): number => (a === undefined ? 1 : parseFloat(a) / (a.endsWith('%') ? 100 : 1));
+export function remap(css: string, map: Mapper, border = false): string {
   return css.replace(COLOR, (all) => {
     const p = parseColor(all);
-    const c = p && map(...p.rgb);
+    const c = p && map(...p.rgb, border, alphaOf(p.a));
     if (!p || !c) return all;
     return p.a === undefined ? `rgb(${c[0]}, ${c[1]}, ${c[2]})` : `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${p.a})`;
   });
@@ -85,7 +120,7 @@ export function remap(css: string, map: Mapper): string {
 export function remapDecls(cssText: string, map: Mapper, keep = /^--/): string {
   return cssText
     .split(/;(?![^(]*\))/)
-    .map((d) => (keep.test(d.trim()) ? d : remap(d, map)))
+    .map((d) => (keep.test(d.trim()) ? d : remap(d, map, /^\s*border/i.test(d))))
     .join(';');
 }
 

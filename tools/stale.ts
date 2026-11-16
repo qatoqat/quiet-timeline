@@ -42,14 +42,14 @@ async function firstTab(): Promise<any> {
 const isPanel = (t: any) => t.type === 'iframe' && t.url.endsWith('/popup/popup.html');
 const thrown = (c: Conn) =>
   c.events.filter((e) => e.method === 'Runtime.exceptionThrown').map((e) => e.params.exceptionDetails.exception?.description?.split('\n')[0] ?? e.params.exceptionDetails.text);
-const flip = `(() => { const el = document.querySelector('[data-path="bot.badges"]'); el.click(); return el.checked; })()`;
+const flip = `(() => { const el = document.querySelector('[data-path="marks.score"]'); el.click(); return el.checked; })()`;
 
 async function attach(t: any): Promise<Conn> {
   const c = await connect(t.webSocketDebuggerUrl);
   await c.send('Runtime.enable');
   return c;
 }
-const stored = (c: Conn) => evaluate(c, `chrome.storage.sync.get('settings').then((r) => r.settings?.bot?.badges)`);
+const stored = (c: Conn) => evaluate(c, `chrome.storage.sync.get('settings').then((r) => r.settings?.marks?.score)`);
 async function ready(c: Conn) {
   for (let i = 0; i < 20 && !(await evaluate(c, `!!document.querySelector('.tabs [aria-selected="true"]')`)); i++) await sleep(250);
 }

@@ -147,24 +147,24 @@ function swapOldIcon(svg: SVGSVGElement, symbol: string | null): void {
 const OLD_SHARE_PATH = 'M12 2.59l5.7 5.7';
 
 function oldIcons(want: string, checks: boolean): void {
+  const on = String(checks);
+  const todo = [...document.querySelectorAll<SVGSVGElement>('svg[data-testid="icon-verified"]')].filter((svg) => svg.dataset.qtv !== on);
+  // Every color read first, then any swap (share icons too): a read after a swap recomputes the whole
+  // page's styles, once per icon (seconds on a long thread, e.g. coming back to it). Gold checks carry
+  // a gradient; grey ones are plain grey.
+  const kinds = todo.map((svg) =>
+    !checks ? '' : svg.querySelector('linearGradient') ? 'business' : /829aab|130, 154, 171/i.test(svg.innerHTML + getComputedStyle(svg).color) ? 'government' : 'premium',
+  );
   for (const p of document.querySelectorAll(`[role="group"] svg path[d^="${OLD_SHARE_PATH}"]`)) {
     const svg = p.closest('svg')!;
     if (svg.dataset.qtv === want) continue; // already done for these settings
     svg.dataset.qtv = want;
     swapOldIcon(svg, want !== 'x' ? `xs-share-${want}` : null);
   }
-  const on = String(checks);
-  for (const svg of document.querySelectorAll<SVGSVGElement>('svg[data-testid="icon-verified"]')) {
-    if (svg.dataset.qtv === on) continue;
+  todo.forEach((svg, i) => {
     svg.dataset.qtv = on;
-    // gold checks carry a gradient; grey ones are plain grey
-    const kind = svg.querySelector('linearGradient')
-      ? 'business'
-      : /829aab|130, 154, 171/i.test(svg.innerHTML + getComputedStyle(svg).color)
-        ? 'government'
-        : 'premium';
-    swapOldIcon(svg, checks ? `xs-check-${kind}` : null);
-  }
+    swapOldIcon(svg, checks ? `xs-check-${kinds[i]}` : null);
+  });
 }
 
 // Also undoes the swaps when the extension is off.

@@ -4,7 +4,7 @@ FILTER THE NOISE
 • Bots and engagement farmers get a score from account age, posting rate, follower ratio, copy-pasted replies, bait phrases, alarm-style hooks and more. You choose what happens at each level: dim, collapse or hide.
 • Paid checkmarks no longer buy trust: dim or collapse their replies, and grey out or hide the badge.
 • Slurs and profanity are masked or collapsed, including leetspeak and stretched spellings. You can add your own muted words.
-• Repost, aggregator and single-topic accounts (only capybaras, only foxes…) get a tag, and their media can be blurred, left unloaded until you click, or hidden. Their videos won't autoplay.
+• Repost and aggregator accounts, and any you add to your own list, get a tag (each mark has its own switch), and their media can be blurred, left unloaded until you click, or hidden. Their videos won't autoplay.
 • Collapsed replies keep a single tidy line (name, handle, date, views) with a show/hide link.
 • Blur the avatars of accounts you don't follow, and media in replies, with a smooth or a soft "contour" blur, in colour or greyscale. Hover to see an avatar; click to see media (or let it show while you hover over it), and blur it again with one click.
 • Promoted posts are hidden, and Premium and verification upsells, Grok buttons, the floating chat button and nag popups are removed.
@@ -16,7 +16,7 @@ A QUIETER LOOK
 MADE TO FIT YOU
 Every option is a switch in a small settings panel on the page, grouped by where it shows: Filter, Media, Posts, Page and Look. Options that only work together with another one say so.
 
-Works with both of X's web apps (the new one and the older one X still serves to some accounts).
+Works with both of X's web apps (the new one and the older one X still serves to some accounts; in the older one, media set to "Don't load" is blurred instead).
 
 PRIVATE BY DESIGN
 Everything runs in your browser. No accounts, no analytics, no servers: Quiet Timeline makes no network requests of its own.

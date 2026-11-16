@@ -11,8 +11,8 @@ const buffer: object[] = [];
 const dbg = ((window as any).__quiettlHook = { scripts: 0, sent: 0 }); // read by tools/mem
 const send = (out: Extracted) => {
   dbg.sent += out.tweets.length;
-  if (!out.users.length && !out.tweets.length && !out.ads.length) return;
-  const msg = { __quiettl: 1, users: out.users, tweets: out.tweets, ads: out.ads };
+  if (!out.users.length && !out.tweets.length && !out.ads.length && !out.ni.length) return;
+  const msg = { __quiettl: 1, users: out.users, tweets: out.tweets, ads: out.ads, ni: out.ni };
   if (ready) window.postMessage(msg, location.origin);
   else if (buffer.length < 200) buffer.push(msg);
 };

@@ -43,6 +43,16 @@ article[data-xs-side-bm] {
   justify-content: center;
   margin: 0 !important;
 }
+/* the action bar keeps the room they took (side.ts measures it), so its icons line up with other posts' */
+[data-xs-side-bm] > article [role='group']::after {
+  content: '';
+  flex: none;
+  width: var(--xs-bar-room, 0px);
+}
+/* the thread line to a reply below goes around them (side.ts sets where they are on it) */
+[data-xs-side-bm] > article > div > div > [data-post-avatar] + span {
+  mask-image: linear-gradient(#000 var(--xs-line-from), transparent var(--xs-line-from) var(--xs-line-to), #000 var(--xs-line-to));
+}
 /* While "Not interested" drives the ⋯ menu, keep the menu invisible */
 html[data-xs-menu-busy] [role='menu'],
 html[data-xs-menu-busy] [data-base-ui-portal]:has([role='menu']) {

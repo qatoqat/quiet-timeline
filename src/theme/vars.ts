@@ -1,5 +1,5 @@
 import type { Palette } from '../shared/types';
-import { HSL, hex, lerp, makeMapper, parseColor, remap, remapHsl, type Rgb } from './color';
+import { ends, HSL, hex, lerp, makeMapper, onAccent, parseColor, remap, remapHsl, type Rgb } from './color';
 
 type Vars = Record<string, string>;
 
@@ -74,18 +74,30 @@ const brandVars = (a: string, p: Palette): Vars => ({
 export const softened = (pal: Palette): Palette =>
   ts.soft ? { ...pal, text: '#' + lerp(hex(pal.text), hex(pal.bg), 0.14).map((v) => v.toString(16).padStart(2, '0')).join('') } : pal;
 
-function overrides(vars: Vars, pal: Palette, calm: boolean): string | null {
+// X's named whites and blacks, the text it puts on its scrims (on-color: a video's play button and time, a
+// toast; white in both its modes) and a toast's fill (#2229 in both): strong ones are fixed colors (text and
+// scrims on photos), so they become the light / dark end of our palette whatever X's own mode is; faint
+// ones (under 15%) tint hovers and follow the page like any other grey.
+const FIXED = /^--x-(white|black|fg-on-color|toast-bg)(?:-(\d+))?$/;
+const DARK = new Set(['black', 'toast-bg']);
+
+export function overrides(vars: Vars, pal: Palette, calm: boolean): string | null {
   const ramp = varRamp(vars);
   if (!ramp) return null;
   const p2 = softened(pal);
-  const map = makeMapper(p2, ramp, ts.accent);
+  const map = makeMapper(p2, ramp, ts.accent, calm);
+  const [dark, light] = ends(p2);
   const out: Vars = {};
   for (const [k, v] of Object.entries(vars)) {
-    const nv = /^\d/.test(v) ? remapHsl(v, map) : remap(v, map);
+    const f = FIXED.exec(k);
+    const fixed = f && !(f[2] && +f[2] < 15) ? (DARK.has(f[1]) ? dark : light) : null;
+    const nv = fixed ? remap(v, () => fixed) : /^\d/.test(v) ? remapHsl(v, map) : remap(v, map);
     if (nv !== v) out[k] = nv; // leave X's own (e.g. its brand color) live, not frozen in our sheet
   }
   if (calm) Object.assign(out, calmVars(p2));
   if (ts.accent) Object.assign(out, brandVars(ts.accent, p2));
+  // text on a brand fill: X's own (white, black on its yellow, orange and green), or as on our accent buttons
+  if (vars['--x-fg-on-brand']) out['--x-fg-on-brand'] = ts.accent ? 'var(--qt-on-accent)' : vars['--x-fg-on-brand'];
   return Object.entries(out)
     .map(([k, v]) => `${k}: ${v} !important;`)
     .join('\n  ');
@@ -162,8 +174,7 @@ export function setButtonAccent(): void {
   const root = document.documentElement;
   if (root.style.getPropertyValue('--qt-accent') === c) return;
   root.style.setProperty('--qt-accent', c);
-  const [r, g, b] = hex(c);
-  root.style.setProperty('--qt-on-accent', 0.2126 * r + 0.7152 * g + 0.0722 * b > 150 ? '#15171b' : '#ffffff');
+  root.style.setProperty('--qt-on-accent', onAccent(c));
 }
 
 // X's display color setting (Settings → Display), shared by both web apps.
@@ -187,7 +198,7 @@ export function xDisplayColor(): string | null {
 }
 
 // Old app, calm: its accent-filled buttons (inline style, already remapped to the accent) become quiet surface buttons.
-const calmBrandStyle = document.createElement('style');
+const calmBrandStyle = styleEl('quiettl-calm');
 export function calmBrand(onoff: boolean): void {
   if (!onoff) return calmBrandStyle.remove();
   const [r, g, b] = hex(pageAccent());

@@ -1,4 +1,4 @@
-import { CELL, NEW, OLD, POST } from '../apps';
+import { CELL, isRoot, NEW, OLD, POST } from '../apps';
 import { putStyle, styleEl } from '../theme/vars';
 import { revealed, st } from './state';
 
@@ -15,7 +15,7 @@ export function updateSizeCss(): void {
   sizeCssQueued = true;
   queueMicrotask(() => {
     sizeCssQueued = false;
-    const top = (id: string) => `[role="link"][data-href$="/status/${id}"]:not([role="link"] [role="link"])`;
+    const top = (id: string) => `[role="link"][data-href$="/status/${id}"]:not([role="link"] [role="link"], article [role="link"])`;
     const hidden: string[] = [];
     const collapsed = ['[role="link"][data-xs-state="collapsed"]'];
     for (const id of [...sizeState.keys()].slice(-600)) {
@@ -24,6 +24,8 @@ export function updateSizeCss(): void {
       if (s.hidden) hidden.push(`li[data-index]:has(${top(id)})`);
       else if (s.why) collapsed.push(top(id));
     }
+    // (the old app's posts carry their id only deep inside: keyed rules there made every style
+    // recalculation ~100x slower, so it gets the marks applyKnownSize sets)
     const rules = [NEW.collapseCss(`:is(${collapsed.join(', ')})`), OLD.collapseCss()];
     if (hidden.length) {
       rules.unshift(`${hidden.join(',\n')} { height: 1px !important; overflow: hidden !important; }`);
@@ -41,7 +43,7 @@ export function applyKnownSize(node: Node): void {
   for (const root of roots) {
     const m = /\/status\/(\d+)/.exec(root.getAttribute('data-href') || '');
     const s = m && sizeState.get(m[1]);
-    if (!m || !s || revealed.has(m[1])) continue;
+    if (!m || !s || revealed.has(m[1]) || !isRoot(root)) continue; // (a quoted post isn't its row's post)
     if (s.hidden) {
       const cell = root.closest<HTMLElement>(CELL);
       if (cell) cell.dataset.xsHidden = '1';

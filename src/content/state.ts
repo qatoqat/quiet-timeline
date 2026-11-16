@@ -29,6 +29,7 @@ export const revealed = new Set<string>();
 export const mediaRevealed = new Set<string>();
 export const playAllowed = new Set<string>(); // posts whose video you started yourself
 export const adIds = new Set<string>();
+export const niIds = new Set<string>(); // posts X's ⋯ menu offers "Not interested" on
 
 export const stats = {
   hidden: new Set<string>(),
@@ -55,7 +56,7 @@ export const setData = (el: HTMLElement, key: string, val: string | false | null
   else if (el.dataset[key] !== val) el.dataset[key] = val;
 };
 
-export function cap(map: Map<unknown, unknown>, max: number): void {
+export function cap(map: Map<unknown, unknown> | Set<unknown>, max: number): void {
   if (map.size <= max) return;
   let n = map.size - max * 0.8;
   for (const k of map.keys()) {

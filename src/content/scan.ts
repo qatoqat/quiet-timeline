@@ -1,4 +1,4 @@
-import { MEDIA_IMG, MEDIA_PRESS, POST, topPost } from '../apps';
+import { isRoot, MEDIA_IMG, MEDIA_PRESS, POST, topPost } from '../apps';
 import { st, revealed, mediaRevealed, playAllowed, unset } from './state';
 import { sizeState, updateSizeCss, applyKnownSize } from './sizes';
 import { readPost, pageCtx, ownHandle, reset, processPost, maskText } from './post';
@@ -41,12 +41,21 @@ export function scan(): void {
   dirty.clear();
   if (!st.S.enabled) return;
   const page = pageCtx();
+  const changed: HTMLElement[] = [];
   for (const root of roots) {
-    if (!root.isConnected || (root.parentElement && root.parentElement.closest(POST))) continue; // gone / quoted post
+    if (!root.isConnected || !isRoot(root)) continue; // gone / quoted post
     try {
       const before = root.dataset.xsKey;
       processPost(root, page);
-      if (root.dataset.xsKey !== before) layoutSide(root); // later size changes: ResizeObserver
+      if (root.dataset.xsKey !== before) changed.push(root); // later size changes: ResizeObserver
+    } catch (err) {
+      console.debug('[quiettl]', err);
+    }
+  }
+  // measured after all the posts' changes: measuring between them recomputes the page's styles per post
+  for (const root of changed) {
+    try {
+      layoutSide(root);
     } catch (err) {
       console.debug('[quiettl]', err);
     }

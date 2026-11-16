@@ -56,26 +56,66 @@ export async function pageChecks(K: Kit, deep: boolean) {
     const post = document.querySelector('[data-testid="SideNav_NewTweet_Button"], a.bg-btn-primary[href^="/compose/post"]');
     const xs = [home.querySelector('svg'), pic, post].filter(visible).map((e) => Math.round(mid(e)));
     add('left menu aligned', xs.length > 1 ? Math.max(...xs) - Math.min(...xs) <= 4 : null, xs.join(', '));
+    // …in the middle of its column (old app: the scroller's padding once pushed it right)
+    const colEl = document.querySelector('header[role="banner"] > div > div > div');
+    if (OLD && colEl && xs.length) {
+      const c = Math.round(box(colEl).left + colEl.clientWidth / 2);
+      add('left menu centered', Math.abs(xs[0] - c) <= 4, `${xs[0]} vs ${c}`);
+    }
+    // its hover highlight is a circle like the items' (a wide screen stretched it into a flat pill)
+    const ab = acct && box(acct);
+    if (ab) add('profile button round', Math.abs(ab.width - ab.height) <= 2 && ab.width < 70, `${Math.round(ab.width)}x${Math.round(ab.height)}`);
   }
   const menu = "nav:has(a[href='/home']):not(:has([role='tab']))"; // the left menu, not a tab strip
   const menuWrong = NAV.filter(([k, , sel]) => all(`${menu} ${sel}`).length && anyVisible(`${menu} ${sel}`) !== !!S.nav[k]).map(([, label]) => label);
   add('menu items as set', !menuWrong.length, menuWrong.join(', '));
+  // nothing in the left menu cut by a box inside it (an unread badge sticks out of its icon); a stand-in
+  // badge where X puts its count, removed again
+  const bell = document.querySelector(`${menu} a[href="/notifications"] svg`);
+  if (bell && visible(bell)) {
+    const fake = document.createElement('div');
+    fake.style.cssText = 'position:absolute;top:-6px;left:14px;width:20px;height:20px';
+    bell.parentElement!.appendChild(fake);
+    const fb = box(fake);
+    const cut: string[] = [];
+    for (let e = fake.parentElement; e && e !== bell.closest('nav')!.parentElement; e = e.parentElement) {
+      const eb = box(e);
+      if (cs(e).overflowX !== 'visible' && (eb.right < fb.right - 1 || eb.left > fb.left + 1)) cut.push(`${e.tagName} ${Math.round(eb.width)}px`);
+    }
+    fake.remove();
+    add('menu badges not cut', !cut.length, cut.join(', '));
+  }
   const scroll = all('header *, nav *').filter((e) => cs(e).scrollbarWidth !== 'none' && ((e.scrollWidth > e.clientWidth + 2 && /auto|scroll/.test(cs(e).overflowX)) || (e.scrollHeight > e.clientHeight + 2 && /auto|scroll/.test(cs(e).overflowY) && e.clientHeight < innerHeight - 50)));
   add('no stray scrollbars', !scroll.length && html.scrollWidth <= innerWidth + 1, scroll.map((e) => `${e.tagName} ${e.scrollWidth}x${e.scrollHeight}>${e.clientWidth}x${e.clientHeight}`).join(', '));
 
   // top bars, tabs, sidebar
-  const bars = all('.sticky, [data-testid="primaryColumn"] .r-5zmot').filter((e) => cs(e).backdropFilter !== 'none' && box(e).top < 5 && box(e).width > 300);
-  if (D.solidBars) add('solid top bars', !bars.length, bars.map((b) => cs(b).backdropFilter).join(','));
+  // old app: whatever is at the top of the column, by its looks (its classes differ per display mode)
+  const pcol = OLD && document.querySelector('[data-testid="primaryColumn"]');
+  const cb = pcol && box(pcol);
+  const atTop = OLD
+    ? cb ? [...new Set([4, 30].flatMap((y) => document.elementsFromPoint(cb.left + cb.width / 2, y)))].filter((e) => pcol!.contains(e) && box(e).width > 300) : []
+    : all('.sticky, .sticky > .absolute').filter((e) => box(e).top < 5 && box(e).width > 300);
+  const bars = atTop.filter((e) => cs(e).backdropFilter !== 'none');
+  if (D.solidBars) add('solid top bars', atTop.length ? !bars.length : null, bars.map((b) => `${cs(b).backdropFilter} ${cs(b).backgroundColor}`).join(','));
   const line = all(OLD ? '[role="tablist"] [role="tab"][aria-selected="true"] div[style*="background-color"]' : "span[class*='w-(--active-tab-width)']").find(visible);
   const tab = document.querySelector('[role="tab"][aria-selected="true"]');
-  // short: well inside its tab, not a fixed width (the old app's line is as wide as the tab's label already)
-  if (line && tab && (D.narrowTabs || !OLD)) add(D.narrowTabs ? 'short tab line' : 'full tab line', (box(line).width < box(tab).width * 0.6) === !!D.narrowTabs, `${Math.round(box(line).width)}px of ${Math.round(box(tab).width)}px`);
+  // short: well inside its tab, not a fixed width. The old app's line is already its label's width (at
+  // least 56px, chevron included), which on a narrow strip like Explore's may fill most of the tab.
+  const label = OLD && line && line.parentElement;
+  const short = line && tab && ((!!label && box(line).width <= Math.max(56, box(label).width) + 4) || box(line).width < box(tab).width * 0.6);
+  if (line && tab && (D.narrowTabs || !OLD)) add(D.narrowTabs ? 'short tab line' : 'full tab line', short === !!D.narrowTabs, `${Math.round(box(line).width)}px of ${Math.round(box(tab).width)}px`);
   const trends = OLD
-    ? "[data-testid='sidebarColumn'] :is(section, div[aria-label]):has([data-testid='trend'], [data-testid='UserCell'])"
-    : "section:has(a[href^='/i/trending/']), section:has([data-who-to-follow])";
+    ? "[data-testid='sidebarColumn'] :is([data-testid='trend'], [data-testid='UserCell'], [data-testid='news_sidebar'])"
+    : "section:has(a[href^='/i/trending/']), section:has([data-who-to-follow]:not(:empty))"; // (X hides an empty one itself)
   add(D.sidebar ? 'trends hidden' : 'trends shown', D.sidebar ? !anyVisible(trends) : shown(trends));
+  // the right column's search box and footer links: each by its own switch (not by Hide trends)
+  const sideSearch = OLD ? "[data-testid='sidebarColumn'] form[role='search']" : "aside form[role='search']";
+  const footer = OLD ? "[data-testid='sidebarColumn'] nav a[href*='/tos']" : "aside nav a[href*='/tos']";
+  add(D.searchBox ? 'right search box hidden' : 'right search box shown', D.searchBox ? !anyVisible(sideSearch) : shown(sideSearch));
+  add(D.footer ? 'footer links hidden' : 'footer links shown', D.footer ? !anyVisible(footer) : shown(footer));
   if (D.upsells) add('upsells hidden', !anyVisible("[data-testid='sidebarColumn'] a[href^='/i/premium'], main a[href^='/i/premium_sign_up'], [data-testid='verified_profile_upsell']"));
-  const grok = "article[data-testid='tweet'] button:has(svg path[d^='M12.745 20.54l10.97-8.19']), main :is(article, [data-href*='/status/']) button:has(> span > svg[data-icon='icon-logo-grok']), [data-testid='GrokDrawer'], [data-slot='xds-dock-window']:has([data-icon='icon-logo-grok'])";
+  // (also a profile's summary button in its top bar; the composer's own Grok tools stay)
+  const grok = "article[data-testid='tweet'] button:has(svg path[d^='M12.745 20.54l10.97-8.19']), [data-testid='primaryColumn'] button:not([data-testid='toolBar'] *):has(> div > svg path[d^='M12.745 20.54l10.97-8.19']), main :is(article, [data-href*='/status/'], div.sticky) button:has(> span > svg[data-icon='icon-logo-grok']), [data-testid='GrokDrawer'], [data-slot='xds-dock-window']:has([data-icon='icon-logo-grok'])";
   add(D.grokButtons ? 'Grok buttons hidden' : 'Grok buttons shown', D.grokButtons ? !anyVisible(grok) : shown(grok));
   const chat = "[data-testid='chat-drawer-root'], [data-slot='xds-dock-window'][data-closed]:has([data-icon='icon-chat'])";
   add(D.chatButton ? 'chat button hidden' : 'chat button shown', D.chatButton ? !anyVisible(chat) : shown(chat));
@@ -106,6 +146,9 @@ export async function pageChecks(K: Kit, deep: boolean) {
   const near = (px: string, want: number) => Math.abs(parseFloat(px) - want) < 1 || (want >= 999 && parseFloat(px) >= 100);
   const card = document.querySelector(OLD ? '[data-testid="sidebarColumn"] .r-1867qdf' : 'section.rounded-2xl');
   if (card) add('sidebar card corners', near(cs(card).borderTopLeftRadius, D.cardRadius), cs(card).borderTopLeftRadius);
+  // a search pill keeps its whole outline (No borders strips lines in the center column)
+  const pill = all(OLD ? "form[role='search'] .r-sdzlij" : "form[role='search'] [data-slot='xds-combobox-input-group']").find(visible);
+  if (pill && !transparent(cs(pill).borderLeftColor)) add('search box outlined', !transparent(cs(pill).borderTopColor) && !transparent(cs(pill).borderBottomColor), `${cs(pill).borderTopColor} / ${cs(pill).borderBottomColor}`);
   const search = document.querySelector(OLD ? "[data-testid='sidebarColumn'] form[role='search'] .r-sdzlij" : "form[role='search'] [data-slot='xds-combobox-input-group']");
   if (search) add('search box corners', near(cs(search).borderTopLeftRadius, D.searchRadius), cs(search).borderTopLeftRadius);
   const banner = document.querySelector(OLD ? "a[href$='/header_photo']" : "main div[class*='aspect-[3/1]']");
@@ -148,7 +191,10 @@ export async function pageChecks(K: Kit, deep: boolean) {
       add('composer icons muted', !wrong.length, wrong.map((v) => `${v.closest('button')?.getAttribute('aria-label') || '?'} ${cs(v).color}`).join(', '));
     }
     const dis = document.querySelector("[data-testid='tweetButtonInline'][aria-disabled='true'], main button.bg-btn-primary:disabled");
-    if (dis) add('disabled Post button not faded', cs(dis).opacity === '1', cs(dis).opacity);
+    // (the old app fades the button's box, not the button)
+    let fade = 1;
+    for (let e: Element | null = dis; e && e.tagName !== 'MAIN'; e = e.parentElement) fade *= +cs(e).opacity;
+    if (dis) add('disabled Post button not faded', fade === 1, String(fade));
     const post = "a.bg-btn-primary[href^='/compose/post'], [data-testid='SideNav_NewTweet_Button'], main button.bg-btn-primary:not([aria-label]), [data-testid^='tweetButton']";
     const follow = "button.bg-btn-primary[aria-label*='@'], [data-testid$='-follow']";
     const mine = (b: Element) => (T.accentPost && b.matches(post)) || (T.accentFollow && b.matches(follow));

@@ -1,6 +1,7 @@
 // Runs in the page (stringified by check.ts): what every check group shares.
 // PAL: the chosen theme's palette (null for X default)
-export function kit(S: any, NAV: [string, string, string][], PAL: Record<string, string> | null) {
+// TRUST: you, people you follow and the Never-filter list (lowercase handles)
+export function kit(S: any, NAV: [string, string, string][], PAL: Record<string, string> | null, TRUST: string[] = []) {
   const out: [string, string, string][] = [];
   // ok: true = pass, false = fail, null/undefined = skip (setting off, or nothing to check on this page)
   const add = (name: string, ok: boolean | null | undefined, detail = '') => out.push([name, ok == null ? 'skip' : ok ? 'pass' : 'fail', detail]);
@@ -20,7 +21,8 @@ export function kit(S: any, NAV: [string, string, string][], PAL: Record<string,
   const mid = (e: Element) => { const r = box(e); return r.left + r.width / 2; };
   const OLD = ![...document.scripts].some((s) => /x-web\/x-web/.test(s.src));
   const POST = OLD ? 'article[data-testid="tweet"]' : '[role="link"][data-href*="/status/"]';
-  const roots = all(POST).filter((r) => OLD || !r.parentElement!.closest(POST));
+  // top-level posts (new app: a post box inside another, or inside the opened post's <article>, is a quote)
+  const roots = all(POST).filter((r) => OLD || !r.parentElement!.closest(`${POST}, article`));
   const article = (r: HTMLElement) => (OLD ? r : r.querySelector<HTMLElement>(':scope > article'));
   const avatar = (r: HTMLElement) => r.querySelector('[data-testid="Tweet-User-Avatar"], [data-post-avatar]');
   const bookmark = (r: HTMLElement) => r.querySelector('[role="group"] :is([data-testid="bookmark"], [data-testid="removeBookmark"], [data-engagement-action="bookmark"] button)');
@@ -29,7 +31,10 @@ export function kit(S: any, NAV: [string, string, string][], PAL: Record<string,
   const html = document.documentElement;
   const accent = (name: string) => rgb(cs(html).getPropertyValue(name).trim());
   const page = location.pathname;
-  return { S, D: S.declutter, NAV, PAL, out, add, cs, box, visible, all, anyVisible, shown, transparent, rgb, mid, OLD, POST, roots, article, avatar, bookmark, share, html, accent, page, onHome: page === '/home' };
+  // a post's author, from its permalink
+  const author = (r: HTMLElement) =>
+    ((OLD ? r.querySelector('a[href*="/status/"] time')?.parentElement?.getAttribute('href') : r.dataset.href) || '').split('/')[1]?.toLowerCase() || '';
+  return { S, D: S.declutter, NAV, PAL, TRUST, author, out, add, cs, box, visible, all, anyVisible, shown, transparent, rgb, mid, OLD, POST, roots, article, avatar, bookmark, share, html, accent, page, onHome: page === '/home' };
 }
 export type Kit = ReturnType<typeof kit>;
 

@@ -7,11 +7,12 @@ import { restoreMedia, setReblur, stripMedia } from './media';
 import { setToggle } from './side';
 import { sizeState, updateSizeCss } from './sizes';
 import {
-  adIds, byHandle, cap, langCache, LEVEL, mediaRevealed, playAllowed, RESERVED, revealed, setData, st, stats, tally, tweets,
-  unset, users, type LangHits,
+  adIds, byHandle, cap, langCache, LEVEL, mediaRevealed, niIds, playAllowed, RESERVED, revealed, setData, st, stats, tally,
+  tweets, unset, users, type LangHits,
 } from './state';
 
 export interface Page {
+  path: string;
   statusId: string | null;
   profile: string | null;
   author: string | null;
@@ -39,8 +40,13 @@ export function pageCtx(): Page {
   const pr = /^\/([A-Za-z0-9_]{1,15})(?:\/(?:with_replies|media|highlights|likes|articles|superfollows))?\/?$/.exec(p);
   const profile = pr && !RESERVED.has(pr[1].toLowerCase()) ? pr[1].toLowerCase() : null;
   const au = /^\/([A-Za-z0-9_]{1,15})\/status\//.exec(p);
-  return { statusId: sm ? sm[1] : null, profile, author: au ? au[1].toLowerCase() : null };
+  return { path: p, statusId: sm ? sm[1] : null, profile, author: au ? au[1].toLowerCase() : null };
 }
+
+// A post is judged by the page it was shown on. The URL changes before X swaps the page (and stays changed
+// under the photo viewer): judging the old page's posts by the new URL resized some of them just as X
+// saved your place, so going back landed elsewhere.
+const shownOn = new WeakMap<HTMLElement, { id: string; page: Page }>();
 
 export function ownHandle(): string | null {
   const img = document.querySelector('button[aria-haspopup="menu"] img[alt^="@"]'); // the account menu (labelled in X's language)
@@ -99,12 +105,15 @@ export function reset(root: HTMLElement, info: PostInfo): void {
   }
 }
 
-export function processPost(root: HTMLElement, page: Page): void {
+export function processPost(root: HTMLElement, current: Page): void {
   const S = st.S;
   const A = appOf(root);
   const info = A.read(root);
   if (!info) return;
   const id = info.id;
+  let on = shownOn.get(root);
+  if (!on || on.id !== id) shownOn.set(root, (on = { id, page: current }));
+  const page = on.page;
   const t = tweets.get(id) || null;
   const u = (t && t.userId && users.get(t.userId)) || byHandle.get(info.handle.toLowerCase()) || null;
 
@@ -143,13 +152,14 @@ export function processPost(root: HTMLElement, page: Page): void {
   const date = A.dateLink(root, id);
   if (date) setData(date.parentElement!, 'xsViews', A.views(root, id));
 
-  const rp = reposterInfo(u);
+  const rps = reposterInfo(u);
+  const rp = rps[0];
   // media and the bookmark button can arrive after the post (the old app fills its action bar in
   // later, without changing the post's size); X re-renders can drop our buttons; the photo viewer
   // changes the URL over the page
   const media = root.querySelectorAll(ANY_MEDIA).length; // incl. a quoted post's
   const bookmark = root.querySelector('[data-testid="bookmark"], [data-testid="removeBookmark"], [data-engagement-action="bookmark"]');
-  const key = `${id}|${t ? 1 : 0}|${u ? 1 : 0}|${rp ? rp.tag : 0}|${st.ver}|${revealed.has(id) ? 1 : 0}|${mediaRevealed.has(id) ? 1 : 0}|${playAllowed.has(id) ? 1 : 0}|${media}|${bookmark ? 1 : 0}|${root.querySelector('.xs-ni, .xs-toggle, .qt-reblur') ? 1 : 0}|${location.pathname}`;
+  const key = `${id}|${t ? 1 : 0}|${u ? 1 : 0}|${rps.map((k) => k.tag).join()}|${st.ver}|${revealed.has(id) ? 1 : 0}|${mediaRevealed.has(id) ? 1 : 0}|${playAllowed.has(id) ? 1 : 0}|${niIds.has(id) ? 1 : 0}|${media}|${bookmark ? 1 : 0}|${root.querySelector('.xs-ni, .xs-toggle, .qt-reblur') ? 1 : 0}|${page.path}`;
   if (root.dataset.xsKey === key) return;
   root.dataset.xsKey = key;
   reset(root, info);
@@ -158,7 +168,7 @@ export function processPost(root: HTMLElement, page: Page): void {
   const exempt = trusted || focal || owner;
   const parent = t && t.replyTo ? tweets.get(t.replyTo) : null;
   // a part of the author's own thread isn't a reply to someone
-  const isReply = t ? !!t.replyTo && !(parent && parent.userId === t.userId) : !!page.statusId && !focal;
+  const isReply = t ? !!t.replyTo && !(t.userId && (parent?.userId || t.replyToUser) === t.userId) : !!page.statusId && !focal;
   const paid = u ? isPaid(u) : info.paidIcon;
 
   let verdict = null as Verdict | null;
@@ -186,7 +196,7 @@ export function processPost(root: HTMLElement, page: Page): void {
       if (r.score >= S.bot.high) consider(S.bot.highAction, why);
       if (r.score >= S.bot.mid) consider(S.bot.midAction, why);
     }
-    const shown = S.bot.badges && r.score >= Math.min(20, S.bot.mid, S.bot.high);
+    const shown = S.marks.score && r.score >= Math.min(20, S.bot.mid, S.bot.high);
     if (shown) {
       badge.push(String(r.score));
       lvl = r.score >= S.bot.high ? 'high' : r.score >= S.bot.mid ? 'mid' : 'low';
@@ -196,14 +206,16 @@ export function processPost(root: HTMLElement, page: Page): void {
   }
 
   const nonOrig = nonOriginal(t);
-  if (rp && (rp.themed || S.repost.mark)) {
-    badge.unshift(rp.tag);
-    lvl = lvl && lvl !== 'low' ? lvl : rp.themed ? 'themed' : 'repost';
-    reasons = [rp.why, ...reasons];
+  // marks: never on you or accounts you follow (like the score)
+  const mark = trusted ? undefined : rps.find((k) => S.marks[k.kind]);
+  if (mark) {
+    badge.unshift(mark.tag);
+    lvl = lvl && lvl !== 'low' ? lvl : 'repost';
+    reasons = [mark.why, ...reasons];
   }
   if (nonOrig) reasons = [`this post: ${nonOrig}`, ...reasons];
   const wasUnloaded = root.querySelector('img[data-xs-src], video[data-xs-poster]');
-  const flaggedMedia = (rp && !(rp.themed && !S.repost.themedMedia)) || nonOrig;
+  const flaggedMedia = rp || nonOrig;
   // Reposters and Replies can both apply: the stronger mode wins (none < blur < unload < hide)
   const rank = (m: string) => MEDIA.findIndex(([v]) => v === m);
   const modes = [flaggedMedia ? S.repost.media : 'none', isReply && !focal && !owner ? S.replies.media : 'none'];
@@ -234,8 +246,10 @@ export function processPost(root: HTMLElement, page: Page): void {
   // side.ts places them on posts tall enough.
   const wantBm = S.declutter.sideActions && !isReply && !page.statusId;
   setData(root, 'xsWantBm', wantBm && '1');
-  // X only offers "Not interested" in the home feed
-  const wantNI = wantBm && S.declutter.notInterested && location.pathname === '/home' && u && !u.followedByMe && handle !== st.myHandle;
+  // only where X's menu has it: home feed posts its data says so for (not the post a reply in a
+  // conversation answers, not ads)
+  const wantNI =
+    wantBm && S.declutter.notInterested && page.path === '/home' && niIds.has(id) && u && !u.followedByMe && handle !== st.myHandle;
   const bm = A.bookmarkCell(root);
   let ni = root.querySelector('.qt-ni-cell');
   if (ni && (!wantNI || ni.nextElementSibling !== bm)) {

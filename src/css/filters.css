@@ -104,13 +104,13 @@ html[data-xs-media-hover] [data-xs-media='blur'] article div.rounded-md:hover :i
   background: rgba(140, 140, 150, 0.16);
   color: #9a9ea6;
 }
+/* new app: the name sits in a flex row with its own gap */
+span[data-xs-badge]::after {
+  margin-left: 2px;
+}
 [data-xs-badge][data-xs-lvl='repost']::after {
   background: rgba(240, 140, 50, 0.16);
   color: #ec8f3e;
-}
-[data-xs-badge][data-xs-lvl='themed']::after {
-  background: rgba(80, 180, 160, 0.16);
-  color: #5fb8a6;
 }
 [data-xs-badge][data-xs-lvl='mid']::after {
   background: rgba(230, 170, 50, 0.16);

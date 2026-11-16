@@ -38,8 +38,10 @@ html[data-xs-on] div.rounded-full:has(> form[role='search']) {
   border-radius: var(--xs-search-radius, 9999px) !important;
 }
 
-html[data-xs-on] article div.rounded-md.overflow-hidden:has(img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[data-xs-src], video) {
+/* (each tile of a carousel, or of photos side by side, is its own box) */
+html[data-xs-on] article :is(div.rounded-md, div.rounded-sm.snap-center).overflow-hidden:has(img[src*='pbs.twimg.com/media/'], img[src*='video_thumb'], img[data-xs-src], video) {
   border-radius: var(--xs-media-radius, 16px) !important;
+  corner-shape: round !important; /* X's squircle makes the radius you set look about half as big */
 }
 html[data-xs-on] main div[class*='aspect-[3/1]'] {
   border-radius: var(--xs-banner-radius, 0px) !important;
@@ -57,6 +59,10 @@ html[data-xs-calm] .bg-btn-primary {
 }
 html[data-xs-calm] .border-plum-500 {
   border-color: var(--xs-border) !important;
+}
+/* X's red buttons (Unfollow, Delete) keep its white text: the theme's softer light is weak on that red */
+html[data-xs-theme] .bg-btn-destructive.text-on-color {
+  color: #fff !important;
 }
 html[data-xs-calm] .text-plum-500 {
   color: var(--xs-muted) !important;
@@ -106,10 +112,16 @@ html[data-xs-noborders] [role='dialog']:has(img[src*='pbs.twimg.com/media/'], vi
   border-color: transparent !important;
 }
 
-/* Rounded hover shape for posts (with No borders: it would cut the separators short) */
-html[data-xs-rounded][data-xs-noborders] main [role='link'][data-href*='/status/']:not([role='link'] [role='link']) {
+/* Rounded hover shape for posts (with No borders: it would cut the separators short); inset, but
+   what's in it stays put (the opened post and the composer aren't inset: no zigzag, straight thread line).
+   Not a quoted post's frame (it clips its content), and a carousel bleeds only to the shape's edges. */
+html[data-xs-rounded][data-xs-noborders] main [role='link'][data-href*='/status/']:not([role='link'] [role='link'], [data-slot='embedded-tweet-frame']) {
   border-radius: 16px;
   margin-inline: 6px;
+}
+html[data-xs-rounded][data-xs-noborders] main [role='link'][data-href*='/status/']:not([role='link'] [role='link'], [data-slot='embedded-tweet-frame']) > article {
+  margin-inline: -6px;
+  --media-overhang-end: calc(var(--spacing-horizontal) - 6px);
 }
 /* …and the same for the "Show N posts" bar */
 html[data-xs-rounded][data-xs-noborders] main button[class*='--media-overhang-start'] {
@@ -131,7 +143,9 @@ html[data-xs-upsells] a[href^='/i/verified']:not(nav a) {
 }
 
 /* Grok: floating button (bottom right; an open Grok window stays), "Explain this post" in post
-   headers, Grok links in posts. The left-menu item and the Grok page are left alone. */
+   headers, Grok links in posts, a profile's summary button in its top bar. The left-menu item and the
+   Grok page are left alone. */
+html[data-xs-no-grok] main div.sticky > button:has(> span > svg[data-icon='icon-logo-grok']),
 html[data-xs-no-grok] main :is(article, [data-href*='/status/']) a[href='/i/grok'],
 html[data-xs-no-grok] main :is(article, [data-href*='/status/']) a[href^='/i/grok?'],
 html[data-xs-no-grok] [data-slot='xds-dock-window'][data-closed]:has([data-icon='icon-logo-grok']),
@@ -148,6 +162,11 @@ html[data-xs-no-chat-button] [data-slot='xds-dock-window'][data-closed]:has([dat
 html[data-xs-sidebar] section:not(main section):has(a[href^='/i/trending/']),
 html[data-xs-sidebar] section:not(main section):has(> a[href='/explore']),
 html[data-xs-sidebar] section:not(main section):has([data-who-to-follow]) {
+  display: none !important;
+}
+/* the right column's search box (Explore's own is in the main column) and X's footer links */
+html[data-xs-search-box] aside div:has(> div > form[role='search']),
+html[data-xs-footer] aside nav:has(a[href*='/tos']) {
   display: none !important;
 }
 

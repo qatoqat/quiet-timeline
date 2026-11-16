@@ -9,6 +9,7 @@ import { ensureContourFilters, initMedia } from './media';
 import { initSide } from './side';
 import { applyNavVisibility, initPage } from './page';
 import { schedule, scan, clearAll, initScan } from './scan';
+import { initRestore } from './restore';
 
 const PANEL_ORIGIN = new URL(chrome.runtime.getURL('')).origin;
 let panel: HTMLIFrameElement | null = null;
@@ -39,12 +40,18 @@ function togglePanel(): void {
     },
     togglePanel,
     scanNow: scan,
+    get myHandle() {
+      return st.myHandle;
+    },
+    get allow() {
+      return [...st.allow];
+    },
     processOne: (r: HTMLElement) => processPost(r, pageCtx()),
   },
 };
 
 const DECLUTTER_FLAGS: Record<string, keyof Settings['declutter']> = {
-  upsells: 'upsells', sidebar: 'sidebar', logo: 'logo', navicons: 'navIcons', 'profile-top': 'profileTop',
+  upsells: 'upsells', sidebar: 'sidebar', 'search-box': 'searchBox', footer: 'footer', logo: 'logo', navicons: 'navIcons', 'profile-top': 'profileTop',
   'narrow-tabs': 'narrowTabs', noborders: 'borders', rounded: 'rounded', 'solid-bars': 'solidBars',
   'no-grok': 'grokButtons', 'no-chat-button': 'chatButton', 'views-inline': 'viewsInline',
 };
@@ -89,6 +96,7 @@ initPage();
 initMedia();
 initSide();
 initScan();
+initRestore();
 
 window.addEventListener('message', (e) => {
   if (e.origin !== PANEL_ORIGIN || !panel || e.source !== panel.contentWindow || !e.data) return;

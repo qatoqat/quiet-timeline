@@ -82,6 +82,7 @@ function tweetFrom(o: any): Tweet {
     userId: str(author && author.rest_id) || str(leg.user_id_str),
     createdMs: num(det.created_at_ms) ?? (Number.isFinite(legCreated) ? legCreated : snowflakeMs(o.rest_id)),
     replyTo: str(o.reply_to_results && o.reply_to_results.rest_id) || str(leg.in_reply_to_status_id_str) || null,
+    replyToUser: str(o.reply_to_user_results && o.reply_to_user_results.rest_id) || str(leg.in_reply_to_user_id_str) || null,
     text: str(note && note.text) || str(det.full_text) || str(leg.full_text) || '',
     isRetweet: !!(o.retweeted_status_results || o.retweeted_status_result || leg.retweeted_status_result),
     copiedFrom: copiedSource(o),
@@ -89,10 +90,23 @@ function tweetFrom(o: any): Tweet {
   };
 }
 
+// The post a feed entry (or a conversation's item) is about, with X's feedback keys for it: X's ⋯ menu
+// offers "Not interested" only through these (a post shown for context, like the one a reply answers,
+// has none).
+function feedbackOf(v: any): { tweet: any; keys: string[] } | null {
+  const fb = v.feedback_info || v.feedbackInfo;
+  const keys = fb && (fb.feedback_keys || fb.feedbackKeys);
+  const holder = v.content || v.itemContent || v.item_content;
+  const res = holder && holder.tweet_results && holder.tweet_results.result;
+  return Array.isArray(keys) && keys.length && res ? { tweet: res.tweet || res, keys } : null;
+}
+
 export function extract(root: any): Extracted {
   const users: User[] = [];
   const tweets: Tweet[] = [];
   const ads: string[] = [];
+  const actions = new Map<string, any>(); // feedback key → action
+  const feedback: { tweet: any; keys: string[] }[] = [];
   const stack: any[] = [root];
   let n = 0;
   while (stack.length) {
@@ -108,6 +122,10 @@ export function extract(root: any): Extracted {
       const adId = r.rest_id || (r.tweet && r.tweet.rest_id);
       if (adId) ads.push(String(adId));
     }
+    const fb = feedbackOf(v);
+    if (fb) feedback.push(fb);
+    const acts = v.feedback_actions || v.feedbackActions;
+    if (Array.isArray(acts)) for (const a of acts) if (a && a.key && a.value) actions.set(a.key, a.value);
     if (v.__typename === 'User' && v.rest_id) {
       const u = userFrom(v);
       if (u) users.push(u);
@@ -119,7 +137,21 @@ export function extract(root: any): Extracted {
       if (x && typeof x === 'object') stack.push(x);
     }
   }
-  return { users, tweets, ads };
+  // "Not interested in this post" is X's DontLike action (a frowning face); a key without its action in
+  // this response counts too (all X sends at the top level is that one)
+  const ni: string[] = [];
+  const dontLike = (k: string) => {
+    const a = actions.get(k);
+    return !a || (a.feedback_type || a.feedbackType) === 'DontLike' || a.icon === 'Frown';
+  };
+  for (const { tweet, keys } of feedback) {
+    if (!keys.some(dontLike)) continue;
+    // a repost shows (and links) the original
+    const rt = tweet.retweeted_status_results || tweet.retweeted_status_result || (tweet.legacy && tweet.legacy.retweeted_status_result);
+    const orig = rt && rt.result && (rt.result.tweet || rt.result);
+    for (const t of [tweet, orig]) if (t && t.rest_id) ni.push(String(t.rest_id));
+  }
+  return { users, tweets, ads, ni };
 }
 
 // Server-rendered pages embed results as JS string literals holding JSON:
@@ -130,7 +162,8 @@ export function extractFromScript(text: string): Extracted {
   const users: User[] = [];
   const tweets: Tweet[] = [];
   const ads: string[] = [];
-  if (!text || text.indexOf('__typename') < 0) return { users, tweets, ads };
+  const ni: string[] = [];
+  if (!text || text.indexOf('__typename') < 0) return { users, tweets, ads, ni };
   for (const m of text.match(LITERAL) || []) {
     if (m.indexOf('__typename') < 0) continue;
     try {
@@ -138,7 +171,8 @@ export function extractFromScript(text: string): Extracted {
       users.push(...out.users);
       tweets.push(...out.tweets);
       ads.push(...out.ads);
+      ni.push(...out.ni);
     } catch (_) {}
   }
-  return { users, tweets, ads };
+  return { users, tweets, ads, ni };
 }

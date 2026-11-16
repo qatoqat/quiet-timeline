@@ -39,17 +39,6 @@ const SPAM_BIO = [
 // "🚨 BREAKING:", "JUST IN:" — the house style of engagement farms.
 const ALARM = /^\s*(?:🚨|‼️|❗|⚡️?|🔥)|\b(?:breaking|just in|holy sh\w*|this is huge)\b\s*[:!—–-]/iu;
 
-const STOP = new Set(
-  ('this that with from have they them their there what when where which while will would could should about ' +
-    'into just like your youre more most some than then were been being only also very much over such here ' +
-    'look love cute when after before again ever every always never really today video photo pics watch ' +
-    'make made know want need gonna wanna thats dont cant isnt doesnt didnt still because people thing things ' +
-    'good great best time year years week right back even well image images used under attribution credit ' +
-    'the and for you are but not all can has was his her one our out new now get got see how who why its too any ' +
-    'day way may own say she him let lol omg wow yes via did had off use two big old ' +
-    'top try let say per amp rt').split(/\s+/),
-);
-
 const EMOJI_ONLY = /^[\s\p{Extended_Pictographic}\p{Emoji_Component}\p{P}\p{S}]+$/u;
 
 const CREDIT =
@@ -72,55 +61,6 @@ export function nonOriginal(t: Tweet | null): string | null {
   if (t.copiedFrom) return t.copiedFrom === '?' ? 'copied media' : `media from @${t.copiedFrom}`;
   if (t.hasMedia && CREDIT.test(t.text || '')) return 'credited to someone else';
   return null;
-}
-
-const singular = (w: string) => (/(?:xes|ches|shes|sses)$/.test(w) ? w.slice(0, -2) : /[^s]s$/.test(w) && w.length > 4 ? w.slice(0, -1) : w);
-
-// Words (singular-ish) and emoji in a post; each counted once per post.
-export function topicTokens(text: string): Set<string> {
-  const out = new Set<string>();
-  const clean = cleanText(text).replace(/#/g, ' ');
-  for (const word of clean.match(/\p{L}{3,}/gu) || []) {
-    if (STOP.has(word)) continue;
-    const w = singular(word);
-    if (!STOP.has(w)) out.add(w);
-  }
-  for (const e of clean.match(/\p{Extended_Pictographic}/gu) || []) if (!/[❤♥🔥😂🤣😭👀💀✨🙏😍🥰👍]/u.test(e)) out.add(e);
-  return out;
-}
-
-// One topic dominating a media-heavy account (only capybaras, only foxes…).
-export function themeOf(row: TallyRow | undefined, u: User | null): { word: string; pct: number; inName: boolean } | null {
-  const wt = row?.wt ?? 0;
-  if (!row || !row.w || !(wt >= 5)) return null;
-  const total = row.o + row.n;
-  if (!total || row.m / total < 0.6) return null;
-  const handle = ((u && u.handle) || '').toLowerCase();
-  const name = ((u && u.name) || '').toLowerCase();
-  // "Capybara Nation", "pics_with_fox", "CapybaraLand"
-  const nameWords = new Set(
-    `${(u && u.handle) || ''} ${(u && u.name) || ''}`
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .toLowerCase()
-      .split(/[^\p{L}]+/u)
-      .map(singular),
-  );
-  const inNameOf = (word: string) =>
-    nameWords.has(word) ||
-    (word.length >= 3 && (handle.startsWith(word) || handle.endsWith(word))) ||
-    (word.length >= 5 && (handle + ' ' + name).includes(word));
-  const mediaHeavy = row.m / total >= 0.75;
-  let best: { word: string; pct: number; inName: boolean; rank: number } | null = null;
-  for (const [word, c] of Object.entries(row.w)) {
-    const pct = c / wt;
-    if (word === handle) continue; // brands mention themselves (NASA…)
-    const inName = inNameOf(word);
-    // A topic in the account's own name needs less evidence: such accounts often post captions that never name it.
-    const ok = (c >= 3 && pct >= 0.6) || (inName && c >= 3 && pct >= 0.25) || (inName && mediaHeavy && c >= 2 && pct >= 0.1);
-    const rank = pct + (inName ? 0.5 : 0);
-    if (ok && (!best || rank > best.rank)) best = { word, pct, inName, rank };
-  }
-  return best && { word: best.word, pct: Math.round(best.pct * 100), inName: best.inName };
 }
 
 export function scoreTweet(u: User | null, t: Tweet | null, ctx: ScoreCtx, s: Settings): { score: number; reasons: string[] } {

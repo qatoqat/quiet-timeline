@@ -37,12 +37,13 @@ if (flag('--old')) {
   await c.send('Page.navigate', { url: `https://x.com${opt('--url')}` });
   await sleep(9000);
 }
-// let lazily rendered posts and the extension settle: wait for action bars, scroll a little
+// let lazily rendered posts and the extension settle: wait for action bars, scroll a little, and back
+// up in steps (X re-creates posts above the screen then, and they're laid out there)
 await ev(`(async () => {
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   for (let i = 0; i < 40 && !document.querySelector('article [role="group"] :is([data-testid="bookmark"], [data-engagement-action="bookmark"])') && document.querySelector('article'); i++) await wait(250);
-  for (let i = 0; i < 3; i++) { scrollBy(0, 900); await wait(700); }
-  scrollTo(0, 0);
+  for (let i = 0; i < 4; i++) { scrollBy(0, 900); await wait(700); }
+  while (scrollY > 0) { scrollBy(0, -900); await wait(500); }
   await wait(1500);
 })()`);
 
@@ -87,9 +88,12 @@ async function hoverCheck(S: any): Promise<Result[]> {
   const ok = (S.mediaHover ? over === 'none' : over !== 'none') && away !== 'none';
   return [[name, ok ? 'pass' : 'fail', `over: ${over.slice(0, 32)} · away: ${away.slice(0, 32)}`]];
 }
+// you, people you follow, the Never-filter list: never marked
+const trusted = () =>
+  ev(`[XS._debug.myHandle, ...XS._debug.allow, ...[...XS._debug.users.values()].filter((u) => u.followedByMe).map((u) => u.handle)].filter(Boolean).map((h) => h.toLowerCase())`, ctx!);
 const run = async (S: any, deep: boolean): Promise<Result[]> =>
   [...(await ev(`(async () => {
-    const K = (${kit})(${JSON.stringify(S)}, ${JSON.stringify(NAV_ITEMS)}, ${JSON.stringify(S.theme.preset === 'off' ? null : S.theme.preset === 'custom' ? S.theme.custom : PRESETS[S.theme.preset])});
+    const K = (${kit})(${JSON.stringify(S)}, ${JSON.stringify(NAV_ITEMS)}, ${JSON.stringify(S.theme.preset === 'off' ? null : S.theme.preset === 'custom' ? S.theme.custom : PRESETS[S.theme.preset])}, ${JSON.stringify(await trusted())});
     if (!K.S.enabled) (${offChecks})(K);
     else { await (${postChecks})(K, ${deep}); await (${pageChecks})(K, ${deep}); }
     return [['app', 'info', (K.OLD ? 'old' : 'new') + ' app at ' + location.pathname], ...K.out];
@@ -164,7 +168,8 @@ const bail = async (msg: string) => {
   await restore().catch(() => console.error('COULD NOT RESTORE SETTINGS — saved copy:', JSON.stringify(stored)));
   process.exit(2);
 };
-process.on('SIGINT', () => bail('interrupted'));
+// a stopped run (Ctrl-C, `timeout`, a task stop) puts your settings back too
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) process.on(sig, () => bail(`stopped (${sig})`));
 setTimeout(() => bail('timed out'), todo.length * 15000 + 60000).unref();
 
 console.log(`${todo.length} variants`);

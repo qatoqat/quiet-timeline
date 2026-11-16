@@ -28,7 +28,6 @@
       <select data-path="bot.scope"><option value="replies">Replies</option><option value="all">All posts</option></select></div>
     <div class="row"><span>Score ≥ <input type="number" min="1" max="100" data-path="bot.high" /></span><select data-path="bot.highAction" class="action"></select></div>
     <div class="row"><span>Score ≥ <input type="number" min="1" max="100" data-path="bot.mid" /></span><select data-path="bot.midAction" class="action"></select></div>
-    <label class="tg" title="Hover a badge for the reasons"><input type="checkbox" data-path="bot.badges" /> Score badges</label>
   </section>
 
   <section data-tab="filter">
@@ -50,13 +49,21 @@
   <section data-tab="filter">
     <h2>Reposters</h2>
     <div class="grid2">
-      <label class="tg" title="Tag reposters, aggregators and your list: accounts that mostly repost or post others' media"><input type="checkbox" data-path="repost.mark" /> Tag ♻</label>
       <label class="tg" title="High-volume, mostly-media accounts"><input type="checkbox" data-path="repost.aggregators" /> Aggregators</label>
-      <label class="tg" title="Single-topic media accounts (◎ capybara…)"><input type="checkbox" data-path="repost.themed" /> Single-topic ◎</label>
     </div>
     <div class="row"><span>Reposter at ≥ <input type="number" min="10" max="100" data-path="repost.ratio" /> % of ≥ <input type="number" min="1" max="50" data-path="repost.minPosts" /> posts</span></div>
     <div class="row"><span>Aggregator at ≥ <input type="number" min="5" max="500" data-path="repost.aggPerDay" /> posts/day</span></div>
     <textarea data-path="repost.list" rows="2" placeholder="Always reposters: @handle, one per line"></textarea>
+  </section>
+
+  <section data-tab="filter">
+    <h2 title="After names · hover one for the reasons · never on you or people you follow">Marks</h2>
+    <div class="grid2">
+      <label class="tg" title="Bot / engagement-farmer score"><input type="checkbox" data-path="marks.score" /> Score</label>
+      <label class="tg" title="Accounts that mostly repost or post others' media (♻ 92%)"><input type="checkbox" data-path="marks.reposter" /> ♻ Reposter %</label>
+      <label class="tg" title="Needs Aggregators (Reposters)"><input type="checkbox" data-path="marks.aggregator" data-needs="repost.aggregators" /> ♻ Aggregator</label>
+      <label class="tg" title="Accounts on your reposter list"><input type="checkbox" data-path="marks.list" /> ♻ Your list</label>
+    </div>
   </section>
 
   <section data-tab="filter">
@@ -69,7 +76,6 @@
     <div class="row" title="Reposters, and posts whose media is copied or credited to someone else"><span>Reposters</span><select data-path="repost.media" class="media"></select></div>
     <div class="row" title="Replies from accounts you don't follow"><span>Replies</span><select data-path="replies.media" class="media"></select></div>
     <div class="grid2">
-      <label class="tg" title="Needs Filter › Single-topic ◎"><input type="checkbox" data-path="repost.themedMedia" data-needs="repost.themed" /> Also single-topic</label>
       <label class="tg" title="Reposters' videos play only when you click"><input type="checkbox" data-path="repost.noAutoplay" /> No autoplay</label>
       <label class="tg" title="Blurred media shows while the pointer is on it; a click shows it for good"><input type="checkbox" data-path="mediaHover" /> Show on hover</label>
     </div>
@@ -127,7 +133,9 @@
     <div class="grid2">
       <label class="tg" title="No see-through blur behind feed tabs / profile header"><input type="checkbox" data-path="declutter.solidBars" /> Solid top bar</label>
       <label class="tg" title="The active tab's underline"><input type="checkbox" data-path="declutter.narrowTabs" /> Short tab line</label>
-      <label class="tg" title="Trends and Who to follow"><input type="checkbox" data-path="declutter.sidebar" /> Hide trends</label>
+      <label class="tg" title="News, trends and Who to follow in the right column"><input type="checkbox" data-path="declutter.sidebar" /> Hide trends</label>
+      <label class="tg" title="The right column's search box (Explore's own stays)"><input type="checkbox" data-path="declutter.searchBox" /> Hide search</label>
+      <label class="tg" title="Terms, Privacy, Cookies… under the right column"><input type="checkbox" data-path="declutter.footer" /> Hide footer</label>
     </div>
   </section>
 
@@ -136,7 +144,7 @@
     <div class="grid2">
       <label class="tg" title="Promoted posts"><input type="checkbox" data-path="declutter.ads" /> Ads</label>
       <label class="tg" title="Premium and verification upsells"><input type="checkbox" data-path="declutter.upsells" /> Upsells</label>
-      <label class="tg" title="Floating button and 'Explain this post'"><input type="checkbox" data-path="declutter.grokButtons" /> Grok buttons</label>
+      <label class="tg" title="Floating button, 'Explain this post' and a profile's summary button"><input type="checkbox" data-path="declutter.grokButtons" /> Grok buttons</label>
       <label class="tg" title="Floating chat button (bottom right)"><input type="checkbox" data-path="declutter.chatButton" /> Chat button</label>
       <label class="tg" title="Premium, 2FA, app and notification nags"><input type="checkbox" data-path="declutter.popups" /> Nag popups</label>
     </div>

@@ -4,6 +4,7 @@ import { rmSync, statSync } from 'node:fs';
 const root = new URL('..', import.meta.url).pathname;
 const out = `${root}build`;
 const release = process.argv.includes('--release'); // no source maps
+const readable = process.argv.includes('--readable'); // not minified (profiling)
 const entries: [string, string][] = [
   ['src/hook/index.ts', 'hook.js'],
   ['src/content/index.ts', 'content.js'],
@@ -21,7 +22,7 @@ for (const [src, name] of entries) {
     outdir: out,
     naming: name,
     target: 'browser',
-    minify: true,
+    minify: !readable,
     ...(js ? { format: 'iife' as const, sourcemap: release ? ('none' as const) : ('linked' as const) } : {}),
   });
   if (!r.success) {

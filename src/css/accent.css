@@ -11,10 +11,19 @@ html[data-xs-accent-follow][data-xs-accent-follow] :is(button.bg-btn-primary[ari
 html[data-xs-accent-post][data-xs-accent-post] [data-testid='SideNav_NewTweet_Button']::before {
   background: var(--qt-on-accent, #fff) !important;
 }
-/* disabled (empty composer): a muted accent, not faded */
+/* disabled (empty composer): a muted accent, not faded (the old app fades the button's box) */
 html[data-xs-accent-post][data-xs-accent-post] :is(main button.bg-btn-primary:not([aria-label]):disabled, [data-testid='tweetButtonInline'][aria-disabled='true'], [data-testid='tweetButton'][aria-disabled='true']) {
   background-color: color-mix(in srgb, var(--qt-accent, var(--xs-accent)) 45%, var(--xs-bg, #15171b)) !important;
   opacity: 1 !important;
+}
+html[data-xs-accent-post][data-xs-accent-post] div:has(> :is([data-testid='tweetButtonInline'], [data-testid='tweetButton'])[aria-disabled='true']) {
+  opacity: 1 !important;
+}
+/* …and the theme's text on it: that fill is mostly page (the accent's own text, dark on yellow, orange and
+   green, suits only the full accent) */
+html[data-xs-accent-post][data-xs-accent-post] :is(main button.bg-btn-primary:not([aria-label]):disabled, [data-testid='tweetButtonInline'][aria-disabled='true'], [data-testid='tweetButton'][aria-disabled='true']),
+html[data-xs-accent-post][data-xs-accent-post] :is(main button.bg-btn-primary:not([aria-label]):disabled, [data-testid='tweetButtonInline'][aria-disabled='true'], [data-testid='tweetButton'][aria-disabled='true']) :is(span, div, svg) {
+  color: var(--xs-text, #e3e5e9) !important;
 }
 html[data-xs-accent-post][data-xs-accent-post] :is(a.bg-btn-primary[href^='/compose/post'], [data-testid='SideNav_NewTweet_Button'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']):hover,
 html[data-xs-accent-follow][data-xs-accent-follow] :is(button.bg-btn-primary[aria-label*='@'], [data-testid$='-follow']):hover {

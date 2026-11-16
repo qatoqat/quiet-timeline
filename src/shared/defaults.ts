@@ -40,7 +40,6 @@ export const DEFAULTS = {
     highAction: 'collapse',
     mid: 35,
     midAction: 'dim',
-    badges: true,
   },
   paid: {
     replyAction: 'dim',
@@ -74,21 +73,27 @@ export const DEFAULTS = {
     custom: { ...PRESETS.graphite },
   },
   repost: {
-    mark: true,
     media: 'blur', // 'none' | 'blur' | 'unload' | 'hide'
     noAutoplay: true,
     minPosts: 4,
     ratio: 50, // % non-original to count as a reposter
     aggregators: true,
     aggPerDay: 30, // lifetime average posts/day
-    themed: true,
-    themedMedia: true,
     list: '',
+  },
+  // Marks after names (hover one for the reasons), one switch each; never on you or accounts you follow
+  marks: {
+    score: true, // bot / farmer score
+    reposter: true, // ♻ 92%: share of seen posts that are reposts or others' content
+    aggregator: true, // ♻ aggregator
+    list: true, // ♻ marked: on your reposter list
   },
   declutter: {
     upsells: true,
     ads: true,
     sidebar: false,
+    searchBox: false,
+    footer: false,
     logo: true,
     popups: true,
     navIcons: true,

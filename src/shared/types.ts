@@ -22,6 +22,7 @@ export interface Tweet {
   userId?: string;
   createdMs: number | null;
   replyTo: string | null;
+  replyToUser?: string | null; // whose post it answers
   text: string;
   isRetweet: boolean;
   copiedFrom: string | null;
@@ -32,6 +33,7 @@ export interface Extracted {
   users: User[];
   tweets: Tweet[];
   ads: string[];
+  ni: string[]; // posts X's ⋯ menu offers "Not interested" on
 }
 
 export interface TallyRow {
@@ -39,9 +41,6 @@ export interface TallyRow {
   n: number;
   m: number;
   r?: number;
-  w?: Record<string, number>;
-  wt?: number;
-  wv?: number;
   ids: string[];
 }
 

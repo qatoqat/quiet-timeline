@@ -18,8 +18,10 @@ article[data-xs-pfp]:not(:hover) [data-testid='Tweet-User-Avatar'] [data-testid^
   filter: var(--qt-pfp-blur) !important;
   transform: scale(1.6);
 }
-/* the Grok button in post headers, by its logo (its label is in X's language) */
+/* the Grok button in post headers and a profile's summary button in its top bar, by its logo (its
+   label is in X's language) */
 html[data-xs-no-grok] [data-testid='GrokDrawer'],
+html[data-xs-no-grok] [data-testid='primaryColumn'] .r-1e5uvyk button:has(svg path[d^='M12.745 20.54l10.97-8.19']),
 html[data-xs-no-grok] article[data-testid='tweet'] div:has(> button svg path[d^='M12.745 20.54l10.97-8.19']),
 html[data-xs-no-grok] article[data-testid='tweet'] button:has(svg path[d^='M12.745 20.54l10.97-8.19']) {
   display: none !important;
@@ -30,7 +32,15 @@ html[data-xs-no-chat-button] [data-testid='chat-drawer-root'] {
 html[data-xs-logo] header[role='banner'] h1:has(a[aria-label='X']) {
   display: none !important;
 }
-html[data-xs-sidebar] [data-testid='sidebarColumn'] :is(section, div[aria-label]):has([data-testid='trend'], [data-testid='UserCell']) {
+/* right column: news, trends and who to follow. Their blocks sit beside the search box and the footer
+   (switches of their own) inside one labelled wrapper, so only blocks holding neither go */
+html[data-xs-sidebar] [data-testid='sidebarColumn'] div:has([data-testid='trend'], [data-testid='UserCell'], [data-testid='news_sidebar']):not(:has(form[role='search'], nav a[href*='/tos'])) {
+  display: none !important;
+}
+/* the search box's block and the empty one holding its place */
+html[data-xs-search-box] [data-testid='sidebarColumn'] div:has(form[role='search']):not(:has(nav, section, aside)),
+html[data-xs-search-box] [data-testid='sidebarColumn'] div:has(form[role='search']):not(:has(nav, section, aside)) + div:empty,
+html[data-xs-footer] [data-testid='sidebarColumn'] div:has(> nav a[href*='/tos']) {
   display: none !important;
 }
 html[data-xs-upsells] [data-testid='sidebarColumn'] :is(aside, .r-1867qdf):has(a[href^='/i/premium']),
@@ -45,7 +55,7 @@ html[data-xs-noborders] [data-testid='primaryColumn'] {
   border-left-color: transparent !important;
   border-right-color: transparent !important;
 }
-html[data-xs-noborders] [data-testid='primaryColumn'] :is(div, section):not(article *, [role='dialog'] *),
+html[data-xs-noborders] [data-testid='primaryColumn'] :is(div, section):not(article *, [role='dialog'] *, form[role='search'] *),
 /* one-sided lines inside posts too (e.g. around the stats and "Relevant /
    View quotes" on a post page): X's border-top / border-bottom utility classes;
    quoted posts use an all-sides border and keep it */
@@ -57,13 +67,10 @@ html[data-xs-noborders] [data-testid='primaryColumn'] :is(.r-qklmqi, .r-5kkj8d) 
 html[data-xs-noborders] [data-testid='primaryColumn'] div.r-109y4c4:empty {
   background-color: transparent !important;
 }
-html[data-xs-rounded][data-xs-noborders] [data-testid='cellInnerDiv'] article[data-testid='tweet'] {
-  border-radius: 16px;
-}
+/* an inset hover shape, clipped: what's in the cell stays in X's column, lined up with the composer (and on
+   a post page with the reply composer, which shares the opened post's cell) */
 html[data-xs-rounded][data-xs-noborders] [data-testid='cellInnerDiv'] > div:has(article[data-testid='tweet']) {
-  margin-inline: 6px;
-  border-radius: 16px;
-  overflow: hidden;
+  clip-path: inset(0 6px round 16px);
 }
 html[data-xs-on] [data-testid='sidebarColumn'] .r-1867qdf {
   border-radius: var(--xs-card-radius, 16px) !important;
@@ -72,7 +79,9 @@ html[data-xs-on] form[role='search'] .r-sdzlij,
 html[data-xs-on] form[role='search'] .r-sdzlij * {
   border-radius: var(--xs-search-radius, 9999px) !important;
 }
-html[data-xs-on] article .r-1867qdf:has([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid='videoComponent']) {
+/* (each tile of a carousel, or of photos side by side, is its own box) */
+html[data-xs-on] article .r-1867qdf:has([data-testid='tweetPhoto'], [data-testid='videoPlayer'], [data-testid='videoComponent']),
+html[data-xs-on] article [data-testid='ScrollSnap-List'] > div > div {
   border-radius: var(--xs-media-radius, 16px) !important;
 }
 html[data-xs-on] a[href$='/header_photo'] {
@@ -82,21 +91,25 @@ html[data-xs-on] a[href$='/header_photo'] {
 html[data-xs-on] :is([data-testid='Dropdown'][role='menu'], div:has(> [data-testid='Dropdown'][role='menu'])) {
   border-radius: var(--xs-menu-radius, 12px) !important;
 }
-/* the page's own background (set by scan.ts), not a theme color: right on X's light and dim too */
-html[data-xs-solid-bars] [data-testid='primaryColumn'] .r-5zmot {
+/* the page's own background (set by scan.ts), not a theme color: right on X's light and dim too.
+   (X's translucent background class differs per display mode, its blur's doesn't) */
+html[data-xs-solid-bars] [data-testid='primaryColumn'] :is(.r-5zmot, .r-1e5uvyk) {
   backdrop-filter: none !important;
   background-color: var(--xs-bg, var(--qt-page-bg, rgb(0, 0, 0))) !important;
 }
 /* icon-only menu: narrow the left column, hide labels, round Post button */
 html[data-xs-navicons] header[role='banner'] > div,
 html[data-xs-navicons] header[role='banner'] > div > div,
-html[data-xs-navicons] header[role='banner'] > div > div > div,
-html[data-xs-navicons] header[role='banner'] > div > div > div > div {
+html[data-xs-navicons] header[role='banner'] > div > div > div {
   width: 88px !important;
+  /* no horizontal scrollbar from the scrolling one. Only these: inside, a badge sticks out of its icon */
+  overflow-x: clip !important;
 }
-/* (a padded wrapper made its content overflow → horizontal scrollbar) */
-html[data-xs-navicons] header[role='banner'] div {
-  overflow-x: clip !important; /* not 'hidden': that turns vertical overflow into a scrollbar */
+/* the blocks in the (padded) scroller fill its content box: centered, and narrower when it shows a
+   scrollbar instead of running under it */
+html[data-xs-navicons] header[role='banner'] > div > div > div > div {
+  width: 100% !important;
+  overflow-x: clip !important;
 }
 html[data-xs-navicons] header[role='banner'] div:has(> [data-testid='SideNav_NewTweet_Button']) {
   width: 100% !important;
@@ -111,9 +124,11 @@ html[data-xs-navicons] header[role='banner'] nav :is(a, button) > div > div:nth-
 html[data-xs-navicons] [data-testid='SideNav_AccountSwitcher_Button'] > :not(:first-child) {
   display: none !important;
 }
+/* just the avatar: a round highlight like the other items' (on a wide screen X stretches it) */
 html[data-xs-navicons] [data-testid='SideNav_AccountSwitcher_Button'] {
   justify-content: center !important;
-  padding-inline: 0 !important;
+  align-self: center !important;
+  padding: 6px !important;
 }
 html[data-xs-navicons] [data-testid='SideNav_NewTweet_Button'] {
   margin-inline: auto !important;
@@ -167,6 +182,15 @@ article[data-xs-side-bm] [role='group'] > div:has(:is([data-testid='bookmark'], 
 article[data-xs-side-bm] [role='group'] > div:has(svg path[d^='M12 2.59l5.7']) {
   top: calc(var(--xs-stack-top, 68px) + var(--qt-ni-slot, 0px) + 36px);
 }
+article[data-xs-side-bm] [role='group']::after {
+  content: '';
+  flex: none;
+  width: var(--xs-bar-room, 0px);
+}
+/* the thread line to a reply below goes around them (a quoted post's avatar is followed by its name) */
+article[data-xs-side-bm] [data-testid='Tweet-User-Avatar'] + div:empty {
+  mask-image: linear-gradient(#000 var(--xs-line-from), transparent var(--xs-line-from) var(--xs-line-to), #000 var(--xs-line-to));
+}
 /* calm: no bright white buttons */
 html[data-xs-calm] :is([data-testid='SideNav_NewTweet_Button'], [data-testid$='-follow'], [data-testid='tweetButtonInline'], [data-testid='tweetButton']) {
   background-color: var(--xs-surface, #1d2026) !important;
@@ -177,6 +201,11 @@ html[data-xs-calm] :is([data-testid='SideNav_NewTweet_Button'], [data-testid$='-
 }
 html[data-xs-calm] [data-testid='SideNav_NewTweet_Button']::before {
   background: var(--xs-text, #e3e5e9);
+}
+/* …and the buttons of a profile's row outlined like it: ⋯, message, Subscribe (its plum is a plain border:
+   color.ts), the bell, Following or a pending request (Following keeps its red on hover) */
+html[data-xs-calm] [data-testid='primaryColumn'] div:has(> [data-testid='userActions']) :is(button, [role='button']):not([data-testid$='-unfollow']:hover) {
+  border-color: var(--xs-border, #2c3038) !important;
 }
 
 /* the view count after the date, in the date's own look */
@@ -208,8 +237,9 @@ html[data-xs-calm] header[role='banner'] nav :is(a, button):hover svg,
 html[data-xs-calm] [data-testid='toolBar'] :is([role='button'], button):hover svg {
   color: var(--xs-text, #e3e5e9) !important;
 }
-html[data-xs-calm] :is([data-testid='tweetButtonInline'], [data-testid='tweetButton'])[aria-disabled='true'] {
-  opacity: 1 !important;
+html[data-xs-calm] :is([data-testid='tweetButtonInline'], [data-testid='tweetButton'])[aria-disabled='true'],
+html[data-xs-calm] div:has(> :is([data-testid='tweetButtonInline'], [data-testid='tweetButton'])[aria-disabled='true']) {
+  opacity: 1 !important; /* (X fades the button's box) */
 }
 html[data-xs-soft] [data-testid='primaryColumn'] .r-b88u0q {
   font-weight: 600 !important;

@@ -1,5 +1,5 @@
-import { appOf, isRoot, POST } from '../apps';
-import { setData } from './state';
+import { ANY_MEDIA, appOf, isRoot, POST } from '../apps';
+import { niIds, setData } from './state';
 
 export const stop = (e: Event): void => {
   e.preventDefault();
@@ -51,6 +51,24 @@ const unwatch = (el: Element) => {
   watched.delete(el);
 };
 
+// Many photos come as a carousel that reaches under the avatar (both apps): the bottom of its scroller from
+// the article's top, 0 if the post has none there. (A quoted post's carousel stays inside the quote.) Two
+// photos that fit sit in the same scroller but never scroll, so they don't count.
+function underAvatarMedia(article: HTMLElement, avRight: number, arTop: number): number {
+  let bottom = 0;
+  const seen = new Set<Element>();
+  for (const m of article.querySelectorAll(ANY_MEDIA)) {
+    for (let e = m.parentElement; e && e !== article && !seen.has(e); e = e.parentElement) {
+      seen.add(e);
+      if (!/auto|scroll/.test(getComputedStyle(e).overflowX) || e.scrollWidth <= e.clientWidth + 1) continue;
+      const b = e.getBoundingClientRect();
+      if (b.left < avRight) bottom = Math.max(bottom, b.bottom - arTop);
+      break;
+    }
+  }
+  return bottom;
+}
+
 export function layoutSide(root: HTMLElement): void {
   const A = appOf(root);
   const article = root.dataset.xsWantBm ? A.article(root) : null;
@@ -64,14 +82,29 @@ export function layoutSide(root: HTMLElement): void {
   }
   let room = 0;
   const avr = av && av.getBoundingClientRect();
+  // the room the moved buttons take in the action bar, measured while they're still in it: the bar keeps
+  // it (css), so its other icons line up with other posts' (old app: bookmark and share are a cell each)
+  if (bm && !root.dataset.xsSideBm) {
+    const cells = (A.buttonsRelative ? [bm, bm.nextElementSibling] : [bm]).filter(Boolean) as Element[];
+    // (one spacer stands in for them: the bar's gaps between them count too)
+    const gap = parseFloat(getComputedStyle(bm.parentElement!).columnGap) || 0;
+    const w = cells.reduce((s, c) => {
+      const cs = getComputedStyle(c);
+      return s + c.getBoundingClientRect().width + parseFloat(cs.marginLeft) + parseFloat(cs.marginRight);
+    }, (cells.length - 1) * gap);
+    if (w) article.style.setProperty('--xs-bar-room', `${Math.round(w)}px`);
+  }
   if (bm && avr && avr.height) {
     // (a collapsed post hides its avatar.) Relative to the article's box: offsetTop would count from
     // whichever ancestor is positioned
     const ar = article.getBoundingClientRect();
     const avBottom = Math.round(avr.bottom - ar.top);
     const firstBlock = A.blocks(article, root).map((el) => Math.round(el.getBoundingClientRect().top - ar.top)).sort((x, y) => x - y)[0];
-    // Line the stack up with media / a quoted post when it starts right below the avatar.
-    const top = firstBlock !== undefined && firstBlock >= avBottom && firstBlock <= avBottom + 42 ? firstBlock : avBottom + 12;
+    // Line the stack up with media / a quoted post when it starts right below the avatar; below a
+    // carousel reaching under the avatar.
+    let top = firstBlock !== undefined && firstBlock >= avBottom && firstBlock <= avBottom + 42 ? firstBlock : avBottom + 12;
+    const carousel = underAvatarMedia(article, avr.right, ar.top);
+    if (carousel) top = Math.max(top, Math.round(carousel) + 8);
     room = Math.floor((ar.height - top) / SLOT);
     if (room >= 2) {
       // old app: nearly everything is position:relative, so shift by the buttons' container offset
@@ -85,6 +118,13 @@ export function layoutSide(root: HTMLElement): void {
       }
       article.style.setProperty('--xs-side-left', `${Math.round(avr.left + avr.width / 2 - ar.left - SLOT / 2) - dx}px`);
       article.style.setProperty('--xs-stack-top', `${top - dy}px`);
+      // A thread line from the avatar down to a reply is cut where the buttons are, in its own box
+      // (css). It starts just below the avatar; X may add it after this layout.
+      const lr = av!.nextElementSibling?.getBoundingClientRect();
+      const lineTop = lr && lr.width && lr.width <= 4 ? Math.round(lr.top - ar.top) : avBottom + 4;
+      const shown = (ni && room >= 3 ? 3 : 2) * SLOT;
+      article.style.setProperty('--xs-line-from', `${top - lineTop}px`);
+      article.style.setProperty('--xs-line-to', `${top + shown - lineTop}px`);
     }
   }
   setData(root, 'xsSideBm', room >= 2 && '1');
@@ -103,7 +143,8 @@ async function notInterested(btn: HTMLElement): Promise<void> {
   niBusy = true;
   setTimeout(() => (niBusy = false), 1500);
   const article = btn.closest<HTMLElement>('article')!;
-  const A = appOf(btn.closest(POST)!);
+  const root = btn.closest<HTMLElement>(POST)!;
+  const A = appOf(root);
   const more = A.moreButton(article);
   if (!more) return;
   // Keep the menu invisible while we use it (it still opens and loads normally).
@@ -131,7 +172,14 @@ async function notInterested(btn: HTMLElement): Promise<void> {
     item.dispatchEvent(new PointerEvent('pointerup', { ...o, buttons: 0 }));
     item.dispatchEvent(new MouseEvent('mouseup', { ...o, buttons: 0 }));
     item.dispatchEvent(new MouseEvent('click', { ...o, buttons: 0 }));
-  } else if (menu) A.closeMenu(menu);
+  } else if (menu) {
+    A.closeMenu(menu);
+    // X doesn't offer it on this post after all: drop the button
+    const info = A.read(root);
+    if (info) niIds.delete(info.id);
+    btn.closest('.qt-ni-cell')?.remove();
+    layoutSide(root);
+  }
   setTimeout(() => html.removeAttribute('data-xs-menu-busy'), 400);
   setTimeout(() => document.activeElement && (document.activeElement as HTMLElement).blur(), 50); // no lingering focus ring
 }
